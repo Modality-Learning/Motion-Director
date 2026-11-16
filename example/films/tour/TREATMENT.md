@@ -31,8 +31,10 @@ ball that bounces, so there is always something moving to point at and to put so
     typed, Enter, and a green "Sent to Claude" badge.
   - **Picked up:** the camera pulls back while the pointer stays put. The note lands in Claude's chat on its
     own, marked as from the studio, and a count appears on the comments chevron.
-  - **Edit:** Claude works for a beat, replies, and the studio changes. The count clears as Claude marks it
-    done.
+  - **Claude does its thing:** while Claude works, a little magic over the thing that is about to change: Claude's
+    sparks circle it, a glow breathes round its edge, and a pill above it says "Claude does its thing".
+  - **Edit:** Claude replies, the sparks burst outward as the change lands in the studio, and the count clears
+    as Claude marks it done.
 - The first loop runs at full length so it reads. Each later loop is a little quicker, but never skips a
   part.
 - Colour only where it means something: amber for a hit point and the open-comments count, the data colours

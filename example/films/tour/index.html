@@ -175,6 +175,14 @@
 .ch-u b { font-weight: 600; }
 /* a note that arrived from the studio by itself, not typed here */
 .ch-n { background: #FFFFFF; border: 1px solid rgba(28,31,36,.14); box-shadow: 0 6px 18px -10px rgba(20,22,28,.35); }
+/* while Claude works: sparks circle what is changing, under a pill saying so; they burst when the change lands */
+.magic { z-index: 7; pointer-events: none; }
+.magic .ring { position: absolute; inset: -8px; border-radius: 16px; box-shadow: 0 0 0 2.5px rgba(217,119,87,.8), 0 0 46px 6px rgba(217,119,87,.35), inset 0 0 40px rgba(217,119,87,.12); }
+.magic .pill { position: absolute; left: 50%; top: -64px; transform-origin: 50% 100%; white-space: nowrap; display: flex; align-items: center; gap: 10px;
+  padding: 11px 22px 11px 16px; border-radius: 999px; background: #D97757; color: #FFFFFF; font: 600 24px/1 var(--font-ui); letter-spacing: -.01em; box-shadow: 0 14px 34px -12px rgba(217,119,87,.9); }
+.magic .pill svg { width: 24px; height: 24px; }
+.magic.inside .pill { top: auto; bottom: -66px; transform-origin: 50% 0; }
+.magic .sp { position: absolute; left: 0; top: 0; width: 30px; height: 30px; margin: -15px 0 0 -15px; filter: drop-shadow(0 0 8px rgba(217,119,87,.6)); }
 .from { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #8A8679; margin-bottom: 6px; }
 .from svg { width: 15px; height: 15px; }
 .ch-a { max-width: 96%; font-size: 20px; line-height: 1.4; }
@@ -404,6 +412,11 @@ function setInsp(k) { if (insp.dataset.k !== k) { insp.innerHTML = INSP[k]; insp
 const pick = el('div', 'a pick', '<span class="tag"></span>', studio), pickTag = pick.querySelector('.tag');
 const cbox = el('div', 'a cbox', `<div class="ct" id="cbT"></div><div id="cbBody"></div>`, studio);
 const cbBody = cbox.querySelector('#cbBody'), cbT = cbox.querySelector('#cbT');
+const STAR = '<path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" fill="#D97757"/>';
+const magic = el('div', 'a magic', `<div class="ring"></div><div class="pill"><svg viewBox="0 0 24 24">${STAR.replace('#D97757', '#FFFFFF')}</svg>Claude does its thing</div>`, studio);
+const sparks = Array.from({ length: 7 }, (_, j) => el('svg', 'sp', null, magic));
+sparks.forEach((n, j) => { n.outerHTML = `<svg class="sp" data-j="${j}" viewBox="0 0 24 24">${STAR}</svg>`; });
+const sparkEls = [...magic.querySelectorAll('.sp')];
 
 /* export: the app UI check, the render form and the renders list */
 const xp = PANE.exp;
@@ -428,16 +441,16 @@ const note = (lines) => lines.map(([k, v], i) => `<p>${i === 0 ? `<b>${v}</b>` :
 const HEAD = 'Motion Director comment on "Hello, motion."';
 /* each loop: what is pointed at (studio px, the box it frames), the comment, the note it makes, Claude's reply */
 const LOOPS = [
-  { b: B.l1, tab: 'vibe', at: { x: SLOT.x + 186, y: 64 + SLOT.y + 100 }, box: { x: SLOT.x, y: 64 + SLOT.y, w: SLOT.w, h: SLOT.h }, tag: 'image pin  soft-shadow.png', title: 'Vibe · soft-shadow.png',
+  { b: B.l1, tab: 'vibe', at: { x: SLOT.x + 186, y: 64 + SLOT.y + 100 }, box: { x: SLOT.x, y: 64 + SLOT.y, w: SLOT.w, h: SLOT.h }, change: { x: colX(1), y: 64 + 104, w: 3 * 388 - 16, h: 520 }, tag: 'image pin  soft-shadow.png', title: 'Vibe · soft-shadow.png',
     text: 'This soft shadow. Find a few snappy launch films like it.', note: [['', HEAD], ['Vibe:', 'films/hello/vibe.json (pin "soft-shadow")'], ['About:', 'the vibe board\'s image pin "soft-shadow.png" (Look)'], ['Comment:', 'This soft shadow. Find a few snappy launch films like it.']],
     work: 'Searching and editing vibe.json…', says: 'Added three launch films, the palette, a typeface and a note on motion, each with what to take from it.' },
-  { b: B.l2, tab: 'treat', at: { x: 330, y: 64 + 372 + 95 }, box: { x: 46, y: 64 + 372 + 64, w: 536, h: 52 }, tag: 'beat 1.2–3.5 s', title: 'Treatment · the beat at 1.2–3.5 s',
+  { b: B.l2, tab: 'treat', at: { x: 330, y: 64 + 372 + 95 }, box: { x: 46, y: 64 + 372 + 64, w: 536, h: 52 }, change: { x: 32, y: 64 + 372, w: 1100, h: 222 }, tag: 'beat 1.2–3.5 s', title: 'Treatment · the beat at 1.2–3.5 s',
     text: 'Make it three bounces, each lower than the last.', note: [['', HEAD], ['Treatment:', 'films/hello/TREATMENT.md'], ['About:', 'the beat at 1.2–3.5 s: "The ball falls in and bounces once."'], ['Comment:', 'Make it three bounces, each lower than the last.']],
     work: 'Editing TREATMENT.md and index.html…', says: 'Rewrote the beat and the ball\'s motion: it now lands three times, lower each time.' },
-  { b: B.l3, tab: 'edit', at: inFilm(585, 395), box: null, tag: '#ball  90 × 90', title: '#ball · 0:03.5',
+  { b: B.l3, tab: 'edit', at: inFilm(585, 395), box: null, change: { x: 290 + PF.x, y: 64 + PF.y, w: 960 * PF.k, h: 540 * PF.k }, tag: '#ball  90 × 90', title: '#ball · 0:03.5',
     text: 'Land the last bounce softer.', note: [['', HEAD], ['Film:', 'films/hello/index.html'], ['About:', '(#ball) at 0:03.5'], ['Comment:', 'Land the last bounce softer.']],
     work: 'Editing index.html…', says: 'Softened the last landing: it comes in sooner and lower.' },
-  { b: B.l4, tab: 'edit', at: { x: 290 + TLX(2.1) + 40, y: 64 + 456 + 88 + 40 + 20 }, box: { x: 290 + TLX(2.1) - 3, y: 64 + 456 + 88 + 40 + 2, w: BOUNCE.len * 180 + 6, h: 36 }, tag: 'clip  ball-bounce', title: 'ball-bounce · 0:02.1',
+  { b: B.l4, tab: 'edit', at: { x: 290 + TLX(2.1) + 40, y: 64 + 456 + 88 + 40 + 20 }, box: { x: 290 + TLX(2.1) - 3, y: 64 + 456 + 88 + 40 + 2, w: BOUNCE.len * 180 + 6, h: 36 }, change: { x: 290 + 150, y: 64 + 456 + 58, w: 830, h: 250 }, tag: 'clip  ball-bounce', title: 'ball-bounce · 0:02.1',
     text: 'Put this on every landing.', note: [['', HEAD], ['Film:', 'films/hello/index.html'], ['Sounds:', 'films/hello/sound.json (cue "ball-bounce")'], ['About:', 'ball-bounce on the sound timeline at 0:02.1'], ['Comment:', 'Put this on every landing.']],
     work: 'Editing sound.json…', says: 'Linked the bounce to the ball: one on each landing, so they follow it if the motion changes.' },
 ];
@@ -547,6 +560,7 @@ const KEYS = [
   { t: B.pins + 6 * B.pinGap + .6, name: 'The board filled', note: "Claude's edit: films, palette, type, a note." },
   { t: B.s2.in + 1.0, name: 'Step 2', note: 'Plan it out.' },
   { t: B.l2.enter + .9, name: 'Comment on a beat', note: 'The second beat: sent, and it lands in Claude\'s chat.' },
+  { t: B.l2.work + .5, name: 'Claude does its thing', note: 'Sparks circle the beat while Claude rewrites it.' },
   { t: B.rewrite[1] + .6, name: 'Beat rewritten', note: 'Three bounces, and its frame updated.' },
   { t: B.s3.in + 1.0, name: 'Step 3', note: 'Edit the motion.' },
   { t: B.play1[0] + 3.0, name: 'The film plays', note: 'The Edit tab, silent so far.' },
@@ -732,7 +746,8 @@ function drawStudio(t) {
     const bx = lp.box || { x: lp.at.x - 36, y: lp.at.y - 36, w: 72, h: 72 };
     Object.assign(pick.style, { left: bx.x + 'px', top: bx.y + 'px', width: bx.w + 'px', height: bx.h + 'px', borderWidth: frozen ? '3px' : '2px' }); pickTag.textContent = lp.tag;
   }
-  let cl = null; LOOPS.forEach((l) => { if (t >= l.b.click + .05 && t < l.b.enter + 2.6) cl = l; });
+  // the box closes once the note is on its way, so the change it asked for is in plain view
+  let cl = null; LOOPS.forEach((l) => { if (t >= l.b.click + .05 && t < l.b.send + .35) cl = l; });
   op(cbox, cl ? 1 : 0);
   if (cl) {
     const b = cl.b, cp = spring(t - b.click - .05), bx = cl.box || { x: cl.at.x - 36, y: cl.at.y - 36, w: 72, h: 72 };
@@ -756,8 +771,29 @@ function drawStudio(t) {
       cbBody.querySelector('.tick').style.strokeDashoffset = 16 * (1 - P(e, .18, .5, E.out));
       const p2 = P(e, .35, .65, E.out);
       b2.style.opacity = p2; b2.style.transform = `translateY(${(1 - p2) * -6}px)`;
-      cbBody.querySelector('.lbar i').style.transform = `scaleX(${1 - clamp(e / 2.6)})`;
+      cbBody.querySelector('.lbar i').style.transform = `scaleX(${1 - clamp(e / (b.send + .35 - b.enter))})`;
     }
+  }
+
+  /* the magic, while Claude does its thing: from the note landing in the chat until the change is in */
+  let mg = null; LOOPS.forEach((l) => { if (t >= l.b.send && t < l.b.apply + .7) mg = l; });
+  op(magic, mg ? fade(t, mg.b.send, mg.b.send + .3, mg.b.apply + .35, mg.b.apply + .7) : 0);
+  if (mg) {
+    const c = mg.change, b = mg.b, burst = P(t, b.apply, b.apply + .6, E.out), pin = spring(t - b.send - .1);
+    Object.assign(magic.style, { left: c.x + 'px', top: c.y + 'px', width: c.w + 'px', height: c.h + 'px' });
+    magic.classList.toggle('inside', c.y < 64 + 80); // no room above (the preview, under the top bar): the pill sits below
+    const pill = magic.querySelector('.pill');
+    pill.style.transform = `translateX(-50%) scale(${lerp(.6, 1, clamp(pin))}) translateY(${(1 - clamp(pin)) * 12}px)`;
+    // the ring breathes while Claude works, and flares as the change lands
+    magic.querySelector('.ring').style.opacity = .55 + .45 * Math.sin((t - b.send) * 5) ** 2 + burst * .5;
+    // sparks orbit the change's edge, then burst outward as it lands
+    const cx = c.w / 2, cy = c.h / 2, rx = c.w / 2 + 14, ry = c.h / 2 + 14;
+    sparkEls.forEach((n, j) => {
+      const a = (t - b.send) * 1.6 + j * (Math.PI * 2 / sparkEls.length), out = 1 + burst * .45;
+      const x = cx + Math.cos(a) * rx * out, y = cy + Math.sin(a) * ry * out, sc = (.7 + .35 * Math.sin((t - b.send) * 6 + j)) * (1 - burst * .6);
+      n.style.transform = `translate(${x}px,${y}px) rotate(${(t - b.send) * 90 + j * 40}deg) scale(${sc})`;
+      n.style.opacity = 1 - burst;
+    });
   }
 
   /* export: the check, back in step after Claude's reply; then the render */
