@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { TABS, isFilm, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
-const label = { storyboard: 'Storyboard', edit: 'Edit', export: 'Export' } as const;
+const label = { brief: 'Brief', edit: 'Edit', export: 'Export' } as const;
 
 /** The bar along the top: where you are, the save indicator and, while a piece is open, its tabs and comment mode. */
 export function TopBar() {
@@ -18,7 +18,7 @@ export function TopBar() {
   const commentMode = useStudio((s) => s.commentMode);
   const setCommentMode = useStudio((s) => s.setCommentMode);
   const work = route.view === 'work' && item ? route : null;
-  const canComment = !!work && work.kind === 'film' && (work.tab === 'storyboard' || work.tab === 'edit');
+  const canComment = !!work && work.kind === 'film' && (work.tab === 'brief' || work.tab === 'edit');
 
   return (
     <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b px-5 py-3.5">

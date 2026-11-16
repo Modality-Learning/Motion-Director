@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { post } from '@/lib/api';
 import { frameFor, onFilmMessage, tell, type FrameTab } from '@/lib/frames';
 import { fmtT } from '@/lib/format';
-import { useStudio } from '@/lib/store';
+import { frameOf, useStudio } from '@/lib/store';
 import { refForScope } from '@/features/params/params';
 
 /** Something on the Edit tab's timeline a comment is about. */
@@ -39,7 +39,8 @@ export function closeBox() {
   const ae = document.activeElement as HTMLElement | null;
   if (ae && document.getElementById('cbox')?.contains(ae)) ae.blur(); // so the next Esc reaches the shortcuts and leaves comment mode
   const { route } = useStudio.getState();
-  if (route.view === 'work' && (route.tab === 'storyboard' || route.tab === 'edit')) tell(route.tab, { type: 'commentDone' });
+  const f = route.view === 'work' ? frameOf(route.tab) : null;
+  if (f) tell(f, { type: 'commentDone' });
   useComments.setState({ open: false, pending: null, note: null });
 }
 
@@ -108,12 +109,12 @@ export function useCommentKeys() {
     const off = onFilmMessage((tab, m) => {
       const s = useStudio.getState();
       if (m.type === 'key') onKey(String(m.key));
-      else if (m.type === 'commentAt' && s.commentMode && s.route.view === 'work' && s.route.tab === tab) openBox(m as unknown as CommentAt, tab);
+      else if (m.type === 'commentAt' && s.commentMode && s.route.view === 'work' && frameOf(s.route.tab) === tab) openBox(m as unknown as CommentAt, tab);
     });
     // comment mode belongs to one preview at a time: the one on screen hears it, the one it left is told it's off
     let was: FrameTab | null = null;
     const sync = () => {
-      const s = useStudio.getState(), view = s.commentMode && s.route.view === 'work' && (s.route.tab === 'storyboard' || s.route.tab === 'edit') ? s.route.tab : null;
+      const s = useStudio.getState(), view = s.commentMode && s.route.view === 'work' ? frameOf(s.route.tab) : null;
       if (was && was !== view) tell(was, { type: 'commentMode', on: false });
       if (view && view !== was) tell(view, { type: 'commentMode', on: true });
       if (!view) closeBox();

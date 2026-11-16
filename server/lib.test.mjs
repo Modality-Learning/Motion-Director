@@ -114,6 +114,9 @@ test('a changed file says what an open studio should update', async () => {
   const { changeOf } = await import('./lib.mjs');
   assert.deepEqual(changeOf('films', 'tall/sound.json'), { type: 'sound', film: 'tall' });
   assert.deepEqual(changeOf('films', 'tall/film.json'), { type: 'piece', film: 'tall' });
+  assert.deepEqual(changeOf('films', 'tall/BRIEF.md'), { type: 'brief', film: 'tall' });
+  assert.deepEqual(changeOf('comps', 'logo/BRIEF.md'), { type: 'brief', comp: 'logo' });
+  assert.equal(changeOf('films', 'tall/notes/BRIEF.md'), null);
   assert.deepEqual(changeOf('films', 'tall/index.html'), { type: 'code', film: 'tall' });
   assert.deepEqual(changeOf('comps', 'logo-reveal/comp.json'), { type: 'piece', comp: 'logo-reveal' });
   assert.deepEqual(changeOf('comps', 'logo-reveal/logo.js'), { type: 'code', comp: 'logo-reveal' });

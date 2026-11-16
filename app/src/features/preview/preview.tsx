@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { pageBase } from '@/lib/api';
 import { forgetFrames, frameKey, loadFrame, onFilmMessage, registerFrame, tell, type FrameTab } from '@/lib/frames';
-import { useStudio, type Scope } from '@/lib/store';
+import { frameOf, useStudio, type Scope } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { focusScope } from '@/features/params/ParamsPanel';
 import { scopeLabels } from '@/features/params/params';
@@ -44,7 +44,7 @@ export function usePreviews() {
   useEffect(() => { forgetFrames(); lastEditTime = null; }, [key]);
   useEffect(() => {
     if (!catalog || !key) return;
-    if (tab === 'storyboard') loadPreview('storyboard');
+    if (tab === 'brief') loadPreview('storyboard');
     if (tab === 'edit') {
       // a preview already loaded catches up with the playhead (it moved while you were away)
       if (frameKey('edit') === key) { const t = useStudio.getState().playhead, at = lastEditTime; if (at == null || Math.abs(at - t) > 0.005) tell('edit', { type: 'seek', t }); }
@@ -56,13 +56,13 @@ export function usePreviews() {
     const s = useStudio.getState();
     if (m.type === 'ready') {
       useStudio.setState({ scopes: { ...s.scopes, [from]: (m.scopes as Scope[]) || [] } });
-      if (from === 'storyboard') tell('storyboard', { type: 'commentMode', on: s.commentMode && s.route.view === 'work' && s.route.tab === 'storyboard' });
+      if (from === 'storyboard') tell('storyboard', { type: 'commentMode', on: s.commentMode && s.route.view === 'work' && s.route.tab === 'brief' });
       if (from === 'edit') tell('edit', { type: 'labels', labels: scopeLabels() });
     } else if (m.type === 'time') {
       const t = m.t as number;
       if (from === 'edit') { lastEditTime = t; if (s.route.view === 'work' && s.route.tab === 'edit') s.setPlayhead(t); }
       useStudio.setState({ times: { ...s.times, [from]: t }, ...(from === 'storyboard' && m.key ? { boardKey: String(m.key) } : {}) });
-    } else if (m.type === 'pick' && s.route.view === 'work' && s.route.tab === from) focusScope(String(m.id));
+    } else if (m.type === 'pick' && s.route.view === 'work' && frameOf(s.route.tab) === from) focusScope(String(m.id));
   }), []);
 }
 let lastEditTime: number | null = null;

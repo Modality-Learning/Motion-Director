@@ -127,6 +127,15 @@ async function api(req, res, url) {
     // each sound measured (shape, brightness, busyness), cached until the file changes
     return json(res, 200, { analysis: await analyseLibrary(PROMO) });
   }
+  if (req.method === 'GET' && pathname === '/api/brief') {
+    // a film's or composition's treatment, BRIEF.md beside its page, as Claude wrote it (null when it has none)
+    const kind = url.searchParams.get('kind') === 'comp' ? 'comp' : 'film', name = url.searchParams.get('name');
+    const known = kind === 'film' ? films : listComps(PROMO, films);
+    if (!known.some((x) => x.name === name)) return json(res, 400, { error: 'Unknown film or composition' });
+    const file = join(PROMO, kind === 'film' ? 'films' : 'comps', name, 'BRIEF.md');
+    const text = await readFile(file, 'utf8').catch(() => null);
+    return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text });
+  }
   if (req.method === 'GET' && pathname === '/api/sound') {
     const film = films.find((f) => f.name === url.searchParams.get('film'));
     if (!film) return json(res, 400, { error: 'Unknown film' });

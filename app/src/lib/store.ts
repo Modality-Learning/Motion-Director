@@ -3,10 +3,12 @@
 import { create } from 'zustand';
 import { getJson, type Catalog, type Comp, type Film, type Job, type Kind } from './api';
 
-export type Tab = 'storyboard' | 'edit' | 'export';
-export const TABS: Record<Kind, Tab[]> = { film: ['storyboard', 'edit', 'export'], comp: ['storyboard', 'edit'] };
+export type Tab = 'brief' | 'edit' | 'export';
+export const TABS: Record<Kind, Tab[]> = { film: ['brief', 'edit', 'export'], comp: ['brief', 'edit'] };
 // the tabs Edit replaced, so old links still land in it
-const OLD_TABS: Record<string, Tab> = { parameters: 'edit', motion: 'edit', sound: 'edit' };
+const OLD_TABS: Record<string, Tab> = { parameters: 'edit', motion: 'edit', sound: 'edit', storyboard: 'brief' };
+/** The preview a tab shows: Brief has the storyboard, Edit the film itself; Export has none. */
+export const frameOf = (tab: Tab | undefined | null) => (tab === 'brief' ? 'storyboard' : tab === 'edit' ? 'edit' : null);
 
 export type Route =
   | { view: 'home'; lib: 'films' | 'comps' }
@@ -104,7 +106,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   },
   setCommentMode(on) {
     const r = get().route;
-    set({ commentMode: on && r.view === 'work' && r.kind === 'film' && (r.tab === 'storyboard' || r.tab === 'edit') });
+    set({ commentMode: on && r.view === 'work' && r.kind === 'film' && (r.tab === 'brief' || r.tab === 'edit') });
   },
   setSelection(selection) { set({ selection }); },
   setJobs(jobs) { set({ jobs }); },

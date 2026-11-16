@@ -102,6 +102,7 @@ export function filmOutputs(outDir, filmName) {
  * studio can follow edits made outside it (by an agent, an editor or another window) without a reload.
  * Returns { type, … } or null when nothing open depends on it.
  *   sound    a film's cue sheet               { film }
+ *   brief    a film's or composition's BRIEF.md (its treatment)   { film } | { comp }
  *   piece    a film's or composition's manifest (parameters, title)   { film } | { comp }
  *   code     a page, script or style a preview runs   { film } | { comp } | { kit: true }
  *   library  the sound library's settings
@@ -115,6 +116,7 @@ export function changeOf(where, rel) {
   const [piece] = parts, key = where === 'films' ? 'film' : where === 'comps' ? 'comp' : null;
   if (!key || piece.startsWith('_') || parts.length < 2) return null; // the template, or the folder itself
   if (parts.length === 2 && name === 'sound.json' && key === 'film') return { type: 'sound', film: piece };
+  if (parts.length === 2 && name === 'BRIEF.md') return { type: 'brief', [key]: piece };
   if (parts.length === 2 && name === (key === 'film' ? 'film.json' : 'comp.json')) return { type: 'piece', [key]: piece };
   return /\.(html|js|mjs|css|svg|png|jpg|jpeg|webp|woff2?|json)$/i.test(name) ? { type: 'code', [key]: piece } : null;
 }
