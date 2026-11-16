@@ -1,4 +1,4 @@
-// The beats of a brief: the table under its "Beats" heading, read into time ranges, so the storyboard can lay its
+// The beats of a treatment: the table under its "Beats" heading, read into time ranges, so the storyboard can lay its
 // frames out beside them (each frame in the beat its time falls in). Only a Time column is needed: a Title column
 // (on-screen titles) is optional, the first other column is what happens, and any more (Voice-over, Sound…) come
 // along under their own names.
@@ -6,7 +6,7 @@ import type { Block } from './markdown';
 
 export interface Beat { from: number; to: number; time: string; title: string; text: string; extra: { label: string; value: string }[] }
 
-/** A time as a brief writes it: "4.6", "4.6 s", "0:04.6", "1:02". */
+/** A time as a treatment writes it: "4.6", "4.6 s", "0:04.6", "1:02". */
 export function seconds(s: string): number | null {
   const v = s.trim().replace(/\s*s(ec(onds?)?)?$/i, '');
   const m = v.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/);
@@ -23,7 +23,7 @@ export function range(s: string): [number, number] | null {
 
 const plain = (s: string) => s.replace(/\*\*|__|`/g, '').replace(/(^|[^\w])[*_]([^*_]+)[*_](?=[^\w]|$)/g, '$1$2').trim();
 
-/** The brief's beats, or [] when it has no beats table (then the storyboard keeps its grid). Also says which
+/** The treatment's beats, or [] when it has no beats table (then the storyboard keeps its grid). Also says which
  * blocks the table was, so the document can leave them out where the storyboard shows them instead. */
 export function beatsOf(blocks: Block[]): { beats: Beat[]; at: number[] } {
   for (let i = 0; i < blocks.length; i++) {

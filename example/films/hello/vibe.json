@@ -1,0 +1,31 @@
+{
+  "pins": [
+    {
+      "id": "calm",
+      "kind": "note",
+      "group": "Motion",
+      "take": "One idea on screen at a time. Moves ease in and out; nothing cuts."
+    },
+    {
+      "id": "palette",
+      "kind": "colour",
+      "group": "Look",
+      "colours": ["#FFFFFF", "#ECECE6", "#1C1F24", "#63D3E6"],
+      "take": "A white stage, the brand's ink, and one accent: aqua, saved for the payoff."
+    },
+    {
+      "id": "inter",
+      "kind": "type",
+      "group": "Type",
+      "font": "Inter",
+      "sample": "One idea per line.",
+      "take": "Medium weight, tight tracking, one line per title."
+    },
+    {
+      "id": "one-card",
+      "kind": "note",
+      "group": "Look",
+      "take": "One card in the middle of the frame does the work; the title sits above it."
+    }
+  ]
+}

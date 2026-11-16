@@ -84,6 +84,32 @@ don't already have, and propose answers where you can:
 
 If the user's first message already covers this, don't ask again: go straight to the treatment.
 
+**Pin the references to the vibe board** as you get them, so the direction outlives the chat. The studio's
+**Vibe** tab shows the board, and the user adds to it there too (dropping or pasting images, pasting links,
+writing notes). It is `films/<name>/vibe.json`, with its images in `films/<name>/vibe/` (git leaves the images
+out by default; they are usually other people's work):
+
+```json
+{ "pins": [
+  { "id": "grid-paper", "kind": "image", "src": "vibe/grid.png", "group": "Look", "take": "Faint grid paper behind everything." },
+  { "id": "launch", "kind": "video", "url": "https://www.youtube.com/watch?v=…", "at": "0:42", "group": "Motion", "take": "The slow push into the card." },
+  { "id": "palette", "kind": "colour", "colours": ["#FFFFEB", "#1A1A1A"], "group": "Look", "take": "Cream and ink, nothing louder." },
+  { "id": "serif", "kind": "type", "font": "EB Garamond", "sample": "Don't type, just speak.", "group": "Type", "take": "Italic for the second half." },
+  { "id": "bed", "kind": "music", "sound": "Curious Groove.m4a", "group": "Sound", "take": "Light and curious, under everything." },
+  { "id": "calm", "kind": "note", "take": "One idea per screen; nothing hurries." } ] }
+```
+
+- Kinds: `image` (`src` in `vibe/`, or a `url`), `video` (`url`, and `at` for the moment that matters),
+  `link`, `music` (a `url`, or a `sound` from the library), `colour` (`colours`), `type` (`font`, `sample`),
+  `note`. `group` is optional (Look, Motion, Type, Sound…); `title` names a pin when its source doesn't.
+- **Every pin says what to take from it** (`take`): that is the direction. A pin with no take is a question
+  for the user, not a decision.
+- Save a screenshot the user pastes into the chat as an image pin only if you can write the file; otherwise
+  describe it in a note and ask them to drop it on the board. Look at the board's images before writing the
+  treatment, and read the pins they added since.
+- The studio checks the board on save (`motion-director` reports a bad pin by its id): ids are lower case
+  with hyphens, links are http or https.
+
 ## 2. Treatment
 
 Write the film in words and get it approved before making anything visual. Keep it short enough to read
@@ -100,9 +126,9 @@ in a minute:
 - **Product moments:** the real screens or interactions it shows, and where their source is.
 - **Ending.**
 
-Once it's approved, save it as `films/<name>/BRIEF.md` (a composition's in `comps/<name>/BRIEF.md`), so
+Once it's approved, save it as `films/<name>/TREATMENT.md` (a composition's in `comps/<name>/TREATMENT.md`), so
 the user, the studio's notes and a later session all work from the same story; keep it current when the
-story changes. The studio shows it to the user: the **Brief** tab puts it beside the storyboard and follows
+story changes. The studio shows it to the user: the **Treatment** tab puts it beside the storyboard and follows
 the file as you change it. So write it for them to read, in plain Markdown, in this shape:
 
 - A `#` title (the film's name and its one idea), one or two sentences on what it is, then bullets for
@@ -115,7 +141,7 @@ the file as you change it. So write it for them to read, in plain Markdown, in t
   fall in its time.
 - `## Hits`, `## Product moments` (when it shows real screens) and `## Ending`: a short paragraph or bullets.
 
-Use the beats' names and times the storyboard uses (the film's `KEYS`), so the brief and the stills line up
+Use the beats' names and times the storyboard uses (the film's `KEYS`), so the treatment and the stills line up
 side by side. Keep it to what the film is, not how it is built: no code, no file paths beyond its sources.
 
 ## 3. Keyframes and storyboard
@@ -134,8 +160,8 @@ notes say which film shows which pattern.
    screens and the titles right. Make the titles parameters, so the user can change their words.
 4. Run `motion-director board <name>` and read `out/<name>-board.png`: every key in one image. Check it
    against the treatment and principles 1, 3 and 8, and fix what's wrong. Repeat until it holds up.
-5. **Show the user the storyboard and get approval before animating**: the PNG, or the studio's Brief
-   tab, the brief beside the stills, where they can comment on a frame or an element in it. Changing a held state now costs one image;
+5. **Show the user the storyboard and get approval before animating**: the PNG, or the studio's Treatment
+   tab, the treatment beside the stills, where they can comment on a frame or an element in it. Changing a held state now costs one image;
    after animation it costs a rebuild.
 
 ## 4. Transitions pass
@@ -198,7 +224,8 @@ better from a library you have described.
 `motion-director studio` serves http://127.0.0.1:4321/studio/. Its home has tiles for the **Films** and the
 shared **Compositions**; each opens on these tabs (full detail in the package's README):
 
-- **Brief:** the brief (`BRIEF.md`, read as a document) beside the storyboard (every key as a still),
+- **Vibe:** the vibe board: the references, each with what to take from it (above, under Direction).
+- **Treatment:** the treatment (`TREATMENT.md`, read as a document) beside the storyboard (every key as a still),
   with the parameters of what's on screen. Where the user reads the story, approves the keyframes and
   comments on a whole frame or an element in it.
 - **Edit:** the working view.
@@ -219,19 +246,20 @@ an open studio without a reload (the preview reloads in place at the playhead). 
 user to reload; say what changed and where to look.
 
 When the user asks for a render or a storyboard they could take themselves, do it, then point them at
-the Export or Brief tab for next time. Renders made there land in `out/` as
+the Export or Treatment tab for next time. Renders made there land in `out/` as
 `<film>_<size>[_textured][_<codec>].<ext>`.
 
 ## Notes from the studio
 
 In comment mode (**C**, or Comment at the top right; a speech bubble follows the pointer) the user clicks
-what they mean, or selects text in the brief (in its document, or beside the storyboard's frames), and writes
+what they mean: a paragraph of the treatment (in its document, or beside the storyboard's frames), a pin on the vibe board, and writes
 the change. **Enter** copies a note, which they paste into the chat. Every note has the same
 shape, so you never have to guess what it is about:
 
 ```
 Motion Director comment on "<film title>"   (older notes: "Promo studio comment on")
-Brief: …/BRIEF.md                         only for text quoted from the brief
+Treatment: …/TREATMENT.md                 only for text quoted from the treatment
+Vibe: …/vibe.json (pin "palette")         only for a pin on the vibe board
 Film: films/<film>/index.html              the file to change (paths are from the top of the repository)
 Sounds: …/sound.json (cue "flap-3")        only for the timeline: where the clip lives, and its id
 Beats: the KEYS list in …/index.html       only for a beat
@@ -251,8 +279,9 @@ Comment: <what the user wants>
 | A clip | `gate-latch-click on the sound timeline at 0:11.7 (Track 12)` | The cue in `sound.json` by its id; follow [the sound design guide](SOUND.md) |
 | An object, a track or the timeline | `Summary panel on the sound timeline at 0:12.5` | The object's sounds, the track's, or that moment's |
 | A beat | `the "Into the summary" beat at 0:11.0 (its note)` | That key in `KEYS`: its timing, held state or note |
-| Text in the brief | `the brief's "Visual direction": "one continuous canvas"` | The brief first (`BRIEF.md`): change the words, then whatever in the film they describe; say if the film already differs |
-| Text beside a storyboard frame | `the beat at 9.4–16.2 s ("Give precise edits."): "the picker hops…"` | That beat in the brief and in the film: its row in the beats table, and the motion in that time range |
+| Text in the treatment | `the treatment's "Visual direction": "one continuous canvas"` | The treatment first (`TREATMENT.md`): change the words, then whatever in the film they describe; say if the film already differs |
+| Text beside a storyboard frame | `the beat at 9.4–16.2 s ("Give precise edits."): "the picker hops…"` | That beat in the treatment and in the film: its row in the beats table, and the motion in that time range |
+| A pin on the vibe board | `the vibe board's colour pin "Cream and ink, nothing louder." (Look)` | That pin in `vibe.json` (its take, or whether it stays), then the treatment's Visual direction and the film where they follow it |
 
 Then:
 

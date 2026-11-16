@@ -7,12 +7,13 @@
 // fixed lists, runs scripts with argument arrays (never a shell string), and only reveals files in out/.
 // Actions must come from the studio page itself (custom header + same origin), so other sites can't post here.
 import { createServer } from 'node:http';
-import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync, watch } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, watch, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, join, relative, sep } from 'node:path';
 import { PKG, loadConfig, projectRoot } from './project.mjs';
 import { TYPES, serveProject } from './static.mjs';
+import { imageName, validateVibe } from './vibe.mjs';
 import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, listComps, listFilms, planRender } from './lib.mjs';
 import { saveValues } from '../render/params.mjs';
 import { formatComment, logComment, validateComment } from './comments.mjs';
@@ -52,6 +53,15 @@ function announce(ev) {
 }
 for (const [where, dir] of [['films', join(PROMO, 'films')], ['comps', join(PROMO, 'comps')], ['kit', join(PROMO, 'kit')], ['kit', join(PKG, 'kit')], ['sounds', soundsDir(PROMO)]]) {
   try { watch(dir, { recursive: true }, (_, file) => { const ev = file && changeOf(where, file.toString()); if (ev) announce(ev); }); } catch { /* not there yet */ }
+}
+
+/* a piece's treatment file (TREATMENT.md, or an older BRIEF.md), its vibe board, and a file's version for saves */
+const treatmentFile = (dir) => (existsSync(join(dir, 'TREATMENT.md')) ? 'TREATMENT.md' : existsSync(join(dir, 'BRIEF.md')) ? 'BRIEF.md' : null);
+const fileVersion = (file) => { try { const st = statSync(file); return Math.round(st.mtimeMs) * 1000 + (st.size % 1000); } catch { return 0; } };
+function readVibe(dir) {
+  let doc; try { doc = JSON.parse(readFileSync(join(dir, 'vibe.json'), 'utf8')); } catch { return { vibe: { pins: [] } }; }
+  const v = validateVibe(doc);
+  return v.error ? { vibe: { pins: [] }, problem: v.error } : v; // a board Claude got wrong says so, rather than vanishing
 }
 
 const jobs = []; // newest last
@@ -134,14 +144,41 @@ async function api(req, res, url) {
     // each sound measured (shape, brightness, busyness), cached until the file changes
     return json(res, 200, { analysis: await analyseLibrary(PROMO) });
   }
-  if (req.method === 'GET' && pathname === '/api/brief') {
-    // a film's or composition's treatment, BRIEF.md beside its page, as Claude wrote it (null when it has none)
-    const kind = url.searchParams.get('kind') === 'comp' ? 'comp' : 'film', name = url.searchParams.get('name');
+  // a film's or composition's own files, by kind and name (both checked against what the project has)
+  const pieceOf = (q) => {
+    const kind = q.get('kind') === 'comp' ? 'comp' : 'film', name = q.get('name');
     const known = kind === 'film' ? films : listComps(PROMO, films);
-    if (!known.some((x) => x.name === name)) return json(res, 400, { error: 'Unknown film or composition' });
-    const file = join(PROMO, kind === 'film' ? 'films' : 'comps', name, 'BRIEF.md');
-    const text = await readFile(file, 'utf8').catch(() => null);
-    return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text });
+    return known.some((x) => x.name === name) ? { kind, name, dir: join(PROMO, kind === 'film' ? 'films' : 'comps', name) } : null;
+  };
+  if (req.method === 'GET' && pathname === '/api/treatment') {
+    // the film in words, TREATMENT.md beside its page as Claude wrote it (an older BRIEF.md if that's what there is)
+    const piece = pieceOf(url.searchParams);
+    if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
+    const file = treatmentFile(piece.dir), text = file ? await readFile(join(piece.dir, file), 'utf8').catch(() => null) : null;
+    return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text, file: file || 'TREATMENT.md' });
+  }
+  if (req.method === 'GET' && pathname === '/api/vibe') {
+    const piece = pieceOf(url.searchParams);
+    if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
+    return json(res, 200, { ...readVibe(piece.dir), version: fileVersion(join(piece.dir, 'vibe.json')) });
+  }
+  if (req.method === 'POST' && pathname === '/api/vibe/image') {
+    // an image dropped or pasted onto the board, streamed into vibe/ (never over a file already there)
+    const piece = pieceOf(url.searchParams);
+    if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
+    const dir = join(piece.dir, 'vibe');
+    mkdirSync(dir, { recursive: true });
+    const name = imageName(url.searchParams.get('file') || '', new Set(readdirSync(dir)));
+    if (!name) return json(res, 400, { error: 'Not an image (PNG, JPEG, WebP, GIF or AVIF)' });
+    const target = join(dir, name), part = `${target}.part`, out = createWriteStream(part);
+    let size = 0, tooBig = false;
+    await new Promise((done) => {
+      req.on('data', (c) => { size += c.length; if (size > 25 * 1024 * 1024) { tooBig = true; req.destroy(); out.destroy(); done(); } });
+      req.pipe(out); out.on('finish', done); out.on('error', done); req.on('error', done);
+    });
+    if (tooBig || !size) { rmSync(part, { force: true }); return json(res, 400, { error: tooBig ? 'Too large (25 MB at most)' : 'Empty file' }); }
+    renameSync(part, target);
+    return json(res, 200, { src: `vibe/${name}` });
   }
   if (req.method === 'GET' && pathname === '/api/sound') {
     const film = films.find((f) => f.name === url.searchParams.get('film'));
@@ -166,7 +203,7 @@ async function api(req, res, url) {
   }
 
   // a film's cue sheet can be longer than the other requests
-  const body = req.method === 'POST' ? await readBody(req, pathname === '/api/sound' ? 262_144 : 16_384).catch(() => null) : null;
+  const body = req.method === 'POST' ? await readBody(req, pathname === '/api/sound' || pathname === '/api/vibe' ? 262_144 : 16_384).catch(() => null) : null;
   if (req.method === 'POST' && body === null) return json(res, 400, { error: 'Bad request' });
 
   if (req.method === 'POST' && pathname === '/api/params') {
@@ -181,9 +218,30 @@ async function api(req, res, url) {
     // returns the note for the clipboard, and keeps a quiet log of it
     const v = validateComment(body, films);
     if (v.error) return json(res, 400, v);
-    const note = formatComment(v.comment, films.find((f) => f.name === v.comment.film), BASE);
+    const film = films.find((f) => f.name === v.comment.film);
+    const note = formatComment(v.comment, film, BASE, { treatment: treatmentFile(join(PROMO, 'films', film.name)) || 'TREATMENT.md', vibe: readVibe(join(PROMO, 'films', film.name)).vibe });
     logComment(OUT, v.comment, note);
     return json(res, 200, { note });
+  }
+  if (req.method === 'POST' && pathname === '/api/treatment/rename') {
+    // an older BRIEF.md becomes TREATMENT.md, the name the studio and the skill use now
+    const piece = pieceOf(new URLSearchParams({ kind: body.kind, name: body.name }));
+    if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
+    if (existsSync(join(piece.dir, 'TREATMENT.md'))) return json(res, 409, { error: 'There is a TREATMENT.md already' });
+    if (!existsSync(join(piece.dir, 'BRIEF.md'))) return json(res, 404, { error: 'No BRIEF.md to rename' });
+    renameSync(join(piece.dir, 'BRIEF.md'), join(piece.dir, 'TREATMENT.md'));
+    return json(res, 200, { file: 'TREATMENT.md' });
+  }
+  if (req.method === 'POST' && pathname === '/api/vibe') {
+    // the whole board, from the version this window loaded: a change made elsewhere meanwhile is never overwritten
+    const piece = pieceOf(new URLSearchParams({ kind: body.kind, name: body.name }));
+    if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
+    const file = join(piece.dir, 'vibe.json'), now = fileVersion(file);
+    if (body.base !== now) return json(res, 409, { error: 'changed elsewhere', version: now });
+    const v = validateVibe(body.vibe);
+    if (v.error) return json(res, 400, v);
+    writeFileSync(file, JSON.stringify(v.vibe, null, 2) + '\n');
+    return json(res, 200, { ...v, version: fileVersion(file) });
   }
   if (req.method === 'POST' && pathname === '/api/sound') {
     if (!films.some((f) => f.name === body.film)) return json(res, 400, { error: 'Unknown film' });

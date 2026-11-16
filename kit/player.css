@@ -109,7 +109,7 @@ html.board .viewport { position: absolute; left: -10000px; top: 0; width: 1920px
 .board-cell figcaption b { font-weight: 600; }
 .board-cell figcaption span { color: var(--page-muted); font-variant-numeric: tabular-nums; }
 .board-cell figcaption p { grid-column: 1 / -1; margin: 0; color: var(--page-muted); line-height: 1.4; }
-/* the storyboard beside the brief's beats: each beat's time above it, its words in a narrow column on the left,
+/* the storyboard beside the treatment's beats: each beat's time above it, its words in a narrow column on the left,
  * its frames as large as the rest of the width allows, one under another */
 .board-beats { display: grid; }
 .beat-row { display: grid; grid-template-columns: minmax(180px, 280px) minmax(0, 1fr); gap: 10px 32px; padding: 18px 0 26px; border-top: 1px solid var(--page-line); }
@@ -169,6 +169,6 @@ html.bare .controls, html.bare .scenes { display: none !important; }
 html.bare.hand .viewport, html.bare.hand .viewport * { cursor: grab !important; }
 html.bare.panning .viewport, html.bare.panning .viewport * { cursor: grabbing !important; }
 
-/* the brief's words beside the frames: in comment mode each paragraph is outlined as you point at it */
+/* the treatment's words beside the frames: in comment mode each paragraph is outlined as you point at it */
 html.commenting .beat-text h2, html.commenting .beat-text p { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 25V14a11 11 0 1 1 11 11Z' fill='%23ececee' stroke='%23111113' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 3 25, crosshair; border-radius: 4px; }
 html.commenting .beat-text .quote-hover { outline: 2px solid #6BE8D9; outline-offset: 4px; background: rgba(107, 232, 217, .08); }

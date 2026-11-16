@@ -3,12 +3,14 @@
 import { create } from 'zustand';
 import { getJson, type Catalog, type Comp, type Film, type Job, type Kind } from './api';
 
-export type Tab = 'brief' | 'edit' | 'export';
-export const TABS: Record<Kind, Tab[]> = { film: ['brief', 'edit', 'export'], comp: ['brief', 'edit'] };
+export type Tab = 'vibe' | 'treatment' | 'edit' | 'export';
+export const TABS: Record<Kind, Tab[]> = { film: ['vibe', 'treatment', 'edit', 'export'], comp: ['vibe', 'treatment', 'edit'] };
 // the tabs Edit replaced, so old links still land in it
-const OLD_TABS: Record<string, Tab> = { parameters: 'edit', motion: 'edit', sound: 'edit', storyboard: 'brief' };
-/** The preview a tab shows: Brief has the storyboard, Edit the film itself; Export has none. */
-export const frameOf = (tab: Tab | undefined | null) => (tab === 'brief' ? 'storyboard' : tab === 'edit' ? 'edit' : null);
+const OLD_TABS: Record<string, Tab> = { parameters: 'edit', motion: 'edit', sound: 'edit', storyboard: 'treatment', brief: 'treatment' };
+/** The tabs that take comments: the vibe board, the treatment and storyboard, and the edit. */
+export const commentable = (tab: Tab | undefined | null) => tab === 'vibe' || tab === 'treatment' || tab === 'edit';
+/** The preview a tab shows: Treatment has the storyboard, Edit the film itself; Export has none. */
+export const frameOf = (tab: Tab | undefined | null) => (tab === 'treatment' ? 'storyboard' : tab === 'edit' ? 'edit' : null);
 
 export type Route =
   | { view: 'home'; lib: 'films' | 'comps' }
@@ -106,7 +108,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   },
   setCommentMode(on) {
     const r = get().route;
-    set({ commentMode: on && r.view === 'work' && r.kind === 'film' && (r.tab === 'brief' || r.tab === 'edit') });
+    set({ commentMode: on && r.view === 'work' && r.kind === 'film' && commentable(r.tab) });
   },
   setSelection(selection) { set({ selection }); },
   setJobs(jobs) { set({ jobs }); },

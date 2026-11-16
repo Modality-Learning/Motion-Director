@@ -43,7 +43,8 @@ if (cmd === 'init') {
   for (const d of ['films', 'comps', 'sounds', 'kit', 'out']) mkdirSync(join(dir, d), { recursive: true });
   cpSync(join(PKG, 'templates', 'film'), join(dir, 'films', '_template'), { recursive: true });
   writeFileSync(join(dir, CONFIG), `// Motion Director project. See ${join(PKG, 'README.md')}.\nexport default {\n  name: '',\n  // checks: { drift: 'scripts/ui-drift.mjs' }, // your own check that a film's screens still match your app\n};\n`);
-  writeFileSync(join(dir, '.gitignore'), 'out/\n');
+  // a vibe board's images are usually other people's work: kept out of git, its vibe.json tracked
+  writeFileSync(join(dir, '.gitignore'), 'out/\nfilms/*/vibe/\ncomps/*/vibe/\n');
   writeFileSync(join(dir, 'sounds', '.gitignore'), '# your own sound files stay out of git; their settings (library.json) are tracked\n*\n!.gitignore\n!library.json\n!README.md\n');
   console.log(`New project in ${dir}. Copy films/_template to films/<name> to start a film, then: motion-director studio --root ${dir}`);
   process.exit(0);

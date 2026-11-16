@@ -44,7 +44,7 @@ export function usePreviews() {
   useEffect(() => { forgetFrames(); lastEditTime = null; }, [key]);
   useEffect(() => {
     if (!catalog || !key) return;
-    if (tab === 'brief') loadPreview('storyboard');
+    if (tab === 'treatment') loadPreview('storyboard');
     if (tab === 'edit') {
       // a preview already loaded catches up with the playhead (it moved while you were away)
       if (frameKey('edit') === key) { const t = useStudio.getState().playhead, at = lastEditTime; if (at == null || Math.abs(at - t) > 0.005) tell('edit', { type: 'seek', t }); }
@@ -56,7 +56,7 @@ export function usePreviews() {
     const s = useStudio.getState();
     if (m.type === 'ready') {
       useStudio.setState({ scopes: { ...s.scopes, [from]: (m.scopes as Scope[]) || [] } });
-      if (from === 'storyboard') tell('storyboard', { type: 'commentMode', on: s.commentMode && s.route.view === 'work' && s.route.tab === 'brief' });
+      if (from === 'storyboard') tell('storyboard', { type: 'commentMode', on: s.commentMode && s.route.view === 'work' && s.route.tab === 'treatment' });
       if (from === 'storyboard') tell('storyboard', { type: 'labels', labels: scopeLabels() }); // the picker names elements by their parameters
       if (from === 'edit') tell('edit', { type: 'labels', labels: scopeLabels() });
     } else if (m.type === 'time') {

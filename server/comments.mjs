@@ -14,9 +14,9 @@ export function validateComment(body, films) {
   if (!film) return { error: 'Unknown film' };
   const text = str(body.text, 2000);
   if (!text || !text.trim()) return { error: 'Write a comment first' };
-  // 'motion' is the old name of the Edit tab's preview, kept so older logs still read; 'brief' is text quoted from
-  // the brief, in its document or beside the storyboard's frames
-  const view = ['storyboard', 'motion', 'edit', 'brief'].includes(body.view) ? body.view : null;
+  // 'motion' is the old name of the Edit tab's preview, kept so older logs still read; 'treatment' is text quoted
+  // from the treatment, in its document or beside the storyboard's frames ('brief', its old name); 'vibe' a pin
+  const view = ['storyboard', 'motion', 'edit', 'treatment', 'brief', 'vibe'].includes(body.view) ? (body.view === 'brief' ? 'treatment' : body.view) : null;
   if (!view) return { error: 'Unknown view' };
   const t = typeof body.t === 'number' && Number.isFinite(body.t) && body.t >= 0 && body.t <= (film.duration ?? 3600) ? body.t : null;
   if (t === null) return { error: 'Bad time' };
@@ -24,8 +24,12 @@ export function validateComment(body, films) {
   // the target is an element with parameters, any other element (preview), or nothing (the frame or video)
   const tg = body.target;
   let target = null;
-  if (tg != null && tg.quote != null) {
-    // text selected in the brief: what was selected, and where (a section of the document, or a beat)
+  if (tg != null && tg.pin != null) {
+    // a pin on the vibe board, by its id
+    target = { pin: { id: str(tg.pin.id, 40) } };
+    if (!target.pin.id) return { error: 'Bad target' };
+  } else if (tg != null && tg.quote != null) {
+    // text in the treatment: what was selected, and where (a section of the document, or a beat)
     const q = tg.quote;
     target = { quote: { text: str(typeof q.text === 'string' ? q.text.replace(/\s+/g, ' ').trim() : null, 600), section: q.section == null ? null : str(q.section, 160), beat: q.beat == null ? null : { time: str(q.beat.time, 40), title: q.beat.title == null ? null : str(q.beat.title, 160) } } };
     if (!target.quote.text || (q.section != null && target.quote.section === null) || (q.beat != null && (!target.quote.beat.time || (q.beat.title != null && target.quote.beat.title === null)))) return { error: 'Bad target' };
@@ -45,15 +49,21 @@ export function validateComment(body, films) {
 }
 
 /** The comment as a note to paste into a chat with an agent. base is the project's folder from the top of its
- * repository ('' when the project is the repository). */
-export function formatComment(c, film, base = '') {
+ * repository ('' when the project is the repository); treatment is the film's treatment file (TREATMENT.md, or an
+ * older BRIEF.md), and vibe its board, to name a pin. */
+export function formatComment(c, film, base = '', { treatment = 'TREATMENT.md', vibe = null } = {}) {
   const time = `${Math.floor(c.t / 60)}:${(c.t % 60).toFixed(1).padStart(4, '0')}`;
   const tg = c.target, current = tg?.value ? `, currently "${tg.value.replace(/\n/g, ' / ')}"` : '';
   const dir = `${base ? `${base}/` : ''}films/${film.name}`;
   if (tg?.quote) {
     const q = tg.quote, plain = (s) => s.replace(/\*\*|__|`|(?<![\w*])[*_]|[*_](?![\w*])/g, '');
-    const where = q.beat ? `the beat at ${q.beat.time}${q.beat.title ? ` ("${plain(q.beat.title)}")` : ''}` : q.section ? `the brief's "${plain(q.section)}"` : 'the brief';
-    return [`Motion Director comment on "${film.title}"`, `Brief: ${dir}/BRIEF.md`, `Film: ${dir}/index.html`, `About: ${where}: "${q.text}"`, `Comment: ${c.text}`].join('\n');
+    const where = q.beat ? `the beat at ${q.beat.time}${q.beat.title ? ` ("${plain(q.beat.title)}")` : ''}` : q.section ? `the treatment's "${plain(q.section)}"` : 'the treatment';
+    return [`Motion Director comment on "${film.title}"`, `Treatment: ${dir}/${treatment}`, `Film: ${dir}/index.html`, `About: ${where}: "${q.text}"`, `Comment: ${c.text}`].join('\n');
+  }
+  if (tg?.pin) {
+    const pin = vibe?.pins?.find((x) => x.id === tg.pin.id), what = pin ? (pin.title || pin.font || pin.take || pin.url || pin.src || pin.sound || '') : '';
+    const short = what.length > 80 ? `${what.slice(0, 80)}…` : what;
+    return [`Motion Director comment on "${film.title}"`, `Vibe: ${dir}/vibe.json (pin "${tg.pin.id}")`, `About: the vibe board's ${pin ? `${pin.kind} pin` : 'pin'}${short ? ` "${short}"` : ''}${pin?.group ? ` (${pin.group})` : ''}`, `Comment: ${c.text}`].join('\n');
   }
   let about;
   if (c.view === 'storyboard') {

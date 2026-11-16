@@ -92,19 +92,19 @@ test('a timeline item must be a known kind with a name', () => {
 });
 
 test('text selected in the brief is quoted, with where it was: a section, or a beat beside the storyboard', () => {
-  const at = { film: 'tall', view: 'brief', frame: null, t: 9.4, text: 'Make this calmer.' };
+  const at = { film: 'tall', view: 'treatment', frame: null, t: 9.4, text: 'Make this calmer.' };
   const section = formatComment(validateComment({ ...at, target: { quote: { text: 'one   continuous canvas', section: 'Visual direction' } } }, FILMS).comment, FILMS[0], 'promo');
   const beat = formatComment(validateComment({ ...at, target: { quote: { text: 'the picker hops', beat: { time: '9.4–16.2 s', title: 'Give *precise* edits.' } } } }, FILMS).comment, FILMS[0]);
 
-  assert.match(section, /^Brief: promo\/films\/tall\/BRIEF\.md$/m);
-  assert.match(section, /^About: the brief's "Visual direction": "one continuous canvas"$/m);
-  assert.match(beat, /^Brief: films\/tall\/BRIEF\.md$/m); // a project at the top of its repository
+  assert.match(section, /^Treatment: promo\/films\/tall\/TREATMENT\.md$/m);
+  assert.match(section, /^About: the treatment's "Visual direction": "one continuous canvas"$/m);
+  assert.match(beat, /^Treatment: films\/tall\/TREATMENT\.md$/m); // a project at the top of its repository
   assert.match(beat, /^About: the beat at 9\.4–16\.2 s \("Give precise edits\."\): "the picker hops"$/m);
   assert.match(beat, /^Comment: Make this calmer\.$/m);
 });
 
 test('a quote needs its text, and keeps to its limits', () => {
-  const at = { film: 'tall', view: 'brief', frame: null, t: 0, text: 'x' };
+  const at = { film: 'tall', view: 'brief', frame: null, t: 0, text: 'x' }; // the old view name still reads
 
   assert.ok(validateComment({ ...at, target: { quote: { text: '   ' } } }, FILMS).error);
   assert.ok(validateComment({ ...at, target: { quote: { text: 'a'.repeat(601) } } }, FILMS).error);
@@ -117,4 +117,19 @@ test('any element on a storyboard frame: what it shows, its selector, and the fr
   const note = formatComment(validateComment({ ...at, target: { selector: '#chat > div.c-msg', text: 'Make me a launch animation.' } }, FILMS).comment, FILMS[0], 'promo');
 
   assert.match(note, /^About: "Make me a launch animation\." \(#chat > div\.c-msg\) in "Where to start" \(storyboard, 0:08\.2\)$/m);
+});
+
+test('an older BRIEF.md is named as it is', () => {
+  const c = validateComment({ film: 'tall', view: 'treatment', frame: null, t: 0, text: 'x', target: { quote: { text: 'y' } } }, FILMS).comment;
+  assert.match(formatComment(c, FILMS[0], 'promo', { treatment: 'BRIEF.md' }), /^Treatment: promo\/films\/tall\/BRIEF\.md$/m);
+});
+
+test('a pin on the vibe board: the board, the pin by its id, and what it is', () => {
+  const vibe = { pins: [{ id: 'grid', kind: 'image', src: 'vibe/grid.png', group: 'Look', take: 'Faint grid paper behind everything.' }] };
+  const c = validateComment({ film: 'tall', view: 'vibe', frame: null, t: 0, text: 'Less of this.', target: { pin: { id: 'grid' } } }, FILMS).comment;
+  const note = formatComment(c, FILMS[0], 'promo', { vibe });
+
+  assert.match(note, /^Vibe: promo\/films\/tall\/vibe\.json \(pin "grid"\)$/m);
+  assert.match(note, /^About: the vibe board's image pin "Faint grid paper behind everything\." \(Look\)$/m);
+  assert.match(note, /^Comment: Less of this\.$/m);
 });

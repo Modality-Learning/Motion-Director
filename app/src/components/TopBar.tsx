@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Hint } from '@/components/Hint';
 import { Kbd } from '@/components/Kbd';
-import { TABS, useOpenItem, useStudio } from '@/lib/store';
+import { TABS, commentable, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
-const label = { brief: 'Brief', edit: 'Edit', export: 'Export' } as const;
+const label = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' } as const;
 
 /** The bar along the top. Left: the name, and while a piece is open its tabs. Centre: where you are, from the project
  * (its name in motion-director.config.mjs) to the open film or composition. Right: the save indicator and comment mode. */
@@ -18,7 +18,7 @@ export function TopBar() {
   const commentMode = useStudio((s) => s.commentMode);
   const setCommentMode = useStudio((s) => s.setCommentMode);
   const work = route.view === 'work' && item ? route : null;
-  const canComment = !!work && work.kind === 'film' && (work.tab === 'brief' || work.tab === 'edit');
+  const canComment = !!work && work.kind === 'film' && commentable(work.tab);
   const crumb = 'text-muted-foreground no-underline hover:text-foreground hover:underline';
 
   return (

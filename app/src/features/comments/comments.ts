@@ -7,13 +7,13 @@ import { create } from 'zustand';
 import { post } from '@/lib/api';
 import { frameFor, onFilmMessage, tell, type FrameTab } from '@/lib/frames';
 import { fmtT } from '@/lib/format';
-import { frameOf, useStudio } from '@/lib/store';
+import { commentable, frameOf, useStudio } from '@/lib/store';
 import { refForScope } from '@/features/params/params';
 
 /** Something on the Edit tab's timeline a comment is about. */
 export interface TimelineItem { kind: 'clip' | 'object' | 'track' | 'beat' | 'timeline'; label: string; detail?: string; [k: string]: unknown }
 
-interface Pending { view: 'storyboard' | 'edit' | 'brief'; frame: string | null; t: number; target: Record<string, unknown> | null }
+interface Pending { view: 'storyboard' | 'edit' | 'treatment' | 'vibe'; frame: string | null; t: number; target: Record<string, unknown> | null }
 interface CommentState {
   open: boolean;
   title: string;
@@ -63,13 +63,20 @@ export function openBox(m: CommentAt, tab: FrameTab) {
   }
 }
 
-/** Text selected in the brief, in its document (a section) or beside the storyboard's frames (a beat). */
+/** Text in the treatment, in its document (a section) or beside the storyboard's frames (a beat). */
 export interface Quote { text: string; section?: string | null; beat?: { time: string; title: string | null } | null }
 export function openQuoteBox(quote: Quote, t: number, x: number, y: number) {
   if (!useStudio.getState().commentMode) return;
   const short = quote.text.length > 48 ? `${quote.text.slice(0, 48)}…` : quote.text;
-  const where = quote.beat ? quote.beat.time : quote.section || 'Brief';
-  showBox(x, y, `“${short}” · ${where}`, { view: 'brief', frame: null, t, target: { quote } });
+  const where = quote.beat ? quote.beat.time : quote.section || 'Treatment';
+  showBox(x, y, `“${short}” · ${where}`, { view: 'treatment', frame: null, t, target: { quote } });
+}
+
+/** A comment on a pin on the vibe board. */
+export function openPinBox(pin: { id: string; kind: string; label: string }, x: number, y: number) {
+  if (!useStudio.getState().commentMode) return;
+  const short = pin.label.length > 48 ? `${pin.label.slice(0, 48)}…` : pin.label;
+  showBox(x, y, `${short || pin.kind} · Vibe`, { view: 'vibe', frame: null, t: 0, target: { pin: { id: pin.id } } });
 }
 
 /** A comment on something on the Edit tab's timeline. */
@@ -131,13 +138,14 @@ export function useCommentKeys() {
     // comment mode belongs to one preview at a time: the one on screen hears it, the one it left is told it's off
     let was: FrameTab | null = null;
     const sync = () => {
-      const s = useStudio.getState(), view = s.commentMode && s.route.view === 'work' ? frameOf(s.route.tab) : null;
+      const s = useStudio.getState(), on = s.commentMode && s.route.view === 'work' && commentable(s.route.tab);
+      const view = on && s.route.view === 'work' ? frameOf(s.route.tab) : null; // the Vibe tab has no preview
       if (was && was !== view) tell(was, { type: 'commentMode', on: false });
       if (view && view !== was) tell(view, { type: 'commentMode', on: true });
-      if (!view) closeBox();
+      if (!on) closeBox();
       was = view;
       // what takes comments in the studio itself shows comment mode's cursor (index.css)
-      document.documentElement.classList.toggle('commenting', !!view);
+      document.documentElement.classList.toggle('commenting', on);
     };
     const unsub = useStudio.subscribe((s, p) => { if (s.commentMode !== p.commentMode || s.route !== p.route) sync(); });
     return () => { document.removeEventListener('keydown', down); off(); unsub(); };

@@ -1,7 +1,7 @@
-// A small Markdown reader for the documents Claude writes beside a film (BRIEF.md): headings, paragraphs,
+// A small Markdown reader for the documents Claude writes beside a film (TREATMENT.md): headings, paragraphs,
 // lists (nested by indent), tables, quotes, rules, and inline bold, italic, code and links. It builds React
 // elements, never HTML from the text, so whatever is in the file shows as text. Not a full CommonMark: what a
-// brief needs, read the way a person would write it.
+// treatment needs, read the way a person would write it.
 import { Fragment, type ReactNode } from 'react';
 
 export type Block =

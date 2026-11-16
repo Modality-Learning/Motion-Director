@@ -2,13 +2,13 @@
 // another window) reach every open studio page without a reload. Each event is classified by the server
 // (server/lib.mjs changeOf):
 //   sound    a film's cue sheet               { film, version }
-//   brief    a film's or composition's BRIEF.md   { film } | { comp }
+//   treatment  a film's or composition's TREATMENT.md (or an older BRIEF.md)   { film } | { comp }
 //   piece    a film's or composition's manifest   { film } | { comp }
 //   code     a page, script or style a preview runs   { film } | { comp } | { kit: true }
 //   library  the sound library's settings
 //   sounds   a sound file added, changed or removed
 
-export interface LiveEvent { type: 'sound' | 'brief' | 'piece' | 'code' | 'library' | 'sounds'; film?: string; comp?: string; kit?: boolean; version?: number }
+export interface LiveEvent { type: 'sound' | 'treatment' | 'vibe' | 'piece' | 'code' | 'library' | 'sounds'; film?: string; comp?: string; kit?: boolean; version?: number }
 
 const listeners = new Set<(ev: LiveEvent) => void>();
 let source: EventSource | null = null;

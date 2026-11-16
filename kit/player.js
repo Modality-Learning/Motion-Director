@@ -520,7 +520,7 @@
         document.addEventListener('mousemove', (e) => { if (commenting) showCommentTarget(commentTargetAt(e.clientX, e.clientY)); });
         document.addEventListener('mouseleave', () => showCommentTarget(null));
         document.addEventListener('scroll', () => { if (commenting && !frozen) showCommentTarget(null); }, { passive: true });
-        /* the brief's words beside the frames take comments too: in comment mode a paragraph (the beat's title, what
+        /* the treatment's words beside the frames take comments too: in comment mode a paragraph (the beat's title, what
          * happens, a voice-over line) is outlined as you point at it, and a click comments on it, quoting it with
          * its beat */
         const quoteAt = (e) => { const n = e.target?.closest?.('.beat-text h2, .beat-text p'); return n && n.closest('.beat-row') ? n : null; };
@@ -628,12 +628,12 @@
       }
       if (boardBeats) layoutBoard(boardBeats); else render(t);
     }
-    /* The brief's beats (the studio reads them from BRIEF.md and sends them): the frames are laid out beat by
+    /* The treatment's beats (the studio reads them from TREATMENT.md and sends them): the frames are laid out beat by
      * beat, each beat's time above it, its title and what happens on the left, and the frames whose time falls
      * in it on the right. Frames outside every beat get rows of their own; with no beats, the grid. The cells
      * are moved, not rebuilt, so clicking, comments and the selection carry on as before. */
     let boardBeats = null;
-    // a beat's title and text as the brief wrote them: **bold** and *italic* kept, everything else as text
+    // a beat's title and text as the treatment wrote them: **bold** and *italic* kept, everything else as text
     function inlineInto(node, text) {
       const re = /\*\*([^*]+)\*\*|(?<![\w*])[*_]([^*_]+)[*_](?![\w*])/g;
       let last = 0, m;
@@ -681,12 +681,12 @@
         row.__beat = r.beat;
         el('header', 'beat-time', null, row).textContent = r.to == null ? fmt(r.from) : `${fmt(r.from)} \u2013 ${fmt(r.to)}`;
         const txt = el('div', 'beat-text', null, row);
-        // its on-screen title when the brief gives one; otherwise the storyboard's names for its frames
+        // its on-screen title when the treatment gives one; otherwise the storyboard's names for its frames
         if (r.beat?.title) inlineInto(el('h2', null, null, txt), r.beat.title);
         else if (r.cells.length) el('h2', 'beat-name', null, txt).textContent = r.cells.map((c) => c.dataset.key).join(' \u00b7 ');
         if (r.beat?.text) inlineInto(el('p', null, null, txt), r.beat.text);
         for (const x of r.beat?.extra || []) { const p = el('p', 'beat-extra', null, txt); el('b', null, null, p).textContent = x.label; inlineInto(p, ` ${x.value}`); }
-        if (!r.beat) el('p', 'beat-none', null, txt).textContent = 'Not in a beat of the brief.';
+        if (!r.beat) el('p', 'beat-none', null, txt).textContent = 'Not in a beat of the treatment.';
         const frames = el('div', 'beat-frames', null, row);
         if (r.cells.length) r.cells.forEach((c) => frames.appendChild(c));
         else el('p', 'beat-none', null, frames).textContent = 'No storyboard frame in this beat yet.';

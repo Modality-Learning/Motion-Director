@@ -1,1 +1,4 @@
 out/
+# vibe boards keep their reference images out of git (usually other people's work); vibe.json is tracked
+films/*/vibe/
+comps/*/vibe/

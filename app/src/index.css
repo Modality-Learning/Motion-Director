@@ -108,8 +108,14 @@
   .col-resizing iframe { pointer-events: none; }
 }
 
-/* comment mode in the brief's document: each paragraph, item, heading or table row is outlined as you point at it */
+/* comment mode in the treatment's document: each paragraph, item, heading or table row is outlined as you point at it */
 @layer components {
-  .commenting article[aria-label=Brief] :is(p, li, h1, h2, h3, h4, tr, blockquote) { cursor: var(--comment-cursor); border-radius: 4px; }
-  .commenting article[aria-label=Brief] .quote-hover { outline: 2px solid var(--primary); outline-offset: 3px; background: color-mix(in oklab, var(--primary) 7%, transparent); }
+  .commenting article[aria-label=Treatment] :is(p, li, h1, h2, h3, h4, tr, blockquote) { cursor: var(--comment-cursor); border-radius: 4px; }
+  .commenting article[aria-label=Treatment] .quote-hover { outline: 2px solid var(--primary); outline-offset: 3px; background: color-mix(in oklab, var(--primary) 7%, transparent); }
+}
+
+/* comment mode on the vibe board: a pin is outlined as you point at it, and takes the comment */
+@layer components {
+  .commenting [data-pin], .commenting [data-pin] * { cursor: var(--comment-cursor) !important; }
+  .commenting [data-pin]:hover { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
