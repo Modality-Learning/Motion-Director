@@ -12,14 +12,16 @@ export type FrameName = FrameTab | 'sound' | 'motion';
 export interface FilmMessage { source: 'promo-film'; type: string; [k: string]: unknown }
 
 const frames: Partial<Record<FrameTab, HTMLIFrameElement | null>> = {};
-const keys: Partial<Record<FrameTab, string>> = {};
+// what each iframe has loaded, kept on the element: React re-runs a ref callback on every render (unregistering,
+// then registering the same iframe), and that must not forget what the iframe holds, or a changed film would never
+// reload into it. A new iframe has nothing loaded, so it loads fresh.
+const loaded = new WeakMap<HTMLIFrameElement, string>();
 const listeners = new Set<(tab: FrameTab, m: FilmMessage) => void>();
 
 const tabOf = (name: FrameName): FrameTab => (name === 'storyboard' ? 'storyboard' : 'edit');
 
 export function registerFrame(tab: FrameTab, el: HTMLIFrameElement | null) {
   frames[tab] = el;
-  if (!el) delete keys[tab];
 }
 export const frameFor = (name: FrameName) => frames[tabOf(name)] ?? null;
 
@@ -32,13 +34,13 @@ export function tell(name: FrameName, msg: Record<string, unknown>) {
 export function loadFrame(tab: FrameTab, key: string, src: string, force = false) {
   const f = frames[tab];
   if (!f) return false;
-  if (!force && keys[tab] === key) return false;
+  if (!force && loaded.get(f) === key) return false;
   f.src = src;
-  keys[tab] = key;
+  loaded.set(f, key);
   return true;
 }
-export const frameKey = (tab: FrameTab) => keys[tab] ?? null;
-export function forgetFrames() { delete keys.storyboard; delete keys.edit; }
+export const frameKey = (tab: FrameTab) => { const f = frames[tab]; return f ? loaded.get(f) ?? null : null; };
+export function forgetFrames() { for (const f of [frames.storyboard, frames.edit]) if (f) loaded.delete(f); }
 
 /** Every message from our own previews, with the preview it came from. */
 export function onFilmMessage(fn: (tab: FrameTab, m: FilmMessage) => void) {
