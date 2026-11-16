@@ -154,13 +154,6 @@
       "fadeOut": 0.05
     },
     {
-      "id": "l1-sent",
-      "sound": "success-chime.wav",
-      "at": 14.292,
-      "track": 6,
-      "gain": -12
-    },
-    {
       "id": "l1-send",
       "sound": "paper-slide.wav",
       "at": 14.304,
@@ -310,15 +303,6 @@
       "keepPitch": false,
       "to": 1.6,
       "fadeOut": 0.05
-    },
-    {
-      "id": "l2-sent",
-      "sound": "success-chime.wav",
-      "at": 26.45,
-      "track": 6,
-      "gain": -12,
-      "rate": 1.05,
-      "keepPitch": false
     },
     {
       "id": "l2-send",
@@ -506,15 +490,6 @@
       "fadeOut": 0.05
     },
     {
-      "id": "l3-sent",
-      "sound": "success-chime.wav",
-      "at": 53.235,
-      "track": 6,
-      "gain": -12,
-      "rate": 0.96,
-      "keepPitch": false
-    },
-    {
       "id": "l3-send",
       "sound": "paper-slide.wav",
       "at": 53.248,
@@ -626,15 +601,6 @@
       "keepPitch": false,
       "to": 1.1,
       "fadeOut": 0.05
-    },
-    {
-      "id": "l4-sent",
-      "sound": "success-chime.wav",
-      "at": 65.706,
-      "track": 6,
-      "gain": -12,
-      "rate": 1.1,
-      "keepPitch": false
     },
     {
       "id": "l4-send",

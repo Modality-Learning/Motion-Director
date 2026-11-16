@@ -193,16 +193,6 @@
       "hit": 4.34
     },
     {
-      "id": "l1-sent",
-      "sound": "sfx/Social SFX Pack - Collection 1/Electronic/Walkie Beep.mp3",
-      "at": 14.065,
-      "track": 6,
-      "gain": -14,
-      "to": 0.7,
-      "rate": 1,
-      "fadeOut": 0.15
-    },
-    {
       "id": "l1-send",
       "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
       "at": 14.301,
@@ -367,17 +357,6 @@
       "keepPitch": false,
       "fadeOut": 0.05,
       "hit": 1.676
-    },
-    {
-      "id": "l2-sent",
-      "sound": "sfx/Social SFX Pack - Collection 1/Electronic/Walkie Beep.mp3",
-      "at": 26.233,
-      "track": 6,
-      "gain": -14,
-      "to": 0.7,
-      "rate": 1.05,
-      "keepPitch": false,
-      "fadeOut": 0.15
     },
     {
       "id": "l2-send",
@@ -604,17 +583,6 @@
       "hit": 6.65
     },
     {
-      "id": "l3-sent",
-      "sound": "sfx/Social SFX Pack - Collection 1/Electronic/Walkie Beep.mp3",
-      "at": 52.999,
-      "track": 6,
-      "gain": -14,
-      "to": 0.7,
-      "rate": 0.96,
-      "keepPitch": false,
-      "fadeOut": 0.15
-    },
-    {
       "id": "l3-send",
       "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
       "at": 53.245,
@@ -754,17 +722,6 @@
       "keepPitch": false,
       "fadeOut": 0.05,
       "hit": 4.34
-    },
-    {
-      "id": "l4-sent",
-      "sound": "sfx/Social SFX Pack - Collection 1/Electronic/Walkie Beep.mp3",
-      "at": 65.5,
-      "track": 6,
-      "gain": -14,
-      "to": 0.7,
-      "rate": 1.1,
-      "keepPitch": false,
-      "fadeOut": 0.15
     },
     {
       "id": "l4-send",
