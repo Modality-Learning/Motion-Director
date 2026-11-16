@@ -2,6 +2,7 @@
 // done straight onto the element (never through React state).
 import { clamp, dB, gainY } from './geometry';
 import type { Settings } from './types';
+import { token } from '@/lib/tokens';
 
 const dprOf = () => Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
 
@@ -24,7 +25,7 @@ export function drawWave(canvas: HTMLCanvasElement, buf: AudioBuffer, s: Pick<Se
   g.scale(dpr, dpr);
   const d = buf.getChannelData(0), sr = buf.sampleRate, a = Math.floor(s.from * sr), b = Math.min(d.length, Math.floor((s.to ?? buf.duration) * sr));
   const p = peaks(d, a, b, W);
-  g.fillStyle = 'rgba(227,232,214,.55)';
+  g.fillStyle = token('foreground', 0.5);
   for (let x = 0; x < W; x++) { const y = p[x] * h * 0.42; g.fillRect(x * (w / W), h / 2 - y, Math.max(1, w / W), Math.max(1, y * 2)); }
 }
 
@@ -72,25 +73,25 @@ export function drawEditor(canvas: HTMLCanvasElement, buf: AudioBuffer, s: Setti
     let peak = 0;
     for (let i = i0; i < i1; i++) peak = Math.max(peak, Math.abs(d[i]));
     const inside = px >= a && px <= b, y = Math.min(mid - 4, peak * (inside ? level : 1) * (mid - 6));
-    g.fillStyle = inside ? '#6BE8D9' : 'rgba(169,189,182,.35)'; g.fillRect(px, mid - y, 1, Math.max(1, y * 2));
+    g.fillStyle = inside ? token('primary', 0.9) : token('muted-foreground', 0.35); g.fillRect(px, mid - y, 1, Math.max(1, y * 2));
   }
   // trimmed-away parts, fades, the volume line, the edges and the hit point
-  g.fillStyle = 'rgba(15,37,42,.55)'; g.fillRect(0, 0, a, gm.h); g.fillRect(b, 0, gm.w - b, gm.h);
-  g.fillStyle = 'rgba(15,37,42,.45)';
+  g.fillStyle = token('background', 0.55); g.fillRect(0, 0, a, gm.h); g.fillRect(b, 0, gm.w - b, gm.h);
+  g.fillStyle = token('background', 0.45);
   if (s.fadeIn) { g.beginPath(); g.moveTo(a, 0); g.lineTo(gm.x(s.from + s.fadeIn * s.rate), 0); g.lineTo(a, gm.h); g.fill(); }
   if (s.fadeOut) { g.beginPath(); g.moveTo(b, 0); g.lineTo(gm.x(to - s.fadeOut * s.rate), 0); g.lineTo(b, gm.h); g.fill(); }
   const gy = gainY(s.gain, gm.h);
-  g.strokeStyle = '#E3E8D6'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(a, gy); g.lineTo(b, gy); g.stroke();
-  g.fillStyle = '#E3E8D6'; g.font = '600 11px sans-serif'; g.fillText(dB(s.gain), a + 6, gy - 5);
-  for (const x of [a, b]) { g.fillStyle = '#6BE8D9'; g.fillRect(x - 2, 0, 4, gm.h); g.fillRect(x - 6, mid - 14, 12, 28); }
-  for (const x of [gm.x(s.from + s.fadeIn * s.rate), gm.x(to - s.fadeOut * s.rate)]) { g.fillStyle = '#E3E8D6'; g.fillRect(x - 5, 2, 10, 10); }
+  g.strokeStyle = token('foreground'); g.lineWidth = 1.5; g.beginPath(); g.moveTo(a, gy); g.lineTo(b, gy); g.stroke();
+  g.fillStyle = token('foreground'); g.font = '600 11px sans-serif'; g.fillText(dB(s.gain), a + 6, gy - 5);
+  for (const x of [a, b]) { g.fillStyle = token('data-2'); g.fillRect(x - 2, 0, 4, gm.h); g.fillRect(x - 6, mid - 14, 12, 28); }
+  for (const x of [gm.x(s.from + s.fadeIn * s.rate), gm.x(to - s.fadeOut * s.rate)]) { g.fillStyle = token('foreground'); g.fillRect(x - 5, 2, 10, 10); }
   if (s.hit != null) {
     const hx = gm.x(s.hit);
-    g.fillStyle = '#EE921A'; g.fillRect(hx - 1, 0, 2, gm.h);
+    g.fillStyle = token('warning'); g.fillRect(hx - 1, 0, 2, gm.h);
     g.beginPath(); g.moveTo(hx, gm.h - 14); g.lineTo(hx + 10, gm.h - 7); g.lineTo(hx, gm.h); g.fill(); g.fillText('hit', hx + 4, 24);
   }
   // the playhead while it plays
-  if (playedAt != null) { const px = gm.x(playedAt); g.fillStyle = '#F2664D'; g.fillRect(px - 1, 0, 2, gm.h); }
+  if (playedAt != null) { const px = gm.x(playedAt); g.fillStyle = token('destructive'); g.fillRect(px - 1, 0, 2, gm.h); }
 }
 
 /* ── the mix's equaliser: what is playing, in bands spaced like hearing (more of them low down) ── */
@@ -116,7 +117,7 @@ export function drawEq(canvas: HTMLCanvasElement, bars: Float32Array) {
   const bw = w / n;
   for (let i = 0; i < n; i++) {
     const bh = Math.max(2, bars[i] * (h - 2));
-    g.fillStyle = bars[i] > 0.85 ? '#EE921A' : 'rgba(107,232,217,.85)';
+    g.fillStyle = bars[i] > 0.85 ? token('warning') : token('foreground', 0.7);
     g.fillRect(i * bw + 1, h - bh, Math.max(1, bw - 2), bh);
   }
 }

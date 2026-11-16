@@ -49,7 +49,7 @@
       root.prepend(top);
       viewport.id = 'viewport'; viewport.tabIndex = 0;
       viewport.setAttribute('role', 'region'); viewport.setAttribute('aria-label', 'Film preview. Press space to play or pause.');
-      poster = el('div', 'poster', `<button type="button"><svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="15" fill="#6BE8D9"/><path d="M12 9.5l9 5.5-9 5.5z" fill="#142F35"/></svg>Play the film \u00b7 ${fmtS(duration)}</button>`, viewport);
+      poster = el('div', 'poster', `<button type="button"><svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="15" fill="#ececee"/><path d="M12 9.5l9 5.5-9 5.5z" fill="#111113"/></svg>Play the film \u00b7 ${fmtS(duration)}</button>`, viewport);
       const controls = el('div', 'controls', `
         <button class="cbtn primary" type="button" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICON_PLAY}</svg><span>Play</span></button>
         <span class="time"></span>

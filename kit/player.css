@@ -1,12 +1,14 @@
 /* Motion Director kit: the screening-room page around a film. Not part of any render. */
 :root {
   color-scheme: dark;
-  --page: #0F252A;
-  --page-raised: #16353C;
-  --page-fg: #E3E8D6;
-  --page-muted: #A9BDB6;
-  --page-line: rgba(227, 232, 214, .14);
-  --page-accent: #6BE8D9;
+  /* neutral, like the studio around it; the outlines that point at the film (below) keep a colour */
+  --page: #0e0e10;
+  --page-raised: #161618;
+  --page-fg: #ececee;
+  --page-muted: #9d9da6;
+  --page-line: rgba(255, 255, 255, .09);
+  --page-accent: #ececee;
+  --page-ink: #111113;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -36,12 +38,12 @@ html:not(.still):not(.board) #player.portrait .viewport { width: auto; height: m
 
 .poster {
   position: absolute; inset: 0; display: grid; place-items: center; z-index: 5;
-  background: radial-gradient(closest-side, rgba(15,37,42,.38), rgba(15,37,42,.12));
+  background: radial-gradient(closest-side, rgba(14,14,16,.38), rgba(14,14,16,.12));
 }
 .poster[hidden] { display: none; }
 .poster button {
   display: flex; align-items: center; gap: 12px; border: 0; cursor: pointer;
-  background: #142F35; color: #E3E8D6; font-weight: 600; font-size: clamp(14px, 1.6vw, 18px); font-family: inherit;
+  background: var(--page-ink); color: var(--page-fg); font-weight: 600; font-size: clamp(14px, 1.6vw, 18px); font-family: inherit;
   padding: 14px 26px 14px 18px; border-radius: 999px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.5);
 }
 .poster button:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 3px; }
@@ -56,13 +58,13 @@ html:not(.still):not(.board) #player.portrait .viewport { width: auto; height: m
   min-width: 44px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--page-line);
   background: transparent; color: var(--page-fg); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer;
 }
-.cbtn:hover { background: rgba(227,232,214,.08); }
+.cbtn:hover { background: rgba(255,255,255,.08); }
 .cbtn:focus-visible, .scene:focus-visible, .controls input:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
 .cbtn svg { width: 16px; height: 16px; }
-.cbtn.primary { background: var(--page-accent); color: #142F35; border-color: transparent; }
+.cbtn.primary { background: var(--page-accent); color: var(--page-ink); border-color: transparent; }
 .bgt { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--page-line); border-radius: 999px; }
 .bgt .cbtn { height: 34px; border: 0; padding: 0 12px; }
-.bgt .cbtn[aria-pressed="true"] { background: var(--page-accent); color: #142F35; }
+.bgt .cbtn[aria-pressed="true"] { background: var(--page-accent); color: var(--page-ink); }
 .time { font-variant-numeric: tabular-nums; color: var(--page-muted); font-size: 14px; white-space: nowrap; }
 .controls input { width: 100%; min-width: 0; accent-color: var(--page-accent); }
 
@@ -72,7 +74,7 @@ html:not(.still):not(.board) #player.portrait .viewport { width: auto; height: m
   border-radius: 12px; padding: 10px 12px; cursor: pointer; font-family: inherit; min-width: 0;
   display: grid; gap: 3px; position: relative; overflow: hidden;
 }
-.scene:hover { background: rgba(227,232,214,.05); }
+.scene:hover { background: rgba(255,255,255,.05); }
 .scene b { font-weight: 600; font-size: 14px; line-height: 1.25; }
 .scene span { font-size: 12px; color: var(--page-muted); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .scene.on { border-color: var(--page-accent); }
@@ -138,7 +140,7 @@ html.picking.sounding .viewport, html.picking.sounding #stage, html.picking.soun
 .promo-pick { position: fixed; z-index: 2147483647; pointer-events: none; border: 2px solid #6BE8D9; background: rgba(107, 232, 217, .12); border-radius: 3px; box-shadow: 0 0 0 1px rgba(20, 47, 53, .5); }
 .promo-pick[hidden] { display: none; }
 .promo-pick.frozen { background: rgba(107, 232, 217, .22); border-width: 3px; }
-.promo-pick-tag { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: pre; background: #142F35; color: #E3E8D6; font: 600 12px/1 'Host Grotesk', sans-serif; padding: 5px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+.promo-pick-tag { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: pre; background: var(--page-ink); color: var(--page-fg); font: 600 12px/1 'Host Grotesk', sans-serif; padding: 5px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
 .promo-pick.below .promo-pick-tag { bottom: auto; top: 100%; margin: 4px 0 0; }
 
 /* sound mode (the studio's Sound tab): elements that make a sound are picked like the comment picker */

@@ -13,6 +13,7 @@ import { LINES, MARKS, readAt } from './motion';
 import { addCue, hasSound, setLine, tellEdit, useEdit } from './store';
 import { Row, type Axis } from './rows';
 import { isCurve, type Curve, type LineKey, type Mark } from './types';
+import { token } from '@/lib/tokens';
 
 const H = 76;
 
@@ -53,21 +54,21 @@ function Graph({ cv, axis, rows, hiddenLines }: { cv: Curve; axis: Axis; rows: n
     const g = c.getContext('2d'); if (!g) return;
     g.scale(dpr, dpr);
     const y = (v: number) => H - 4 - v * (H - 16);
-    const line = (vals: number[], stroke: string, fill?: string, dash?: number[]) => {
+    const line = (vals: number[], colour: string, fill?: number, dash?: number[]) => {
       g.beginPath(); g.setLineDash(dash || []);
       cv.samples.forEach((p, i) => (i ? g.lineTo(xAt(p[0], k), y(vals[i])) : g.moveTo(xAt(p[0], k), y(vals[i]))));
-      if (fill) { g.lineTo(xAt(duration, k), H); g.lineTo(xAt(0, k), H); g.closePath(); g.fillStyle = fill; g.fill(); }
-      g.strokeStyle = stroke; g.lineWidth = 1.4; g.stroke(); g.setLineDash([]);
+      if (fill) { g.lineTo(xAt(duration, k), H); g.lineTo(xAt(0, k), H); g.closePath(); g.fillStyle = token(colour, fill); g.fill(); }
+      g.strokeStyle = token(colour); g.lineWidth = 1.4; g.stroke(); g.setLineDash([]);
     };
     if (on('moves')) line(cv.nm, LINES.moves.colour, LINES.moves.fill);
     if (on('grows')) line(cv.ng, LINES.grows.colour, LINES.grows.fill);
     if (on('turns') && cv.nt) line(cv.nt, LINES.turns.colour, LINES.turns.fill);
-    if (on('shows')) line(cv.samples.map((p) => p[5]), 'rgba(227,232,214,.55)', undefined, [3, 3]);
+    if (on('shows')) line(cv.samples.map((p) => p[5]), LINES.shows.colour, undefined, [3, 3]);
     // where it can't be seen, the lane is greyed out
-    g.fillStyle = 'rgba(15,37,42,.6)';
+    g.fillStyle = token('background', 0.6);
     cv.samples.forEach((p) => { if (p[5] < 0.05) g.fillRect(xAt(p[0], k) - 1, 0, Math.max(2, 0.04 * k + 1), H); });
     g.font = '11px sans-serif'; g.textAlign = 'center';
-    for (const m of marks) { g.fillStyle = MARKS[m.kind].colour; g.fillText(MARKS[m.kind].glyph, xAt(m.t, k), 11); }
+    for (const m of marks) { g.fillStyle = token(MARKS[m.kind].colour); g.fillText(MARKS[m.kind].glyph, xAt(m.t, k), 11); }
   });
 
   // hovering reads out the exact values at that moment

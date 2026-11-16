@@ -7,17 +7,18 @@ import { round, startOf } from './geometry';
 import type { Anchor, Analysis, Cue, Curve, EventKind, LineKey, Library, Mark, Moment, Sample, Sheet } from './types';
 
 /* the graph's lines, what each means, and the marks drawn over them */
-export const LINES: Record<LineKey, { colour: string; fill?: string; dashed?: boolean; means: string }> = {
-  moves: { colour: '#EE921A', fill: 'rgba(238,146,26,.18)', means: 'Where it is on screen: slides, drops and pans. Size changes are taken out.' },
-  grows: { colour: '#6BE8D9', fill: 'rgba(107,232,217,.14)', means: 'Its size changing: a bar filling, a scale up or down.' },
-  turns: { colour: '#C9A7F5', fill: 'rgba(201,167,245,.14)', means: 'Rotating: spins, and 3D tilts like a flap swinging or a card flipping.' },
-  shows: { colour: 'rgba(227,232,214,.7)', dashed: true, means: 'How much of it can be seen, 0 to 100%.' },
+// colours are theme tokens (index.css): CSS uses them as they are, a canvas resolves them (lib/tokens.ts)
+export const LINES: Record<LineKey, { colour: string; fill?: number; dashed?: boolean; means: string }> = {
+  moves: { colour: 'var(--data-1)', fill: 0.18, means: 'Where it is on screen: slides, drops and pans. Size changes are taken out.' },
+  grows: { colour: 'var(--data-2)', fill: 0.14, means: 'Its size changing: a bar filling, a scale up or down.' },
+  turns: { colour: 'var(--data-3)', fill: 0.14, means: 'Rotating: spins, and 3D tilts like a flap swinging or a card flipping.' },
+  shows: { colour: 'var(--muted-foreground)', dashed: true, means: 'How much of it can be seen, 0 to 100%.' },
 };
 export const MARKS: Record<EventKind, { glyph: string; colour: string; means: string; suggest: string; anchor: string }> = {
-  peak: { glyph: '●', colour: '#EE921A', means: 'fastest', suggest: 'the fastest moment', anchor: 'fastest moment' },
-  stop: { glyph: '▼', colour: '#F2664D', means: 'lands', suggest: 'the stop', anchor: 'stop' },
-  in: { glyph: '▲', colour: '#6BE8D9', means: 'appears', suggest: 'the arrival', anchor: 'arrival' },
-  out: { glyph: '△', colour: '#6BE8D9', means: 'leaves', suggest: 'the exit', anchor: 'exit' },
+  peak: { glyph: '●', colour: 'var(--data-1)', means: 'fastest', suggest: 'the fastest moment', anchor: 'fastest moment' },
+  stop: { glyph: '▼', colour: 'var(--destructive)', means: 'lands', suggest: 'the stop', anchor: 'stop' },
+  in: { glyph: '▲', colour: 'var(--data-2)', means: 'appears', suggest: 'the arrival', anchor: 'arrival' },
+  out: { glyph: '△', colour: 'var(--data-2)', means: 'leaves', suggest: 'the exit', anchor: 'exit' },
 };
 
 /** Four things from the preview's samples, measured apart, each on its own scale:

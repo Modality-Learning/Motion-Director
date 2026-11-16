@@ -1,33 +1,41 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Motion Director: the screening-room palette (dark teal, cream text, aqua accent) as shadcn/ui tokens.
- * The studio is dark only; the films themselves bring their own palette (kit/brand.css). */
+/* Motion Director: a neutral dark theme as shadcn/ui tokens. The studio is dark only; the films bring their
+ * own palette (kit/brand.css). The interface stays grey; colour is kept for what it means: the data colours
+ * (objects, the motion graph's lines), the hit point (warning), the played position (destructive). */
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.75rem;
-  --background: #0F252A;        /* the page */
-  --foreground: #E3E8D6;
-  --card: #16353C;              /* raised panels */
-  --card-foreground: #E3E8D6;
-  --popover: #1C3F47;
-  --popover-foreground: #E3E8D6;
-  --primary: #6BE8D9;           /* the accent: selection, the playhead, primary actions */
-  --primary-foreground: #142F35;
-  --secondary: #1C3F47;         /* raised controls */
-  --secondary-foreground: #E3E8D6;
-  --muted: #16353C;
-  --muted-foreground: #A9BDB6;
-  --accent: #24505A;            /* hover */
-  --accent-foreground: #E3E8D6;
-  --destructive: #F2664D;
-  --border: rgba(227, 232, 214, .14);
-  --input: rgba(227, 232, 214, .22);
-  --ring: #6BE8D9;
-  --warning: #EE921A;
-  --success: #00D180;
-  --ink: #142F35;
+  --radius: 0.625rem;
+  --background: #0e0e10;        /* the page */
+  --foreground: #ececee;
+  --card: #161618;              /* raised panels */
+  --card-foreground: #ececee;
+  --popover: #1c1c1f;
+  --popover-foreground: #ececee;
+  --primary: #ececee;           /* selection, the playhead, primary actions */
+  --primary-foreground: #111113;
+  --secondary: #232326;         /* raised controls */
+  --secondary-foreground: #ececee;
+  --muted: #161618;
+  --muted-foreground: #9d9da6;
+  --accent: #2a2a2e;            /* hover */
+  --accent-foreground: #ececee;
+  --destructive: #ef5b4b;
+  --border: rgba(255, 255, 255, .09);
+  --input: rgba(255, 255, 255, .14);
+  --ring: #8a8a93;
+  --warning: #e8952e;
+  --success: #3ccf7f;
+  --ink: #111113;               /* behind small labels laid over clips */
+  /* data colours: an object's clips and layer, the motion graph's lines and marks */
+  --data-1: #e8952e;
+  --data-2: #4fc9bc;
+  --data-3: #b99af0;
+  --data-4: #e6bf4e;
+  --data-5: #78a9f5;
+  --data-6: #ee86ac;
   --font-sans: 'Host Grotesk', 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -78,8 +86,8 @@
 /* ── the Edit tab's timeline (features/edit) ── */
 @layer components {
   /* each object has its colour: its layer, its clips, its name */
-  .obj-c0 { --obj: #EE921A; } .obj-c1 { --obj: #6BE8D9; } .obj-c2 { --obj: #C9A7F5; }
-  .obj-c3 { --obj: #F2C14E; } .obj-c4 { --obj: #7FB3FF; } .obj-c5 { --obj: #F28AB0; }
+  .obj-c0 { --obj: var(--data-1); } .obj-c1 { --obj: var(--data-2); } .obj-c2 { --obj: var(--data-3); }
+  .obj-c3 { --obj: var(--data-4); } .obj-c4 { --obj: var(--data-5); } .obj-c5 { --obj: var(--data-6); }
   /* while dragging a clip, its value sits on it */
   .tl-clip[data-readout]::after {
     content: attr(data-readout); position: absolute; right: 4px; top: 2px; pointer-events: none;
@@ -87,7 +95,7 @@
   }
   /* comment mode on the timeline: what a click would comment on is outlined; the ruler still scrubs */
   .tl-commenting, .tl-commenting * {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11l-6 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' fill='%236BE8D9' stroke='%23142F35' stroke-width='1.5'/%3E%3C/svg%3E") 3 3, crosshair !important;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11l-6 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' fill='%23ececee' stroke='%23111113' stroke-width='1.5'/%3E%3C/svg%3E") 3 3, crosshair !important;
   }
   .tl-commenting .tl-ruler, .tl-commenting .tl-ruler * { cursor: col-resize !important; }
   .tl-commenting .tl-ruler button, .tl-commenting .tl-ruler button * { cursor: pointer !important; }

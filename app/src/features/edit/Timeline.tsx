@@ -203,7 +203,7 @@ function Ruler({ axis, markRef, nowRef }: { axis: Axis; markRef: React.RefObject
       <Gut data-corner="" className="z-[7] cursor-default gap-2">
         <span className="contents">
           <button type="button" aria-label={playing ? 'Pause' : 'Play'} title="Play or pause (Space)" onClick={() => tellEdit({ type: 'toggle' })}
-            className="grid size-[26px] flex-none cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground hover:bg-[#8BF0E4]">
+            className="grid size-[26px] flex-none cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground hover:bg-primary/85">
             {playing ? <Pause className="size-3 fill-current" /> : <Play className="size-3 translate-x-px fill-current" />}
           </button>
           <span ref={nowRef} className="text-xs leading-none font-semibold text-foreground tabular-nums">{clock(M.t)}</span>
@@ -483,11 +483,11 @@ function Clip({ c, k, className }: { c: Cue; k: number; className?: string }) {
         c.mute && 'border-dashed opacity-45', className)}
       style={{ left: xAt(start, k), top: (c.track ?? 0) * TRK + 4, width: w, height: HGT }}>
       <Wave sound={c.sound} from={s.from} to={s.to} w={w} h={HGT} />
-      <span className="pointer-events-none absolute top-0.5 left-1.5 text-[11px] leading-[1.3] font-semibold whitespace-nowrap text-foreground [text-shadow:0_1px_2px_rgba(15,37,42,.9)]">
+      <span className="pointer-events-none absolute top-0.5 left-1.5 text-[11px] leading-[1.3] font-semibold whitespace-nowrap text-foreground [text-shadow:0_1px_2px_color-mix(in_srgb,var(--background)_90%,transparent)]">
         {nameOf(c.sound)}{own.length ? <b className="text-primary" title="This clip sets some values itself"> •</b> : null}
       </span>
-      {s.fadeIn ? <i className="pointer-events-none absolute inset-y-0 left-0 bg-linear-to-r from-[rgba(15,37,42,.7)] to-transparent" style={{ width: s.fadeIn * k }} /> : null}
-      {s.fadeOut ? <i className="pointer-events-none absolute inset-y-0 right-0 bg-linear-to-l from-[rgba(15,37,42,.7)] to-transparent" style={{ width: s.fadeOut * k }} /> : null}
+      {s.fadeIn ? <i className="pointer-events-none absolute inset-y-0 left-0 bg-linear-to-r from-background/70 to-transparent" style={{ width: s.fadeIn * k }} /> : null}
+      {s.fadeOut ? <i className="pointer-events-none absolute inset-y-0 right-0 bg-linear-to-l from-background/70 to-transparent" style={{ width: s.fadeOut * k }} /> : null}
       <i ref={glRef} title={dB(s.gain)} className="pointer-events-none absolute inset-x-0 h-0 border-t-[1.5px] border-foreground opacity-75" style={{ top: gainY(s.gain, HGT) }} />
       {hit != null ? <i title="Hit point" className="pointer-events-none absolute inset-y-0 -ml-px w-0.5 bg-warning" style={{ left: hit }} /> : null}
       <i className="pointer-events-none absolute inset-y-0 left-0 w-1.5 border-l-[3px] border-primary/70" />
