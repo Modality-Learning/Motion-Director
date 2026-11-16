@@ -551,7 +551,7 @@
           document.documentElement.classList.toggle('commenting', commenting);
           if (!commenting) { frozen = false; showCommentTarget(null); }
           if (!board) setPicking(m.on);
-        } else if (m.type === 'commentDone') { frozen = false; showPick(null); }
+        } else if (m.type === 'commentDone') { frozen = false; showPick(null); document.querySelectorAll('.board-cell.frame-hover').forEach((c) => c.classList.remove('frame-hover')); }
         else if (m.type === 'labels') labels = m.labels || {};
         else if (m.type === 'params') {
           window.__promoLive = { ...(window.__promoLive || {}), ...m.values };
@@ -611,7 +611,11 @@
             // the element clicked, as the picker outlined it: with parameters, by its scope; else its selector and text
             const tg = elementAt(e.clientX, e.clientY, frame.firstElementChild);
             tell({ type: 'commentAt', key: k.name, t: k.t, scope: tg?.scope || null, selector: tg?.el && !tg.scope ? selectorOf(tg.el) : null, text: tg?.el && !tg.scope ? textOf(tg.el) || null : null, client: { x: e.clientX, y: e.clientY } });
-            if (tg?.el) { frozen = true; showPick({ ...tg, root: frame.firstElementChild }); }
+            // what the comment is about stays marked while its box is open: the element, or the whole frame. A
+            // second click while it's open (another element, or the background) moves the mark with the comment.
+            frozen = true;
+            document.querySelectorAll('.board-cell.frame-hover').forEach((c) => c.classList.remove('frame-hover'));
+            if (tg?.el) showPick({ ...tg, root: frame.firstElementChild }); else { showPick(null); cell.classList.add('frame-hover'); }
             return;
           }
           const hit = scopedAt(e.clientX, e.clientY, frame.firstElementChild);
