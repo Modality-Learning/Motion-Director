@@ -4,7 +4,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
+import { Hint } from '@/components/Hint';
 import { secs } from '@/lib/format';
 import { useStudio } from '@/lib/store';
 import { ParamsPanel } from '@/features/params/ParamsPanel';
@@ -28,15 +31,18 @@ export function Inspector({ hidden }: { hidden: boolean }) {
   const params = !c && !(focus && !focus.scope);
   return (
     <aside aria-label="Inspector" hidden={hidden} className="flex min-h-0 min-w-0 flex-col border-l bg-card">
-      <div className="min-h-0 flex-1 overflow-auto">
+      <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:block!">
         {c || focus ? (
-          <div className="grid content-start gap-2.5 border-b px-4 py-3.5 [overflow-wrap:anywhere]">
-            {c ? <ClipPanel c={c} /> : <ElementPanel f={focus!} />}
-          </div>
+          <>
+            <div className="grid content-start gap-2.5 px-4 py-3.5 [overflow-wrap:anywhere]">
+              {c ? <ClipPanel c={c} /> : <ElementPanel f={focus!} />}
+            </div>
+            <Separator />
+          </>
         ) : null}
         {params ? <div className="p-4"><ParamsPanel tab="edit" /></div> : null}
-      </div>
-      {kind === 'film' ? <Mix /> : null}
+      </ScrollArea>
+      {kind === 'film' ? <><Separator /><Mix /></> : null}
     </aside>
   );
 }
@@ -51,7 +57,7 @@ function ElementPanel({ f }: { f: Focus }) {
     <>
       <div className="flex items-center justify-between gap-2">
         <SideK>Element</SideK>
-        <Button size="icon-xs" variant="ghost" aria-label={`Deselect ${f.label}`} title="Deselect (Esc)" onClick={closeFocus}><X /></Button>
+        <Hint label="Deselect (Esc)"><Button size="icon-xs" variant="ghost" aria-label={`Deselect ${f.label}`} onClick={closeFocus}><X /></Button></Hint>
       </div>
       <Title>{f.label}</Title>
       {n ? <p className="text-sm text-muted-foreground">◆ {n} sound{n === 1 ? '' : 's'}, following it when it moves</p> : null}
@@ -88,14 +94,14 @@ function ClipPanel({ c }: { c: Cue }) {
           <Button size="xs" variant="outline" aria-label="One frame earlier" onClick={() => nudge(c, -FRAME)}>−1f</Button>
           <NumInput id="snd-at" data-key="at" step={0.01} min={0} max={duration} value={round(cueStart(c))} onCommit={(raw) => startAt(c, +raw || 0)} />
           <Button size="xs" variant="outline" aria-label="One frame later" onClick={() => nudge(c, FRAME)}>+1f</Button>
-          <Button size="xs" variant="outline" title="Start at the playhead" onClick={() => startAt(c, M.t)}>To playhead</Button>
+          <Hint label="Start at the playhead"><Button size="xs" variant="outline" onClick={() => startAt(c, M.t)}>To playhead</Button></Hint>
         </div>
       </div>
       {c.moment !== undefined ? <p className="text-sm text-muted-foreground">Follows the moment "{momentLabel(c.moment)}". Moving it places it freely.</p> : null}
       {ob ? (
         <div className="flex flex-col items-start gap-2 rounded-lg border border-warning/35 px-2.5 py-2">
           <p className="text-sm">
-            ◆ Belongs to <button type="button" className="inline cursor-pointer text-left font-semibold hover:text-primary" onClick={() => focusObject(c.object!)}>{ob.label}</button>
+            ◆ Belongs to <Button variant="link" size="xs" className="inline h-auto p-0 align-baseline text-sm font-semibold whitespace-normal" onClick={() => focusObject(c.object!)}>{ob.label}</Button>
             {c.anchor ? <span className="text-muted-foreground"> · sits by its {MARKS[c.anchor.kind].anchor}{c.anchor.n ? ` (${c.anchor.n + 1})` : ''} at {secs(c.anchor.t)}, and follows it if it moves</span> : null}
           </p>
           <Button size="xs" variant="outline" onClick={() => { delete c.object; delete c.anchor; c.track = 0; changed(); }}>Detach</Button>
@@ -108,11 +114,13 @@ function ClipPanel({ c }: { c: Cue }) {
       <div className="flex flex-wrap gap-1.5">
         {ownKeys.length ? <Button size="xs" variant="secondary" onClick={() => { ownKeys.forEach((k) => delete c[k]); changed(); }}>Reset to the sound</Button> : null}
         {ownKeys.length ? (
-          <Button size="xs" variant="secondary" title="Every clip of this sound that doesn't set its own value will use these" onClick={() => {
-            const values = Object.fromEntries(ownKeys.map((k) => [k, c[k]]));
-            ownKeys.forEach((k) => delete c[k]); changed();
-            setDefaults(c.sound, { ...(lib.sounds[c.sound] || {}), ...values });
-          }}>Make these the sound's defaults</Button>
+          <Hint label="Every clip of this sound that doesn't set its own value will use these">
+            <Button size="xs" variant="secondary" onClick={() => {
+              const values = Object.fromEntries(ownKeys.map((k) => [k, c[k]]));
+              ownKeys.forEach((k) => delete c[k]); changed();
+              setDefaults(c.sound, { ...(lib.sounds[c.sound] || {}), ...values });
+            }}>Make these the sound's defaults</Button>
+          </Hint>
         ) : null}
         <Button size="xs" variant="outline" onClick={() => openEditor(c.sound)}>Edit the sound</Button>
       </div>
@@ -146,7 +154,7 @@ function Mix() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', again); };
   }, [playing, active]);
   return (
-    <footer aria-label="Mix" className="grid flex-none gap-2 border-t bg-card px-4 pt-2.5 pb-3.5">
+    <footer aria-label="Mix" className="grid flex-none gap-2 bg-card px-4 pt-2.5 pb-3.5">
       <canvas ref={eq} aria-hidden="true" className="block h-11 w-full rounded-md bg-ink" />
       <div className="grid gap-1">
         <label htmlFor="snd-master" className="flex items-center gap-1.5 text-sm font-medium">Master volume<span className="text-muted-foreground">{dB(live)}</span></label>

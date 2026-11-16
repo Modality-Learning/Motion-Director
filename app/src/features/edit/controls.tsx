@@ -2,8 +2,10 @@
 // with it, and a setting's row (its value, and whether it is its own or inherited).
 import { useEffect, useRef, useState } from 'react';
 import { Pause, Play, RotateCcw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Hint } from '@/components/Hint';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
@@ -21,10 +23,12 @@ export function PlayButton({ path, settings, label = 'Play', icon = false, varia
   const click = () => (on ? stopAudition() : play(path, settings(), { audioTool: useEdit.getState().audio, onStart, onFail: () => say('That sound could not be played') }));
   if (icon) {
     return (
-      <button type="button" aria-label={`${on ? 'Pause' : 'Play'} ${name}`} onClick={click}
-        className={cn('grid size-[26px] flex-none cursor-pointer place-items-center rounded-full border', on ? 'border-transparent bg-primary text-primary-foreground' : 'bg-secondary text-foreground hover:border-primary hover:text-primary', className)}>
-        {on ? <Pause className="size-3 fill-current" /> : <Play className="size-3 translate-x-px fill-current" />}
-      </button>
+      <Hint label={on ? 'Pause' : 'Play'}>
+        <Button type="button" size="icon-xs" variant={on ? 'default' : 'outline'} aria-label={`${on ? 'Pause' : 'Play'} ${name}`} onClick={click}
+          className={cn('rounded-full', className)}>
+          {on ? <Pause className="fill-current" /> : <Play className="translate-x-px fill-current" />}
+        </Button>
+      </Hint>
     );
   }
   return <Button type="button" size="xs" variant={on ? 'default' : variant} className={className} onClick={click}>{on ? 'Pause' : label}</Button>;
@@ -57,9 +61,10 @@ export function SettingRow({ k, value, own, onSet, onReset, ownLabel, inheritLab
 }) {
   const s = SETTINGS[k], id = `snd-${k}`;
   const badge = own
-    ? <button type="button" title={`Use ${inheritLabel.toLowerCase()} instead`} onClick={onReset}
-        className="ml-auto inline-flex cursor-pointer items-center gap-1 rounded-full border border-primary/45 px-[7px] text-[11px] font-semibold text-primary">{ownLabel}<RotateCcw className="size-2.5" /></button>
-    : <span className="ml-auto rounded-full border px-[7px] text-[11px] font-semibold text-muted-foreground">{inheritLabel}</span>;
+    ? <Hint label={`Use ${inheritLabel.toLowerCase()} instead`}>
+        <Button type="button" size="xs" variant="outline" onClick={onReset} className="ml-auto h-5 rounded-full text-primary">{ownLabel}<RotateCcw /></Button>
+      </Hint>
+    : <Badge variant="outline" className="ml-auto text-muted-foreground">{inheritLabel}</Badge>;
   let control: React.ReactNode;
   if (s.bool) control = <Checkbox id={id} data-key={k} checked={!!value} onCheckedChange={(v) => onSet(v === true)} />;
   else if (k === 'gain' || k === 'rate') control = <RangePair id={id} k={k} value={value as number} onSet={onSet} />;

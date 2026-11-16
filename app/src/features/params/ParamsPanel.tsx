@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Hint } from '@/components/Hint';
 import { tell, type FrameTab } from '@/lib/frames';
 import { isFilm, useOpenItem, useStudio, type Scope } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -14,7 +18,9 @@ import { liveValue, paramRefs, saveParam, scopeIdOf, type ParamRef } from './par
  * The preview reports its time and the scopes it covers: a film's own titles, a placed composition. Fields
  * whose element is on screen come first; the rest fold away; parameters with no scope are Global. In Edit the
  * inspector follows the selection: an element shows only its own parameters, a clip hides them.
- * Every field stays in one list and only its order changes, so a field you are typing in keeps its focus. */
+ * Every field stays in one list and only its order changes, so a field you are typing in keeps its focus. The
+ * folds are Collapsibles holding only their trigger: the fields they open stay in that one list, shown or hidden
+ * in place, so a fold never moves a field into a different parent (which would remount it and lose the focus). */
 
 const picks = new Set<(id: string) => void>();
 /** The preview's picker chose an element: its fields come into view and take focus. */
@@ -95,28 +101,41 @@ export function ParamsPanel({ tab, className }: { tab: FrameTab; className?: str
           </div>
         ))}
         {!only ? (
-          <div style={{ order: 7 }} className="grid gap-2">
-            <Fold order={7} open={ctxOpen} onOpen={setCtxOpen}>
+          // this one holds its own content (links, not fields), so it is a whole Collapsible
+          <Collapsible open={ctxOpen} onOpenChange={setCtxOpen} style={{ order: 7 }} className="grid gap-2">
+            <FoldTrigger open={ctxOpen}>
               {isFilm(item) ? `Compositions in this film${used.length ? ` (${used.length})` : ''}` : `Used by${usedBy.length ? ` (${usedBy.length})` : ''}`}
-            </Fold>
-            {ctxOpen ? (isFilm(item)
-              ? used.length ? <ul className="grid gap-1 text-sm">{used.map((c) => <li key={c.name}><a href={`#/comp/${encodeURIComponent(c.name)}/edit`}>{c.title}</a><span className="text-muted-foreground"> · {c.description}</span></li>)}</ul>
-                : <p className="text-sm text-muted-foreground">None. Its scenes are all its own.</p>
-              : usedBy.length ? <div className="grid gap-1 text-sm"><p className="text-muted-foreground">Changes to these parameters reach every one of these films:</p><ul>{usedBy.map((f) => <li key={f.name}><a href={`#/film/${encodeURIComponent(f.name)}/edit`}>{f.title}</a></li>)}</ul></div>
-                : <p className="text-sm text-muted-foreground">No film uses this composition yet.</p>) : null}
-          </div>
+            </FoldTrigger>
+            <CollapsibleContent>
+              {isFilm(item)
+                ? used.length ? <ul className="grid gap-1 text-sm">{used.map((c) => <li key={c.name}><a href={`#/comp/${encodeURIComponent(c.name)}/edit`}>{c.title}</a><span className="text-muted-foreground"> · {c.description}</span></li>)}</ul>
+                  : <p className="text-sm text-muted-foreground">None. Its scenes are all its own.</p>
+                : usedBy.length ? <div className="grid gap-1 text-sm"><p className="text-muted-foreground">Changes to these parameters reach every one of these films:</p><ul>{usedBy.map((f) => <li key={f.name}><a href={`#/film/${encodeURIComponent(f.name)}/edit`}>{f.title}</a></li>)}</ul></div>
+                  : <p className="text-sm text-muted-foreground">No film uses this composition yet.</p>}
+            </CollapsibleContent>
+          </Collapsible>
         ) : null}
       </div>
     </aside>
   );
 }
 
+/** A fold over fields in the one list: only its trigger is in the Collapsible (the fields stay where they are). */
 function Fold({ order, open, onOpen, children }: { order: number; open: boolean; onOpen: (v: boolean) => void; children: React.ReactNode }) {
   return (
-    <button type="button" style={{ order }} aria-expanded={open} onClick={() => onOpen(!open)}
-      className="flex items-center gap-1 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground">
-      <ChevronRight className={cn('size-3.5 transition-transform', open && 'rotate-90')} />{children}
-    </button>
+    <Collapsible open={open} onOpenChange={onOpen} style={{ order }} className="flex">
+      {/* no CollapsibleContent to point at: the fields are siblings in the list */}
+      <FoldTrigger open={open} aria-controls={undefined}>{children}</FoldTrigger>
+    </Collapsible>
+  );
+}
+function FoldTrigger({ open, children, ...rest }: { open: boolean; children: React.ReactNode; 'aria-controls'?: string }) {
+  return (
+    <CollapsibleTrigger asChild {...rest}>
+      <Button variant="ghost" size="xs" className="justify-start tracking-wide text-muted-foreground uppercase">
+        <ChevronRight className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-90')} />{children}
+      </Button>
+    </CollapsibleTrigger>
   );
 }
 
@@ -125,7 +144,9 @@ function Field({ r, openKind, say }: { r: ParamRef; openKind: string; say: (m: s
   const [id] = useState(() => `f${++fieldSeq}`);
   const { p, key } = r;
   const shared = r.comp && openKind === 'film'
-    ? <a className="ml-2 rounded-full border px-1.5 text-[11px] font-semibold no-underline" href={`#/comp/${encodeURIComponent(r.name)}/edit`} title={`Part of ${r.comp.title}, shared by every film that uses it`}>Shared</a>
+    ? <Hint label={`Part of ${r.comp.title}, shared by every film that uses it`}>
+        <Badge asChild variant="outline" className="ml-2 no-underline"><a href={`#/comp/${encodeURIComponent(r.name)}/edit`}>Shared</a></Badge>
+      </Hint>
     : null;
   const label = <>{p.label || key}{shared}</>;
 

@@ -2,8 +2,11 @@
 // click a mark for sounds that suit it, drop a sound on it to give the object that sound.
 import { useLayoutEffect, useRef, type RefObject } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { Hint } from '@/components/Hint';
 import { cn } from '@/lib/utils';
 import { GUT, PAD, clamp, round, xAt } from './geometry';
 import { LINES, MARKS, readAt } from './motion';
@@ -113,17 +116,18 @@ function LinesButton() {
   return (
     <Popover>
       <PopoverAnchor virtualRef={row as RefObject<{ getBoundingClientRect: () => DOMRect }>} />
-      <PopoverTrigger asChild>
-        <button ref={btn} type="button" aria-label="Graph lines: what they mean, and which are shown"
-          className="inline-flex cursor-pointer items-center gap-[5px] self-start rounded-md border bg-secondary py-[3px] pr-1.5 pl-[7px] text-foreground hover:border-foreground/35 aria-expanded:border-foreground/35">
-          {entries.map(([key, l]) => {
-            const off = hiddenLines.has(key);
-            return <span key={key} title={key} style={{ '--c': l.colour } as React.CSSProperties}
-              className={cn('rounded-full', off ? 'size-1.5 border-[1.5px] border-[color-mix(in_srgb,var(--c)_45%,transparent)]' : l.dashed ? 'size-1.5 border-[1.5px] border-dashed border-(--c)' : 'size-[9px] bg-(--c)')} />;
-          })}
-          <ChevronDown aria-hidden="true" className="size-3 text-muted-foreground" />
-        </button>
-      </PopoverTrigger>
+      <Hint label={`Graph lines: ${entries.filter(([key]) => !hiddenLines.has(key)).map(([key]) => key).join(', ') || 'none shown'}`}>
+        <PopoverTrigger asChild>
+          <Button ref={btn} variant="outline" size="xs" aria-label="Graph lines: what they mean, and which are shown" className="gap-[5px] self-start">
+            {entries.map(([key, l]) => {
+              const off = hiddenLines.has(key);
+              return <span key={key} aria-hidden="true" style={{ '--c': l.colour } as React.CSSProperties}
+                className={cn('rounded-full', off ? 'size-1.5 border-[1.5px] border-[color-mix(in_srgb,var(--c)_45%,transparent)]' : l.dashed ? 'size-1.5 border-[1.5px] border-dashed border-(--c)' : 'size-[9px] bg-(--c)')} />;
+            })}
+            <ChevronDown aria-hidden="true" className="text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+      </Hint>
       <PopoverContent align="start" className="w-[300px] bg-card p-2 text-[13px]" aria-label="Graph lines">
         {entries.map(([key, l]) => (
           <label key={key} className="grid cursor-pointer grid-cols-[auto_18px_1fr] items-start gap-2 rounded-md p-1.5 hover:bg-secondary">
@@ -132,7 +136,8 @@ function LinesButton() {
             <span className="flex flex-col gap-px"><b>{key}</b><span className="text-xs text-muted-foreground">{l.means}</span></span>
           </label>
         ))}
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 border-t px-1.5 pt-2 pb-0.5 text-xs">
+        <Separator className="mt-1" />
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1.5 pt-2 pb-0.5 text-xs">
           {(['peak', 'stop', 'in', 'out'] as const).map((m) => <span key={m}><b style={{ color: MARKS[m].colour }}>{MARKS[m].glyph}</b> {MARKS[m].means}</span>)}
           <span className="basis-full text-muted-foreground">Click a mark for sounds that suit it.</span>
         </div>

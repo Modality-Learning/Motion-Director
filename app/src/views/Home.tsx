@@ -1,4 +1,4 @@
-import { Chip } from '@/components/Chip';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { pageBase, type Comp, type Film } from '@/lib/api';
 import { go, useStudio } from '@/lib/store';
@@ -51,7 +51,7 @@ function Tile({ kind, x, films }: { kind: 'film' | 'comp'; x: Film | Comp; films
       <div className="grid gap-2 p-4">
         <b className="group-hover:text-primary">{x.title}</b>
         {comp?.description ? <p className="text-sm text-muted-foreground">{comp.description}</p> : null}
-        <div className="flex flex-wrap gap-2">{chips.filter(Boolean).map((c) => <Chip key={c!}>{c}</Chip>)}</div>
+        <div className="flex flex-wrap gap-2">{chips.filter(Boolean).map((c) => <Badge key={c!} variant="outline" className="text-muted-foreground">{c}</Badge>)}</div>
       </div>
     </a>
   );

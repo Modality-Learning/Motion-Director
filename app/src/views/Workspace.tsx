@@ -1,3 +1,4 @@
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { TabsContent } from '@/components/ui/tabs';
 import { ParamsPanel } from '@/features/params/ParamsPanel';
 import { PreviewFrame, usePreviews } from '@/features/preview/preview';
@@ -15,7 +16,7 @@ export function Workspace() {
       <TabsContent value="storyboard" forceMount className="h-full data-[state=inactive]:hidden">
         <div className="grid h-full grid-cols-[minmax(0,1fr)_340px]">
           <PreviewFrame tab="storyboard" title="Storyboard" className="min-h-[480px]" />
-          <div className="overflow-auto border-l p-4"><ParamsPanel tab="storyboard" /></div>
+          <ScrollArea className="min-h-0 border-l [&_[data-slot=scroll-area-viewport]>div]:block!"><div className="p-4"><ParamsPanel tab="storyboard" /></div></ScrollArea>
         </div>
       </TabsContent>
       <TabsContent value="edit" forceMount className="h-full data-[state=inactive]:hidden">

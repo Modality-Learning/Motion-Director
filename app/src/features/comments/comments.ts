@@ -100,7 +100,8 @@ export function useCommentKeys() {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
-      if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable) return;
+      // a select (shadcn's is a button and a list, not a native select) keeps its own keys: typing picks an option
+      if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable || el.closest?.('[data-slot^=select-]')) return;
       if (e.key === 'c' || e.key === 'C' || e.key === 'Escape') onKey(e.key === 'Escape' ? 'Escape' : 'c');
     };
     document.addEventListener('keydown', down);

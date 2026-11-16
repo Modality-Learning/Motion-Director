@@ -70,7 +70,8 @@ function useEditWiring() {
         if (e.key.toLowerCase() === 'y' || e.shiftKey) redo(); else undo();
         return;
       }
-      if (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName) || el.isContentEditable || e.metaKey || e.ctrlKey) return;
+      // an open select's list (shadcn's, not a native select) keeps its own Space and Esc
+      if (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName) || el.isContentEditable || el.closest('[data-slot=select-content]') || e.metaKey || e.ctrlKey) return;
       const { editing, sel, focus } = useEdit.getState();
       // Space plays the preview, or the sound being edited
       if (e.code === 'Space') {

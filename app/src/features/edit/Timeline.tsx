@@ -4,8 +4,9 @@
 // anywhere, then on a clip: drag to move · drag an edge to trim · Option-drag an edge to squash or stretch ·
 // drag the volume line · double-click to edit the sound.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Pause, Play } from 'lucide-react';
+import { CircleHelp, Minus, Pause, Play, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Hint } from '@/components/Hint';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { clock, secs } from '@/lib/format';
 import { local, useStudio } from '@/lib/store';
@@ -227,10 +228,11 @@ const KEYS: [string, string][] = [
 function ShortcutsButton() {
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts"
-          className="ml-auto size-5 flex-none cursor-pointer rounded-full border text-[11px] leading-none font-semibold text-muted-foreground hover:border-foreground/35 hover:text-foreground">?</button>
-      </PopoverTrigger>
+      <Hint label="Keyboard shortcuts">
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon-xs" aria-label="Keyboard shortcuts" className="ml-auto text-muted-foreground"><CircleHelp /></Button>
+        </PopoverTrigger>
+      </Hint>
       <PopoverContent side="top" align="start" className="w-[330px] bg-card px-3.5 py-3 text-[13px]" aria-label="Keyboard shortcuts">
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           {KEYS.map(([k, v]) => [<dt key={`${k}t`} className="font-semibold">{k}</dt>, <dd key={`${k}d`} className="text-muted-foreground">{v}</dd>])}
@@ -273,7 +275,7 @@ function ObjectRows({ axis }: { axis: Axis }) {
   // a composition has no sounds: a selected element shows its graph and nothing else
   if (!hasSound()) {
     return focus ? (
-      <GraphRow axis={axis} rows={1} colour={0} name={<><span className="overflow-hidden font-semibold text-ellipsis">{focus.label}</span><CloseButton label={`Deselect ${focus.label}`} /></>} />
+      <GraphRow axis={axis} rows={1} colour={0} name={<><span className="overflow-hidden font-semibold text-ellipsis">{focus.label}</span><CloseButton label={`Deselect ${focus.label}`} tip="Deselect (Esc)" /></>} />
     ) : null;
   }
   const ids = [...new Set(sheet.cues.map((c) => c.object).filter((id): id is string => !!id && !!sheet.objects?.[id]))];
@@ -304,8 +306,8 @@ function ObjectRows({ axis }: { axis: Axis }) {
     </>
   );
 }
-function CloseButton({ label }: { label: string }) {
-  return <button type="button" aria-label={label} onClick={closeFocus} className="ml-auto flex-none cursor-pointer text-muted-foreground hover:text-primary">✕</button>;
+function CloseButton({ label, tip }: { label: string; tip: string }) {
+  return <Hint label={tip}><Button variant="ghost" size="icon-xs" aria-label={label} onClick={closeFocus} className="ml-auto text-muted-foreground"><X /></Button></Hint>;
 }
 /** A clip on the objects row: in its object's colour; a click opens that object with the clip selected. */
 function MiniClip({ c, k, i, on, label }: { c: Cue; k: number; i: number; on: boolean; label: string }) {
@@ -336,7 +338,7 @@ function ObjectLayer({ id, axis, i }: { id: string | null; axis: Axis; i: number
   );
   return (
     <div className={`obj-c${i % 6} contents`}>
-      {focused ? <GraphRow axis={axis} rows={rows} colour={i} name={<>{name}<CloseButton label={`Close ${ob.label}`} /></>} /> : null}
+      {focused ? <GraphRow axis={axis} rows={rows} colour={i} name={<>{name}<CloseButton label={`Close ${ob.label}`} tip="Close (Esc)" /></>} /> : null}
       <Lane axis={axis} cues={cues} rows={rows} objId={id}
         className={cn('bg-[color-mix(in_srgb,var(--obj)_5%,transparent)]', focused && '[&>[data-row]:first-child>div:first-child]:bg-[color-mix(in_srgb,var(--obj)_10%,var(--card))]')}
         rowClass="border-b-[color-mix(in_srgb,var(--obj)_18%,transparent)]"
@@ -358,8 +360,10 @@ function TrackRows({ axis }: { axis: Axis }) {
       <>
         <span>Track {i + 1}</span>
         {n > 1 ? (
-          <button type="button" aria-label={what} title={what} onClick={() => removeTrack(i)}
-            className="ml-auto size-[22px] flex-none cursor-pointer rounded-md border bg-secondary text-sm leading-none font-semibold text-foreground opacity-0 group-hover/trk:opacity-100 hover:border-destructive hover:text-destructive focus-visible:opacity-100">−</button>
+          <Hint label={what}>
+            <Button variant="outline" size="icon-xs" aria-label={what} onClick={() => removeTrack(i)}
+              className="ml-auto opacity-0 group-hover/trk:opacity-100 hover:text-destructive focus-visible:opacity-100"><Minus /></Button>
+          </Hint>
         ) : null}
       </>
     );

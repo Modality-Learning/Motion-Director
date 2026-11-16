@@ -1,8 +1,9 @@
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Hint } from '@/components/Hint';
 import { Kbd } from '@/components/Kbd';
-import { Chip } from '@/components/Chip';
+import { Badge } from '@/components/ui/badge';
 import { TABS, isFilm, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +34,7 @@ export function TopBar() {
             <span aria-current="page" className="font-semibold text-foreground">{item.title}</span>
           </nav>
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            {(isFilm(item) ? [item.orientation === 'vertical' ? 'Vertical 9:16' : 'Landscape 16:9', `${item.duration} s`] : [`${item.duration} s`, 'Composition']).map((c) => <Chip key={c}>{c}</Chip>)}
+            {(isFilm(item) ? [item.orientation === 'vertical' ? 'Vertical 9:16' : 'Landscape 16:9', `${item.duration} s`] : [`${item.duration} s`, 'Composition']).map((c) => <Badge key={c} variant="outline" className="text-muted-foreground">{c}</Badge>)}
           </div>
         </>
       ) : null}
@@ -51,9 +52,11 @@ export function TopBar() {
             ))}
           </TabsList>
           {canComment ? (
-            <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" title="Comment mode (C)" onClick={() => setCommentMode(!commentMode)}>
-              <MessageSquare /> Comment <Kbd>C</Kbd>
-            </Button>
+            <Hint label="Comment mode (C)">
+              <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" onClick={() => setCommentMode(!commentMode)}>
+                <MessageSquare /> Comment <Kbd>C</Kbd>
+              </Button>
+            </Hint>
           ) : null}
         </div>
       ) : null}

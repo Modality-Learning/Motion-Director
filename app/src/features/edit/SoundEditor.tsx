@@ -4,7 +4,11 @@ import { useLayoutEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Toggle } from '@/components/ui/toggle';
+import { Hint } from '@/components/Hint';
 import { secs } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { DEFAULTS, FAMILIES, SETTINGS, TRAITS, familyLabel, familyOf, suggestUses, traitsOf, useId, USES } from './kit';
@@ -17,6 +21,7 @@ import { drawEditor, edGeom, edHandleAt, findHit } from './waveform';
 import type { LibEntry, SettingKey } from './types';
 
 const FIELDS: SettingKey[] = ['from', 'to', 'gain', 'fadeIn', 'fadeOut', 'hit', 'rate', 'keepPitch'];
+const AUTO = '__auto';
 
 export function SoundEditor({ path }: { path: string }) {
   useEdit((s) => s.rev);
@@ -97,11 +102,13 @@ export function SoundEditor({ path }: { path: string }) {
         className={cn('h-60 w-full touch-none rounded-xl border bg-background', playing && 'border-primary/40')} />
       <div className="flex flex-wrap gap-1.5">
         <PlayButton path={path} settings={() => soundDefaults(path)} variant="default" />
-        <Button size="xs" variant="secondary" title="Put the hit point on the loudest moment" onClick={() => {
-          const buf = bufOf(path); if (!buf) return;
-          const t = findHit(buf.getChannelData(0), buf.sampleRate, s.from, s.to ?? buf.duration);
-          if (t != null) set('hit', round(t));
-        }}>Find the hit</Button>
+        <Hint label="Put the hit point on the loudest moment">
+          <Button size="xs" variant="secondary" onClick={() => {
+            const buf = bufOf(path); if (!buf) return;
+            const t = findHit(buf.getChannelData(0), buf.sampleRate, s.from, s.to ?? buf.duration);
+            if (t != null) set('hit', round(t));
+          }}>Find the hit</Button>
+        </Hint>
         {Object.keys(def).length ? <Button size="xs" variant="outline" onClick={() => setDefaults(path, {})}>Reset all</Button> : null}
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-5 gap-y-3">
@@ -122,17 +129,21 @@ function SortRow({ path, def }: { path: string; def: LibEntry }) {
   const setUses = (list: string[]) => save(withUses(def, list));
   const badge = (u: { id: string; label: string; own?: boolean }) => {
     const on = chosen.has(u.id), suggested = offered.includes(u.id);
+    // the hint sits on a wrapper: a Tooltip trigger's data-state would replace the Toggle's own (on/off)
     return (
-      <button key={u.id} type="button" aria-pressed={on} onClick={() => setUses(on ? [...chosen].filter((x) => x !== u.id) : [...chosen, u.id])}
-        title={on ? `Good for: ${u.label} (click to remove)` : suggested ? 'Suggested from its name: click to add' : `Mark as good for: ${u.label}`}
-        className={cn('cursor-pointer rounded-md border px-2.5 py-[3px] text-xs leading-[1.4] font-semibold text-muted-foreground hover:border-foreground/35 hover:text-foreground',
-          on && 'border-primary bg-primary text-primary-foreground hover:text-primary-foreground', suggested && 'border-dashed border-primary text-foreground', u.own && 'italic')}>
-        {u.label}
-      </button>
+      <Hint key={u.id} label={on ? `Good for: ${u.label} (click to remove)` : suggested ? 'Suggested from its name: click to add' : `Mark as good for: ${u.label}`}>
+        <span className="inline-flex">
+          <Toggle size="sm" variant="outline" pressed={on} onPressedChange={() => setUses(on ? [...chosen].filter((x) => x !== u.id) : [...chosen, u.id])}
+            className={cn('h-7 text-xs', suggested && 'border-dashed border-primary', u.own && 'italic')}>
+            {u.label}
+          </Toggle>
+        </span>
+      </Hint>
     );
   };
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] items-end gap-x-5 gap-y-3 border-t pt-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] items-end gap-x-5 gap-y-3">
+      <Separator className="col-span-full" />
       <div className="col-span-full grid gap-1">
         <label htmlFor="snd-desc" className="flex items-center gap-1.5 text-sm font-medium">Description<span className="text-xs font-normal text-muted-foreground">optional</span></label>
         <Textarea key={`${path}:${def.description ?? ''}`} id="snd-desc" rows={2} maxLength={280} defaultValue={def.description || ''} className="min-h-11 resize-y bg-background"
@@ -142,12 +153,12 @@ function SortRow({ path, def }: { path: string; def: LibEntry }) {
       <div className="col-span-full grid gap-1">
         <span id="snd-uses-l" className="flex items-center justify-between gap-2 text-sm font-medium">
           Good for
-          {offered.length ? <button type="button" className="cursor-pointer text-xs text-primary hover:underline" onClick={() => setUses([...chosen, ...offered])}>Add suggested ({offered.length})</button> : null}
+          {offered.length ? <Button variant="link" size="xs" className="h-auto p-0" onClick={() => setUses([...chosen, ...offered])}>Add suggested ({offered.length})</Button> : null}
         </span>
         <div role="group" aria-labelledby="snd-uses-l" className="flex flex-wrap gap-1.5">
           {USES.map(badge)}
           {own.map((id) => badge({ id, label: id, own: true }))}
-          <Input aria-label="Your own use" placeholder="+ Your own" maxLength={24} className="h-[26px] w-[120px] rounded-md bg-background px-2.5 text-xs"
+          <Input aria-label="Your own use" placeholder="+ Your own" maxLength={24} className="h-7 w-[120px] bg-background px-2.5 text-xs"
             onKeyDown={(e) => {
               if (e.key !== 'Enter') return;
               e.preventDefault();
@@ -158,11 +169,14 @@ function SortRow({ path, def }: { path: string; def: LibEntry }) {
       </div>
       <div className="grid gap-1">
         <label htmlFor="snd-family" className="text-sm font-medium">Family</label>
-        <select id="snd-family" value={def.family || ''} onChange={(e) => { const next = { ...def }; if (e.target.value) next.family = e.target.value; else delete next.family; save(next); }}
-          className="h-8 rounded-md border bg-background px-2 text-sm text-foreground">
-          <option value="">{familyLabel(auto)} (worked out)</option>
-          {FAMILIES.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-        </select>
+        {/* Radix Select keeps "" for no value: the worked-out family is AUTO here (no family id looks like it), and saved as no family */}
+        <Select value={def.family || AUTO} onValueChange={(v) => { const next = { ...def }; if (v !== AUTO) next.family = v; else delete next.family; save(next); }}>
+          <SelectTrigger id="snd-family" size="sm" className="w-full bg-background"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={AUTO}>{familyLabel(auto)} (worked out)</SelectItem>
+            {FAMILIES.map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-1">
         <label htmlFor="snd-tags" className="flex items-center gap-1.5 text-sm font-medium">Tags<span className="text-xs font-normal text-muted-foreground">comma between</span></label>
