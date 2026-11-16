@@ -548,6 +548,7 @@
         else if (m.type === 'moment') showMoment(m.id);
         else if (m.type === 'toggle' && !board) toggle();
         else if (m.type === 'view' && viewable) viewCommand(m);
+        else if (m.type === 'beats' && board) layoutBoard(m.beats);
         else if (m.type === 'elementClear') pickSoundEl(null);
         else if (m.type === 'selectElement') pickSoundEl(find(m.address));
       });
@@ -595,7 +596,53 @@
         cap.querySelector('span').textContent = fmt(k.t);
         cap.querySelector('p').textContent = k.note || '';
       }
-      render(t);
+      if (boardBeats) layoutBoard(boardBeats); else render(t);
+    }
+    /* The brief's beats (the studio reads them from BRIEF.md and sends them): the frames are laid out beat by
+     * beat, each beat's time above it, its title and what happens on the left, and the frames whose time falls
+     * in it on the right. Frames outside every beat get rows of their own; with no beats, the grid. The cells
+     * are moved, not rebuilt, so clicking, comments and the selection carry on as before. */
+    let boardBeats = null;
+    // a beat's title and text as the brief wrote them: **bold** and *italic* kept, everything else as text
+    function inlineInto(node, text) {
+      const re = /\*\*([^*]+)\*\*|(?<![\w*])[*_]([^*_]+)[*_](?![\w*])/g;
+      let last = 0, m;
+      while ((m = re.exec(text))) {
+        if (m.index > last) node.append(text.slice(last, m.index));
+        const b = document.createElement(m[1] ? 'strong' : 'em'); b.textContent = m[1] || m[2]; node.append(b);
+        last = m.index + m[0].length;
+      }
+      if (last < text.length) node.append(text.slice(last));
+      return node;
+    }
+    function layoutBoard(beats) {
+      boardBeats = Array.isArray(beats) && beats.length ? beats : null;
+      const sec = document.querySelector('section.board'); if (!sec) return;
+      const cells = [...sec.querySelectorAll('.board-cell')];
+      sec.querySelector('.board-grid')?.remove(); sec.querySelector('.board-beats')?.remove();
+      const cw = boardBeats ? (H > W ? 220 : 420) : (H > W ? 300 : 600);
+      sec.style.setProperty('--cell', cw + 'px'); sec.style.setProperty('--cell-h', (cw * H / W) + 'px');
+      sec.classList.toggle('with-beats', !!boardBeats);
+      if (!boardBeats) { const grid = el('div', 'board-grid', null, sec); cells.forEach((c) => grid.appendChild(c)); refreshBoard(); return; }
+      const rows = boardBeats.map((b) => ({ from: +b.from, to: +b.to, beat: b, cells: [] }));
+      keys.forEach((k, i) => {
+        const row = rows.find((r) => k.t >= r.from - 1e-6 && k.t < r.to - 1e-6) || rows.find((r) => Math.abs(k.t - r.to) < 1e-6 && r.to >= duration - 1e-6);
+        if (row) row.cells.push(cells[i]); else rows.push({ from: k.t, to: null, beat: null, cells: [cells[i]] });
+      });
+      rows.sort((a, b) => a.from - b.from);
+      const list = el('div', 'board-beats', null, sec);
+      for (const r of rows) {
+        const row = el('article', 'beat-row', null, list);
+        el('header', 'beat-time', null, row).textContent = r.to == null ? fmt(r.from) : `${fmt(r.from)} \u2013 ${fmt(r.to)}`;
+        const txt = el('div', 'beat-text', null, row);
+        if (r.beat?.title) inlineInto(el('h2', null, null, txt), r.beat.title);
+        if (r.beat?.text) inlineInto(el('p', null, null, txt), r.beat.text);
+        if (!r.beat) el('p', 'beat-none', null, txt).textContent = 'Not in a beat of the brief.';
+        const frames = el('div', 'beat-frames', null, row);
+        if (r.cells.length) r.cells.forEach((c) => frames.appendChild(c));
+        else el('p', 'beat-none', null, frames).textContent = 'No storyboard frame in this beat yet.';
+      }
+      refreshBoard();
     }
     /* one key's frame: the stage rendered at that moment and cloned as it stands */
     function snapshot(k, cw) {
