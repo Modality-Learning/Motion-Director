@@ -615,15 +615,30 @@
       if (last < text.length) node.append(text.slice(last));
       return node;
     }
+    // the frames' size beside the beats: as wide as their column, up to a limit (a vertical film's stays shorter)
+    const beatCell = (sec) => {
+      const col = sec.querySelector('.beat-frames'), w = col ? col.clientWidth : 0;
+      return Math.round(Math.max(H > W ? 180 : 320, Math.min(w || (H > W ? 280 : 560), H > W ? 380 : 960)));
+    };
+    let beatsSized = 0;
+    const beatsResize = new ResizeObserver(() => {
+      const sec = document.querySelector('section.board.with-beats'); if (!sec) return;
+      const cw = beatCell(sec);
+      if (Math.abs(cw - beatsSized) < 8) return;
+      beatsSized = cw; sec.style.setProperty('--cell', cw + 'px'); sec.style.setProperty('--cell-h', (cw * H / W) + 'px'); refreshBoard();
+    });
     function layoutBoard(beats) {
       boardBeats = Array.isArray(beats) && beats.length ? beats : null;
       const sec = document.querySelector('section.board'); if (!sec) return;
       const cells = [...sec.querySelectorAll('.board-cell')];
       sec.querySelector('.board-grid')?.remove(); sec.querySelector('.board-beats')?.remove();
-      const cw = boardBeats ? (H > W ? 220 : 420) : (H > W ? 300 : 600);
-      sec.style.setProperty('--cell', cw + 'px'); sec.style.setProperty('--cell-h', (cw * H / W) + 'px');
       sec.classList.toggle('with-beats', !!boardBeats);
-      if (!boardBeats) { const grid = el('div', 'board-grid', null, sec); cells.forEach((c) => grid.appendChild(c)); refreshBoard(); return; }
+      if (!boardBeats) {
+        beatsResize.disconnect();
+        const cw = H > W ? 300 : 600;
+        sec.style.setProperty('--cell', cw + 'px'); sec.style.setProperty('--cell-h', (cw * H / W) + 'px');
+        const grid = el('div', 'board-grid', null, sec); cells.forEach((c) => grid.appendChild(c)); refreshBoard(); return;
+      }
       const rows = boardBeats.map((b) => ({ from: +b.from, to: +b.to, beat: b, cells: [] }));
       keys.forEach((k, i) => {
         const row = rows.find((r) => k.t >= r.from - 1e-6 && k.t < r.to - 1e-6) || rows.find((r) => Math.abs(k.t - r.to) < 1e-6 && r.to >= duration - 1e-6);
@@ -635,13 +650,19 @@
         const row = el('article', 'beat-row', null, list);
         el('header', 'beat-time', null, row).textContent = r.to == null ? fmt(r.from) : `${fmt(r.from)} \u2013 ${fmt(r.to)}`;
         const txt = el('div', 'beat-text', null, row);
+        // its on-screen title when the brief gives one; otherwise the storyboard's names for its frames
         if (r.beat?.title) inlineInto(el('h2', null, null, txt), r.beat.title);
+        else if (r.cells.length) el('h2', 'beat-name', null, txt).textContent = r.cells.map((c) => c.dataset.key).join(' \u00b7 ');
         if (r.beat?.text) inlineInto(el('p', null, null, txt), r.beat.text);
+        for (const x of r.beat?.extra || []) { const p = el('p', 'beat-extra', null, txt); el('b', null, null, p).textContent = x.label; inlineInto(p, ` ${x.value}`); }
         if (!r.beat) el('p', 'beat-none', null, txt).textContent = 'Not in a beat of the brief.';
         const frames = el('div', 'beat-frames', null, row);
         if (r.cells.length) r.cells.forEach((c) => frames.appendChild(c));
         else el('p', 'beat-none', null, frames).textContent = 'No storyboard frame in this beat yet.';
       }
+      beatsSized = beatCell(sec);
+      sec.style.setProperty('--cell', beatsSized + 'px'); sec.style.setProperty('--cell-h', (beatsSized * H / W) + 'px');
+      beatsResize.disconnect(); beatsResize.observe(sec);
       refreshBoard();
     }
     /* one key's frame: the stage rendered at that moment and cloned as it stands */

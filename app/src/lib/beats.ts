@@ -1,8 +1,10 @@
-// The beats of a brief: the table under its "Beats" heading (| Time | What happens | Title |), read into time
-// ranges, so the storyboard can lay its frames out beside them (each frame in the beat its time falls in).
+// The beats of a brief: the table under its "Beats" heading, read into time ranges, so the storyboard can lay its
+// frames out beside them (each frame in the beat its time falls in). Only a Time column is needed: a Title column
+// (on-screen titles) is optional, the first other column is what happens, and any more (Voice-over, Sound…) come
+// along under their own names.
 import type { Block } from './markdown';
 
-export interface Beat { from: number; to: number; time: string; title: string; text: string }
+export interface Beat { from: number; to: number; time: string; title: string; text: string; extra: { label: string; value: string }[] }
 
 /** A time as a brief writes it: "4.6", "4.6 s", "0:04.6", "1:02". */
 export function seconds(s: string): number | null {
@@ -33,13 +35,16 @@ export function beatsOf(blocks: Block[]): { beats: Beat[]; at: number[] } {
     const head = t.head.map((c) => plain(c).toLowerCase());
     const timeCol = head.findIndex((c) => /^time|^when/.test(c));
     if (timeCol < 0) return { beats: [], at: [] };
-    const titleCol = head.findIndex((c, k) => k !== timeCol && /title|line|says|caption|text on screen/.test(c));
+    const titleCol = head.findIndex((c, k) => k !== timeCol && /title|caption|text on screen|on-screen/.test(c));
+    const others = head.map((_, k) => k).filter((k) => k !== timeCol && k !== titleCol);
+    // what happens: the column that says so, else the first of the others
+    const textCol = others.find((k) => /what|happens|action|description|shot|scene|visual/.test(head[k])) ?? others[0] ?? -1;
     const beats: Beat[] = [];
     for (const row of t.rows) {
       const r = range(plain(row[timeCol] || ''));
       if (!r) continue;
-      const rest = row.filter((_, k) => k !== timeCol && k !== titleCol).map((c) => c.trim()).filter(Boolean);
-      beats.push({ from: r[0], to: r[1], time: row[timeCol].trim(), title: titleCol >= 0 ? (row[titleCol] || '').trim() : '', text: rest.join(' ') });
+      const extra = others.filter((k) => k !== textCol && (row[k] || '').trim()).map((k) => ({ label: plain(t.head[k]), value: row[k].trim() }));
+      beats.push({ from: r[0], to: r[1], time: row[timeCol].trim(), title: titleCol >= 0 ? (row[titleCol] || '').trim() : '', text: textCol >= 0 ? (row[textCol] || '').trim() : '', extra });
     }
     return beats.length ? { beats, at: [i, i + 1 + ti] } : { beats: [], at: [] };
   }

@@ -33,8 +33,8 @@ The end.`);
   const { beats, at } = beatsOf(blocks);
 
   expect(beats).toEqual([
-    { from: 0, to: 4.6, time: '0–4.6 s', title: 'Claude builds *great* motion.', text: 'A prompt is **typed** and sent.' },
-    { from: 4.6, to: 9.4, time: '4.6–9.4 s', title: '', text: 'A tweak in words.' },
+    { from: 0, to: 4.6, time: '0–4.6 s', title: 'Claude builds *great* motion.', text: 'A prompt is **typed** and sent.', extra: [] },
+    { from: 4.6, to: 9.4, time: '4.6–9.4 s', title: '', text: 'A tweak in words.', extra: [] },
   ]);
   expect(at.map((i) => blocks[i].kind)).toEqual(['heading', 'table']);
 });
@@ -42,4 +42,16 @@ The end.`);
 test('no beats table, or one without a time column, gives no beats', () => {
   expect(beatsOf(parse('# Film\n\n## Beats\n\nOne, then two.')).beats).toEqual([]);
   expect(beatsOf(parse('## Beats\n\n| What | Title |\n|---|---|\n| a | b |')).beats).toEqual([]);
+});
+
+test('titles are optional, and other columns come along under their own names', () => {
+  const { beats } = beatsOf(parse(`## Beats
+
+| Time | Voice-over | What happens | Sound |
+|---|---|---|---|
+| 0–3 s | "Meet Flow." | The pill rises. | A soft swell |
+| 3–6 s | | The text cleans itself up. | |`));
+
+  expect(beats[0]).toMatchObject({ title: '', text: 'The pill rises.', extra: [{ label: 'Voice-over', value: '"Meet Flow."' }, { label: 'Sound', value: 'A soft swell' }] });
+  expect(beats[1]).toMatchObject({ text: 'The text cleans itself up.', extra: [] });
 });

@@ -93,8 +93,8 @@ in a minute:
   reference.
 - **Beats:** one line each, with its time range, adding up to the exact length: what happens and what the
   viewer sees.
-- **Titles:** one short sentence per beat; together they tell the story with the sound off. A voice-over's
-  lines, if there is one.
+- **Titles**, if the film has them: one short sentence per beat; together they tell the story with the sound
+  off. Short films often need none, or one at the end. A voice-over's lines, if there is one.
 - **Hits:** the moments that must land (a click, a slam, a reveal). They become key moments now and sound
   hits later.
 - **Product moments:** the real screens or interactions it shows, and where their source is.
@@ -108,7 +108,11 @@ the file as you change it. So write it for them to read, in plain Markdown, in t
 - A `#` title (the film's name and its one idea), one or two sentences on what it is, then bullets for
   **Purpose**, **Length and format** and **Sound**.
 - `## Visual direction`: bullets, one per reference or decision.
-- `## Beats`: a table, `| Time | What happens | Title |`, one row per beat, times adding up to the length.
+- `## Beats`: a table with a `Time` column (`0–4.6 s`), one row per beat, times adding up to the length,
+  then `What happens`. Add a `Title` column only when the film has on-screen titles, and other columns
+  only when the film has them (`Voice-over`, `Sound`); without a title, the storyboard heads each beat with
+  its frames' names. The studio lays the storyboard out by these rows, each beat beside the frames that
+  fall in its time.
 - `## Hits`, `## Product moments` (when it shows real screens) and `## Ending`: a short paragraph or bullets.
 
 Use the beats' names and times the storyboard uses (the film's `KEYS`), so the brief and the stills line up
