@@ -15,7 +15,13 @@ import { PKG } from './project.mjs';
 
 // MD_SOUNDS comes from the project's config (sounds: '…', see project.mjs); PROMO_SOUNDS is the older name
 export const soundsDir = (promoDir) => resolve(process.env.MD_SOUNDS || process.env.PROMO_SOUNDS || join(promoDir, 'sounds'));
-const libraryFile = (promoDir) => join(promoDir, 'sounds', 'library.json');
+// What is known about each sound (its settings, family, tags, description, uses, organised) describes the sound,
+// not a film, so it lives beside the audio: a shared library (config sounds: '…') carries it to every project.
+// A project's own sounds/ (the default) keeps it there as before.
+const libraryFile = (promoDir) => join(soundsDir(promoDir), 'library.json');
+/** Where the library's settings are read from: beside the audio, else (a library just moved out of the project)
+ * the project's old sounds/library.json, until the first save writes them beside the audio. */
+const libraryRead = (promoDir) => { const f = libraryFile(promoDir), old = join(promoDir, 'sounds', 'library.json'); return existsSync(f) || !existsSync(old) ? f : old; };
 const sheetFile = (promoDir, film) => join(promoDir, 'films', film, 'sound.json');
 const cacheDir = (promoDir) => join(promoDir, 'out', '.sound-cache');
 /** Formats the browser can't decode; the studio serves a WAV copy of them. */
@@ -72,7 +78,7 @@ export function libraryLabel(promoDir) {
 }
 
 const readJson = (file, fallback) => { try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return fallback; } };
-export const readLibrary = (promoDir) => validateLibrary(readJson(libraryFile(promoDir), { sounds: {} })).library || { sounds: {} };
+export const readLibrary = (promoDir) => validateLibrary(readJson(libraryRead(promoDir), { sounds: {} })).library || { sounds: {} };
 /** Sets (or, with null, clears) one sound's defaults. Returns { library } or { error }. */
 export function saveLibraryEntry(promoDir, path, settings) {
   if (!soundPathOk(path)) return { error: 'Not a sound path' };
@@ -80,7 +86,7 @@ export function saveLibraryEntry(promoDir, path, settings) {
   if (settings == null) delete lib.sounds[path]; else lib.sounds[path] = settings;
   const v = validateLibrary(lib);
   if (v.error) return v;
-  mkdirSync(join(promoDir, 'sounds'), { recursive: true });
+  mkdirSync(soundsDir(promoDir), { recursive: true });
   const sorted = Object.fromEntries(Object.entries(v.library.sounds).sort(([a], [b]) => a.localeCompare(b)));
   writeFileSync(libraryFile(promoDir), JSON.stringify({ sounds: sorted }, null, 2) + '\n');
   return { library: { sounds: sorted } };
@@ -96,7 +102,7 @@ export function saveLibraryEntries(promoDir, entries) {
   }
   const v = validateLibrary(lib);
   if (v.error) return v;
-  mkdirSync(join(promoDir, 'sounds'), { recursive: true });
+  mkdirSync(soundsDir(promoDir), { recursive: true });
   const sorted = Object.fromEntries(Object.entries(v.library.sounds).sort(([a], [b]) => a.localeCompare(b)));
   writeFileSync(libraryFile(promoDir), JSON.stringify({ sounds: sorted }, null, 2) + '\n');
   return { library: { sounds: sorted }, count: Object.keys(entries).length };
