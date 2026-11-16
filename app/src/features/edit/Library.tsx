@@ -16,24 +16,27 @@ import { MARKS } from './motion';
 import { addHere, importFiles, openEditor, soundDefaults, useEdit } from './store';
 import { PlayButton, SideK } from './controls';
 
-/* A library can hold thousands of sounds, so the list is virtual: it is one flat list of group headings and
+/* The sections start folded, so a big library opens as a short list of families with a count each; a search
+ * or a filter opens every section that has a match, and suggestions are always open.
+ * A library can hold thousands of sounds, so the list is virtual: it is one flat list of group headings and
  * sounds at fixed heights, and only the rows in view (and a few either side) are built. The library also
  * doesn't follow the timeline's changes (useEdit's rev): it changes only when the files, their settings or
  * their analysis do. */
 const HEAD = 30, ROW = 32, OVERSCAN = 8;
-type Line = { kind: 'head'; id: string; label: string; special?: boolean; onClear?: () => void } | { kind: 'sound'; x: SoundInfo };
+type Line = { kind: 'head'; id: string; label: string; count: number; open: boolean; special?: boolean; onClear?: () => void } | { kind: 'sound'; x: SoundInfo };
 
 export function Library() {
   const files = useEdit((s) => s.files), lib = useEdit((s) => s.lib), analysis = useEdit((s) => s.analysis);
   const query = useEdit((s) => s.query), traitFilter = useEdit((s) => s.traitFilter), suggest = useEdit((s) => s.suggest);
-  const closed = useEdit((s) => s.closed);
+  const opened = useEdit((s) => s.opened), folded = useEdit((s) => s.folded);
+  const searching = !!query.trim() || traitFilter.size > 0;
   const [dropping, setDropping] = useState(false);
   const colRef = useRef<HTMLElement>(null);
   // a sound's length comes from its analysis, else from the file once decoded (read at the time, not followed)
   const info = useMemo(() => soundsInfo(files, lib, analysis, fileLen), [files, lib, analysis]);
   const byPath = useMemo(() => new Map(info.map((x) => [x.path, x])), [info]);
   const shown = useMemo(() => info.filter((x) => matches(x, query, traitFilter)), [info, query, traitFilter]);
-  const toggleTrait = (k: TraitKey) => { const next = new Set(traitFilter); if (next.has(k)) next.delete(k); else next.add(k); useEdit.setState({ traitFilter: next }); };
+  const toggleTrait = (k: TraitKey) => { const next = new Set(traitFilter); if (next.has(k)) next.delete(k); else next.add(k); useEdit.setState({ traitFilter: next, folded: new Set() }); };
 
   // the whole library column takes the drop; only Finder files (not a sound dragged from the list)
   const fromFinder = (e: React.DragEvent) => e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('text/x-promo-sound');
@@ -42,15 +45,16 @@ export function Library() {
     const out: Line[] = [];
     const group = (id: string, label: string, items: SoundInfo[], extra: Partial<Extract<Line, { kind: 'head' }>> = {}) => {
       if (!items.length) return;
-      out.push({ kind: 'head', id, label, ...extra });
-      if (!closed.has(id)) for (const x of items) out.push({ kind: 'sound', x });
+      const open = extra.special ? true : searching ? !folded.has(id) : opened.has(id);
+      out.push({ kind: 'head', id, label, count: items.length, open, ...extra });
+      if (open) for (const x of items) out.push({ kind: 'sound', x });
     };
     if (suggest) group('suggest', `For ${MARKS[suggest.kind].suggest} at ${secs(suggest.t)}`, suggested, { special: true, onClear: () => useEdit.setState({ suggest: null }) });
     const byFamily = new Map<string, SoundInfo[]>();
     for (const x of shown) { const list = byFamily.get(x.family); if (list) list.push(x); else byFamily.set(x.family, [x]); }
     for (const f of FAMILIES) group(f.id, f.label, byFamily.get(f.id) || []);
     return out;
-  }, [shown, suggested, suggest, closed]);
+  }, [shown, suggested, suggest, opened, folded, searching]);
   return (
     <aside ref={colRef} aria-label="Sound library"
       className={cn('min-h-0 min-w-0 overflow-hidden border-r bg-card', dropping && 'bg-primary/8 shadow-[inset_0_0_0_2px_var(--primary)]')}
@@ -60,7 +64,7 @@ export function Library() {
       <div className="grid h-full min-h-0 grid-rows-[auto_auto_auto_minmax(0,1fr)_auto] gap-2 px-3.5 py-3 [&>*]:min-w-0">
         <SideK as="div">Library</SideK>
         <Input type="search" placeholder="Find: name, family, tag" aria-label="Find a sound" value={query} className="h-8 bg-background"
-          onChange={(e) => useEdit.setState({ query: e.target.value })} />
+          onChange={(e) => useEdit.setState({ query: e.target.value, folded: new Set() })} />
         <div role="group" aria-label="Filter by sound" className="flex flex-wrap gap-1">
           {(Object.entries(TRAITS) as [TraitKey, (typeof TRAITS)[TraitKey]][]).map(([k, t]) => (
             // the hint sits on a wrapper: a Tooltip trigger's data-state would replace the Toggle's own (on/off)
@@ -109,12 +113,18 @@ function VirtualList({ lines }: { lines: Line[] }) {
 }
 
 const GroupHead = memo(function GroupHead({ line, top }: { line: Extract<Line, { kind: 'head' }>; top: number }) {
-  const open = useEdit((s) => !s.closed.has(line.id));
-  const toggle = () => { const next = new Set(useEdit.getState().closed); if (open) next.add(line.id); else next.delete(line.id); useEdit.setState({ closed: next }); };
+  const { open } = line;
+  // browsing, a click opens or folds a section; while searching, it folds or reopens one with matches
+  const toggle = () => {
+    const s = useEdit.getState(), searching = !!s.query.trim() || s.traitFilter.size > 0, key = searching ? 'folded' : 'opened';
+    const next = new Set(s[key]);
+    if (next.has(line.id)) next.delete(line.id); else next.add(line.id);
+    useEdit.setState({ [key]: next });
+  };
   return (
     <li style={{ top, height: HEAD }} className={cn('absolute inset-x-0 flex items-center gap-1.5', line.special && 'rounded-t-lg bg-primary/6')}>
       <Button variant="ghost" size="xs" aria-expanded={open} onClick={toggle} className="group flex-1 justify-start tracking-wide text-muted-foreground uppercase">
-        <ChevronRight className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-90')} />{line.label}
+        <ChevronRight className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-90')} />{line.label}<span className="ml-auto font-normal tabular-nums normal-case">{line.count}</span>
       </Button>
       {line.onClear ? <Hint label="Close"><Button variant="ghost" size="icon-xs" aria-label={`Close ${line.label}`} onClick={line.onClear} className="text-muted-foreground"><X /></Button></Hint> : null}
     </li>

@@ -45,7 +45,9 @@ export interface EditState {
   suggest: { kind: EventKind; t: number } | null;
   query: string;
   traitFilter: Set<TraitKey>;
-  closed: Set<string>;
+  /** library sections you opened (they start folded), and, while searching, the ones you folded (they start open) */
+  opened: Set<string>;
+  folded: Set<string>;
   /** sounds just added from Finder, marked in the list */
   fresh: Set<string>;
   zoom: number;
@@ -67,7 +69,7 @@ export const useEdit = create<EditState>(() => ({
   key: null, kind: 'film', film: null, duration: 0, moments: [], beats: [],
   sheet: { master: 0, cues: [] }, lib: { sounds: {} }, files: [], dir: '', audio: false, analysis: {},
   sel: null, editing: null, focus: null, curve: null, lost: new Set(), objectsOpen: false, suggest: null,
-  query: '', traitFilter: new Set(), closed: new Set(), fresh: new Set(),
+  query: '', traitFilter: new Set(), opened: new Set(), folded: new Set(), fresh: new Set(),
   zoom: 1, playing: false, hiddenLines: hidden(), canUndo: false, canRedo: false, status: '', rev: 0,
 }));
 const get = useEdit.getState, set = useEdit.setState;
