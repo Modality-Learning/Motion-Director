@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../kit/player.css">
+<link rel="stylesheet" href="../../kit/stage.css">
+<style>
+/* The film's own surfaces. Rebuild product screens from the real components listed in film.json,
+ * at their native size and with their real copy, then place them on the 1920×1080 stage. */
+.card { position: absolute; left: 160px; top: 232px; width: 1600px; height: 720px; background: var(--card); border: 1px solid var(--line); border-radius: 24px; }
+</style>
+</head>
+<body>
+<main id="player" data-title="New film">
+  <div id="stage">
+    <div class="layer" id="bg"></div>
+    <div class="layer" id="titlesBehind"></div>
+    <div class="abs card" id="card"></div>
+    <div class="layer" id="titles"></div>
+  </div>
+</main>
+
+<script src="../../kit/motion.js"></script>
+<script src="../../kit/player.js"></script>
+<script>
+(() => {
+const { el, op, keyAt } = window.Motion;
+const $ = (s) => document.querySelector(s);
+const DURATION = 12;
+
+/* Keyframes pass: list the key moments first. Each one is a state the viewer must read; the board
+ * (?board) shows them side by side for review before any motion is written. */
+const KEYS = [
+  { t: 0, name: 'Opening', note: 'What the viewer sees first.' },
+  { t: 4, name: 'The turn', note: 'The problem or the product appears.' },
+  { t: 8, name: 'The payoff', note: 'What changes for the viewer.' },
+];
+const SCENES = KEYS.map((k) => [k.name, k.t]);
+
+const title = el('div', 'title peek', 'One idea per line.'.split(' ').map((w) => `<span>${w}</span>`).join(''), $('#titlesBehind'));
+
+/* Each key's state. In the keyframes pass, render holds the current key's state;
+ * in the transitions pass, replace the holds with moves between the states (see promo/MOTION.md). */
+function render(t) {
+  const { i } = keyAt(KEYS, t);
+  // key 0: the title, held at rest above the card
+  title.style.transform = `translate(${960 - title.offsetWidth / 2 - 160}px,0px)`;
+  // transitions pass: let it peek up from behind the card on the house spring instead, e.g.
+  //   const up = spring(t - .3); ...translate(x, T.peekHide * (1 - up))
+  op(title, i === 0 ? 1 : 0);
+  // keys 1 and 2: replace these holds with the film's real states
+  $('#card').style.background = i === 2 ? 'var(--aqua)' : '';
+}
+
+Motion.mountPlayer({ duration: DURATION, poster: KEYS[1].t, scenes: SCENES, keys: KEYS, render });
+})();
+</script>
+</body>
+</html>

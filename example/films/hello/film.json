@@ -1,0 +1,16 @@
+{
+  "title": "Hello",
+  "duration": 12,
+  "ui": {
+    "syncedAt": null,
+    "sources": []
+  },
+  "params": {
+    "title": {
+      "label": "Opening title",
+      "type": "text",
+      "maxLength": 60,
+      "value": "One idea per line."
+    }
+  }
+}

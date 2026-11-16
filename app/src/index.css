@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Motion Director: the screening-room palette (dark teal, cream text, aqua accent) as shadcn/ui tokens.
+ * The studio is dark only; the films themselves bring their own palette (kit/brand.css). */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+  --background: #0F252A;        /* the page */
+  --foreground: #E3E8D6;
+  --card: #16353C;              /* raised panels */
+  --card-foreground: #E3E8D6;
+  --popover: #1C3F47;
+  --popover-foreground: #E3E8D6;
+  --primary: #6BE8D9;           /* the accent: selection, the playhead, primary actions */
+  --primary-foreground: #142F35;
+  --secondary: #1C3F47;         /* raised controls */
+  --secondary-foreground: #E3E8D6;
+  --muted: #16353C;
+  --muted-foreground: #A9BDB6;
+  --accent: #24505A;            /* hover */
+  --accent-foreground: #E3E8D6;
+  --destructive: #F2664D;
+  --border: rgba(227, 232, 214, .14);
+  --input: rgba(227, 232, 214, .22);
+  --ring: #6BE8D9;
+  --warning: #EE921A;
+  --success: #00D180;
+  --ink: #142F35;
+  --font-sans: 'Host Grotesk', 'Helvetica Neue', Arial, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-ink: var(--ink);
+  --font-sans: var(--font-sans);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html, body, #root { height: 100%; }
+  html { color-scheme: dark; }
+  body { @apply bg-background text-foreground font-sans antialiased; font-size: 15px; line-height: 1.45; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+}
+
+/* a field the preview's picker pointed at */
+@keyframes flash { from { background: color-mix(in oklab, var(--primary) 28%, transparent); } to { background: transparent; } }
+
+@layer base {
+  a { color: var(--primary); }
+}
+
+/* ── the Edit tab's timeline (features/edit) ── */
+@layer components {
+  /* each object has its colour: its layer, its clips, its name */
+  .obj-c0 { --obj: #EE921A; } .obj-c1 { --obj: #6BE8D9; } .obj-c2 { --obj: #C9A7F5; }
+  .obj-c3 { --obj: #F2C14E; } .obj-c4 { --obj: #7FB3FF; } .obj-c5 { --obj: #F28AB0; }
+  /* while dragging a clip, its value sits on it */
+  .tl-clip[data-readout]::after {
+    content: attr(data-readout); position: absolute; right: 4px; top: 2px; pointer-events: none;
+    font: 600 11px/1.4 var(--font-sans); background: var(--ink); color: var(--foreground); padding: 0 5px; border-radius: 4px;
+  }
+  /* comment mode on the timeline: what a click would comment on is outlined; the ruler still scrubs */
+  .tl-commenting, .tl-commenting * {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11l-6 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' fill='%236BE8D9' stroke='%23142F35' stroke-width='1.5'/%3E%3C/svg%3E") 3 3, crosshair !important;
+  }
+  .tl-commenting .tl-ruler, .tl-commenting .tl-ruler * { cursor: col-resize !important; }
+  .tl-commenting .tl-ruler button, .tl-commenting .tl-ruler button * { cursor: pointer !important; }
+  .tl-commenting .c-hover { outline: 2px solid var(--warning) !important; outline-offset: -1px; }
+  /* dragging the timeline's grip: nothing else takes the pointer, the preview included */
+  .tl-resizing, .tl-resizing * { cursor: row-resize !important; user-select: none; }
+  .tl-resizing iframe { pointer-events: none; }
+}

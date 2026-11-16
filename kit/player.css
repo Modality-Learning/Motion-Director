@@ -1,0 +1,150 @@
+/* Motion Director kit: the screening-room page around a film. Not part of any render. */
+:root {
+  color-scheme: dark;
+  --page: #0F252A;
+  --page-raised: #16353C;
+  --page-fg: #E3E8D6;
+  --page-muted: #A9BDB6;
+  --page-line: rgba(227, 232, 214, .14);
+  --page-accent: #6BE8D9;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--page-fg); font-family: 'Host Grotesk', 'Helvetica Neue', Arial, sans-serif; }
+
+#player {
+  max-width: 1320px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+  display: grid; gap: 18px;
+}
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+.top h1 { font-weight: 600; font-size: clamp(24px, 3.4vw, 36px); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+.top p { margin: 0; color: var(--page-muted); font-size: 14px; letter-spacing: .02em; }
+
+.viewport {
+  position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9;
+  border-radius: 14px; overflow: hidden; background: #000;
+  box-shadow: 0 0 0 1px var(--page-line), 0 30px 80px -30px rgba(0,0,0,.6);
+  cursor: pointer;
+}
+.viewport:fullscreen { border-radius: 0; aspect-ratio: auto; width: 100vw; height: 100vh; }
+/* a vertical film: as tall as the window allows, centred */
+html:not(.still):not(.board) #player.portrait .viewport { width: auto; height: min(78vh, 1100px); max-width: 100%; justify-self: center; }
+.viewport:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 3px; }
+
+.poster {
+  position: absolute; inset: 0; display: grid; place-items: center; z-index: 5;
+  background: radial-gradient(closest-side, rgba(15,37,42,.38), rgba(15,37,42,.12));
+}
+.poster[hidden] { display: none; }
+.poster button {
+  display: flex; align-items: center; gap: 12px; border: 0; cursor: pointer;
+  background: #142F35; color: #E3E8D6; font-weight: 600; font-size: clamp(14px, 1.6vw, 18px); font-family: inherit;
+  padding: 14px 26px 14px 18px; border-radius: 999px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.5);
+}
+.poster button:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 3px; }
+.poster svg { width: 30px; height: 30px; }
+
+.controls {
+  display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 14px;
+  background: var(--page-raised); border: 1px solid var(--page-line); border-radius: 14px; padding: 10px 14px;
+}
+.cbtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 44px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--page-line);
+  background: transparent; color: var(--page-fg); font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer;
+}
+.cbtn:hover { background: rgba(227,232,214,.08); }
+.cbtn:focus-visible, .scene:focus-visible, .controls input:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.cbtn svg { width: 16px; height: 16px; }
+.cbtn.primary { background: var(--page-accent); color: #142F35; border-color: transparent; }
+.bgt { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--page-line); border-radius: 999px; }
+.bgt .cbtn { height: 34px; border: 0; padding: 0 12px; }
+.bgt .cbtn[aria-pressed="true"] { background: var(--page-accent); color: #142F35; }
+.time { font-variant-numeric: tabular-nums; color: var(--page-muted); font-size: 14px; white-space: nowrap; }
+.controls input { width: 100%; min-width: 0; accent-color: var(--page-accent); }
+
+.scenes { display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 8px; }
+.scene {
+  text-align: left; border: 1px solid var(--page-line); background: transparent; color: var(--page-fg);
+  border-radius: 12px; padding: 10px 12px; cursor: pointer; font-family: inherit; min-width: 0;
+  display: grid; gap: 3px; position: relative; overflow: hidden;
+}
+.scene:hover { background: rgba(227,232,214,.05); }
+.scene b { font-weight: 600; font-size: 14px; line-height: 1.25; }
+.scene span { font-size: 12px; color: var(--page-muted); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.scene.on { border-color: var(--page-accent); }
+.scene i { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--page-accent); width: 0; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 6px; }
+.notes div { border-top: 1px solid var(--page-line); padding-top: 10px; font-size: 14px; line-height: 1.5; color: var(--page-muted); min-width: 0; }
+.notes b { display: block; color: var(--page-fg); font-weight: 600; margin-bottom: 2px; }
+
+@media (max-width: 760px) {
+  .controls { grid-template-columns: auto 1fr auto; }
+  .controls .time { grid-column: 1 / -1; order: 5; }
+  .scenes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .notes { grid-template-columns: 1fr; }
+}
+
+/* ?still: the stage alone, fitted to the window, for the storyboard and stills */
+html.still, html.still body { background: #000; overflow: hidden; }
+html.still #player { max-width: none; padding: 0; display: block; }
+html.still #player > :not(.viewport) { display: none; }
+html.still .viewport { position: fixed; inset: 0; aspect-ratio: auto; border-radius: 0; box-shadow: none; cursor: default; }
+
+/* ?board: the storyboard, one frame per key moment */
+html.board #player { max-width: none; padding: 32px; display: block; }
+html.board #player > :not(.board):not(.viewport) { display: none; }
+html.board .viewport { position: absolute; left: -10000px; top: 0; width: 1920px; aspect-ratio: auto; height: 1920px; }
+.board h1 { margin: 0 0 20px; font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, var(--cell, 600px)); gap: 22px 20px; }
+.board-cell { margin: 0; display: grid; gap: 8px; }
+.board-frame { position: relative; width: var(--cell, 600px); height: var(--cell-h, 337.5px); overflow: hidden; border-radius: 8px; box-shadow: 0 0 0 1px var(--page-line); }
+.board-cell figcaption { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 14px; }
+.board-cell figcaption b { font-weight: 600; }
+.board-cell figcaption span { color: var(--page-muted); font-variant-numeric: tabular-nums; }
+.board-cell figcaption p { grid-column: 1 / -1; margin: 0; color: var(--page-muted); line-height: 1.4; }
+
+/* studio links: an element whose parameters are focused, and inspect mode (never in renders) */
+.promo-hl { outline: 6px solid #6BE8D9 !important; outline-offset: 8px; border-radius: 6px; }
+.board .promo-hl { outline-width: 14px; outline-offset: 12px; }
+html.inspecting #stage { pointer-events: auto; }
+.promo-hover { outline: 4px dashed rgba(107, 232, 217, .9); outline-offset: 8px; }
+.board-cell { cursor: pointer; }
+.board-cell.sel .board-frame { box-shadow: 0 0 0 3px var(--page-accent); }
+
+/* inside the studio: no header, the stage takes every pixel above the transport */
+html.embedded, html.embedded body { height: 100%; overflow: hidden; }
+html.embedded #player { max-width: none; height: 100%; padding: 12px 16px; gap: 10px; grid-template-rows: minmax(0, 1fr) auto auto; }
+html.embedded #player > .top { display: none; }
+html.embedded #player .viewport, html.embedded:not(.still):not(.board) #player.portrait .viewport { width: 100%; height: 100%; max-width: none; aspect-ratio: auto; background: transparent; box-shadow: none; border-radius: 0; cursor: default; }
+
+/* comments on the storyboard: a speech-bubble cursor in comment mode, and numbered pins */
+html.commenting .board-cell, html.commenting .board-cell * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11l-6 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' fill='%236BE8D9' stroke='%23142F35' stroke-width='1.5'/%3E%3C/svg%3E") 3 3, crosshair; }
+.board-cell.frame-hover .board-frame { box-shadow: 0 0 0 3px #6BE8D9; }
+.board .promo-hover { outline-width: 10px; outline-offset: 10px; }
+
+/* the storyboard inside the studio: no heading (the studio names the film), less padding */
+html.in-studio.board #player { padding: 16px; }
+html.in-studio .board h1 { display: none; }
+
+/* comment mode in the preview: the element picker (studio only, never in renders) */
+/* comment mode in a preview: the storyboard's speech bubble (it wins over select mode's pointer) */
+html.picking .viewport, html.picking #stage, html.picking #stage *,
+html.picking.sounding .viewport, html.picking.sounding #stage, html.picking.sounding #stage * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11l-6 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' fill='%236BE8D9' stroke='%23142F35' stroke-width='1.5'/%3E%3C/svg%3E") 3 3, crosshair !important; }
+.promo-pick { position: fixed; z-index: 2147483647; pointer-events: none; border: 2px solid #6BE8D9; background: rgba(107, 232, 217, .12); border-radius: 3px; box-shadow: 0 0 0 1px rgba(20, 47, 53, .5); }
+.promo-pick[hidden] { display: none; }
+.promo-pick.frozen { background: rgba(107, 232, 217, .22); border-width: 3px; }
+.promo-pick-tag { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: pre; background: #142F35; color: #E3E8D6; font: 600 12px/1 'Host Grotesk', sans-serif; padding: 5px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+.promo-pick.below .promo-pick-tag { bottom: auto; top: 100%; margin: 4px 0 0; }
+
+/* sound mode (the studio's Sound tab): elements that make a sound are picked like the comment picker */
+html.sounding .viewport, html.sounding #stage, html.sounding #stage * { cursor: pointer !important; }
+.promo-selbox { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid #EE921A; border-radius: 4px; }
+.promo-selbox[hidden] { display: none; }
+
+/* ?bare (the studio's Sound tab): the stage alone; its timeline plays and scrubs */
+html.bare .controls, html.bare .scenes { display: none !important; }

@@ -1,0 +1,24 @@
+/* The default brand: a neutral palette under the names films use. A project replaces this file with its own
+ * kit/brand.css (same variable names), and every film and composition takes its colours and fonts from it. */
+:root {
+  --cream: #ECECE6;
+  --card: #F4F4F0;
+  --paper: #FAFAF7;
+  --side: #E6E6DF;
+  --ink: #1C1F24;
+  --teal: #2F5D73;
+  --muted: #5A6069;
+  --line: rgba(28, 31, 36, .14);
+  --aqua: #63D3E6;
+  --green: #2FBF71;
+  --coral: #EF6B57;
+  --lavender: #B9A9F5;
+  --rose: #D8A39A;
+  --lime: #C6E84A;
+  --pale: #DDF5C8;
+  --orange: #F0962A;
+  --neutral: #D6D8D2;
+  --bubble: #E4E5E0;
+  --font-ui: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+}

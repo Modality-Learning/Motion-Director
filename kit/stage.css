@@ -1,0 +1,31 @@
+/* Motion Director kit: the film stage.
+ * The stage is 1920×1080 units (set --stage-w / --stage-h on #stage for 1080×1920 vertical films); the player scales it to fit and the renderer captures it at
+ * any resolution. Use the brand's colours (brand.css) on the stage rather than new literals, so every film shares one palette.
+ * A project sets its own palette and fonts in its own kit/brand.css, which is served in place of the default. */
+@import "brand.css";
+
+#stage {
+  position: absolute; left: 0; top: 0; width: var(--stage-w, 1920px); height: var(--stage-h, 1080px); transform-origin: 0 0;
+  overflow: hidden; background: var(--cream); color: var(--ink); font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased; pointer-events: none;
+}
+.layer { position: absolute; inset: 0; transform-origin: 0 0; }
+.abs { position: absolute; left: 0; top: 0; }
+
+/* the textured background: soft colour blobs under a grain layer (#bg holds them) */
+.bg-blob { position: absolute; width: 1100px; height: 1100px; border-radius: 50%; filter: blur(60px); }
+.grain { position: absolute; inset: 0; mix-blend-mode: multiply; opacity: .55; background-size: 220px 220px; }
+/* the default: plain white */
+#stage.plain { background: #FFFFFF; }
+#stage.plain #bg { display: none; }
+
+/* titles: one idea per line, display weight, words animate as <span>s */
+.title { position: absolute; left: 160px; top: 96px; font-family: var(--font-display); font-weight: 500; font-size: 58px; line-height: 1.08; letter-spacing: -.025em; white-space: nowrap; color: var(--ink); transform-origin: 0 0; }
+.title span { display: inline-block; margin-right: .22em; }
+.title span:last-child, .title span:has(+ br) { margin-right: 0; }
+/* a title that peeks out from behind a card, centred above it */
+.title.peek { top: 132px; }
+/* a centred statement in the middle of the frame */
+.title.mid { font-size: 76px; line-height: 1.1; text-align: center; }
+/* the closing line rises out of a mask */
+.title.clip { overflow: hidden; padding-bottom: .16em; }
