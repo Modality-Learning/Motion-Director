@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Hint } from '@/components/Hint';
 import { Kbd } from '@/components/Kbd';
-import { Badge } from '@/components/ui/badge';
-import { TABS, isFilm, useOpenItem, useStudio } from '@/lib/store';
+import { TABS, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
 const label = { brief: 'Brief', edit: 'Edit', export: 'Export' } as const;
 
-/** The bar along the top: where you are, the save indicator and, while a piece is open, its tabs and comment mode. */
+/** The bar along the top. Left: the name, and while a piece is open its tabs. Centre: where you are, from the project
+ * (its name in motion-director.config.mjs) to the open film or composition. Right: the save indicator and comment mode. */
 export function TopBar() {
   const project = useStudio((s) => s.catalog?.project);
   const route = useStudio((s) => s.route);
@@ -19,30 +19,13 @@ export function TopBar() {
   const setCommentMode = useStudio((s) => s.setCommentMode);
   const work = route.view === 'work' && item ? route : null;
   const canComment = !!work && work.kind === 'film' && (work.tab === 'brief' || work.tab === 'edit');
+  const crumb = 'text-muted-foreground no-underline hover:text-foreground hover:underline';
 
   return (
-    <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b px-5 py-3.5">
-      <a href="#/" className="group flex items-baseline gap-2 text-foreground no-underline">
-        <b className="text-lg tracking-tight group-hover:text-primary">Motion Director</b>
-        {project?.name ? <span className="text-sm text-muted-foreground">{project.name}</span> : null}
-      </a>
-      {work && item ? (
-        <>
-          <nav aria-label="You are here" className="flex items-center gap-2 text-muted-foreground">
-            <a className="text-muted-foreground no-underline hover:text-foreground hover:underline" href={work.kind === 'film' ? '#/' : '#/comps'}>{work.kind === 'film' ? 'Films' : 'Compositions'}</a>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page" className="font-semibold text-foreground">{item.title}</span>
-          </nav>
-          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            {(isFilm(item) ? [item.orientation === 'vertical' ? 'Vertical 9:16' : 'Landscape 16:9', `${item.duration} s`] : [`${item.duration} s`, 'Composition']).map((c) => <Badge key={c} variant="outline" className="text-muted-foreground">{c}</Badge>)}
-          </div>
-        </>
-      ) : null}
-      <span role="status" aria-live="polite" className={cn('text-sm', save.state === 'error' ? 'text-destructive' : save.state === 'saved' ? 'text-success' : 'text-muted-foreground')}>
-        {save.state === 'saving' ? 'Saving…' : save.state === 'saved' ? 'Saved ✓' : save.state === 'error' ? `Not saved: ${save.detail || 'try again'}` : ''}
-      </span>
-      {work ? (
-        <div className="ml-auto flex items-center gap-3">
+    <header className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-6 border-b px-5 py-3.5">
+      <div className="flex min-h-9 min-w-0 items-center gap-6">{/* as tall with tabs as without, so the bar never jumps */}
+        <a href="#/" className="shrink-0 text-foreground no-underline hover:text-primary"><b className="text-lg tracking-tight">Motion Director</b></a>
+        {work ? (
           <TabsList variant="line" aria-label="Workspace" className="h-auto gap-1 p-0">
             {TABS[work.kind].map((t) => (
               <TabsTrigger key={t} value={t}
@@ -51,15 +34,31 @@ export function TopBar() {
               </TabsTrigger>
             ))}
           </TabsList>
-          {canComment ? (
-            <Hint label="Comment mode (C)">
-              <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" onClick={() => setCommentMode(!commentMode)}>
-                <MessageSquare /> Comment <Kbd>C</Kbd>
-              </Button>
-            </Hint>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
+      </div>
+      <nav aria-label="You are here" className="flex min-w-0 items-center gap-2 text-muted-foreground">
+        {project?.name ? <a className={crumb} href="#/" title="The project: its name in motion-director.config.mjs">{project.name}</a> : null}
+        {work && item ? (
+          <>
+            {project?.name ? <span aria-hidden="true">/</span> : null}
+            <a className={crumb} href={work.kind === 'film' ? '#/' : '#/comps'}>{work.kind === 'film' ? 'Films' : 'Compositions'}</a>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page" className="truncate font-semibold text-foreground">{item.title}</span>
+          </>
+        ) : null}
+      </nav>
+      <div className="flex min-w-0 items-center justify-end gap-4">
+        <span role="status" aria-live="polite" className={cn('truncate text-sm', save.state === 'error' ? 'text-destructive' : save.state === 'saved' ? 'text-success' : 'text-muted-foreground')}>
+          {save.state === 'saving' ? 'Saving…' : save.state === 'saved' ? 'Saved ✓' : save.state === 'error' ? `Not saved: ${save.detail || 'try again'}` : ''}
+        </span>
+        {canComment ? (
+          <Hint label="Comment mode (C)">
+            <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" onClick={() => setCommentMode(!commentMode)}>
+              <MessageSquare /> Comment <Kbd>C</Kbd>
+            </Button>
+          </Hint>
+        ) : null}
+      </div>
     </header>
   );
 }
