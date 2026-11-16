@@ -249,9 +249,9 @@ const r2 = (x) => Math.round(x * 100) / 100;
  * sent badge holds before the camera pulls back to show the chat (the first loop lingers so it reads).
  * send is when the note lands in Claude's chat; resolve when Claude marks it done and the count clears. */
 function loop(L, ty, linger = 0) {
-  const o = { L, push: [L - .6, L], click: L + .3, type: [L + .6, L + .6 + ty] };
+  const o = { L, push: [L - 1.0, L], click: L + .3, type: [L + .6, L + .6 + ty] };
   o.enter = r2(o.type[1] + .2);
-  o.pull = [r2(o.enter + .35 + linger), r2(o.enter + .95 + linger)];
+  o.pull = [r2(o.enter + .3 + linger), r2(o.enter + 1.15 + linger)];
   o.send = r2(o.enter + .55 + linger); o.work = r2(o.send + .25); o.reply = r2(o.send + 1.3); o.apply = r2(o.reply + .2); o.resolve = r2(o.apply + .6);
   return o;
 }
@@ -276,7 +276,8 @@ B.s3 = { in: r2(B.ff[1] + 2.0) }; B.s3.out = r2(B.s3.in + 2.1); B.play1 = [r2(B.
 B.l3 = loop(r2(B.play1[1] + .9), 1.2); B.replay = [r2(B.l3.apply + .1), r2(B.l3.apply + 1.8)];
 B.famOpen = r2(B.replay[1] + .4); B.grabRow = r2(B.famOpen + .6); B.drag = [r2(B.grabRow + .1), r2(B.grabRow + 1.0)]; B.clipDrop = r2(B.drag[1] + .1);
 B.s4 = { in: r2(B.clipDrop + 1.0) }; B.s4.out = r2(B.s4.in + 2.1);
-B.l4 = loop(r2(B.s4.out + 1.2), 1.0); B.objOpen = [B.l4.apply, r2(B.l4.apply + .45)]; B.graph = [B.objOpen[1], r2(B.objOpen[1] + .6)];
+// the push starts once the title's veil has lifted
+B.l4 = loop(r2(B.s4.out + 1.6), 1.0); B.objOpen = [B.l4.apply, r2(B.l4.apply + .45)]; B.graph = [B.objOpen[1], r2(B.objOpen[1] + .6)];
 B.marks = [0, 1, 2].map((j) => r2(B.graph[1] + j * .15)); B.snaps = [0, 1, 2].map((j) => r2(B.marks[2] + .6 + j * .25)); B.flyDur = .5; B.play2 = [r2(B.snaps[2] + .5), r2(B.snaps[2] + 5.0)];
 B.s5 = { in: r2(B.play2[1] + .6) }; B.s5.out = r2(B.s5.in + 2.1); B.exportTab = r2(B.s5.out + .4); B.exBuild = r2(B.exportTab + .1);
 // Export has no comment mode: the request is typed into the chat, as the app UI check asks
@@ -504,21 +505,29 @@ const ffFrames = Array.from({ length: FRAMES.length * 2 }, (_, j) => {
 });
 ffStrip.style.width = FRAME * ffFrames.length + 'px';
 
-/* ── the camera: [t, scale, the world point at the frame's centre]; each loop pushes in on what is pointed at ── */
-const CAMK = [[0, 1, 960, 540]];
-const camIn = (a, b, s, p) => { CAMK.push([a, 1, 960, 540], [b, s, p.x, p.y]); };
-const camOut = (a, b) => { const last = CAMK[CAMK.length - 1]; CAMK.push([a, last[1], last[2], last[3]], [b, 1, 960, 540]); };
-LOOPS.forEach((l) => { const p = W(l.at.x, l.at.y); camIn(l.b.push[0], l.b.push[1], 1.4, { x: lerp(p.x, 760, .25), y: lerp(p.y, 540, .2) }); camOut(l.b.pull[0], l.b.pull[1]); });
-camIn(B.objOpen[0], B.objOpen[0] + .6, 1.3, W(720, 64 + 456 + 140)); camOut(B.snaps[2] + .3, B.snaps[2] + .9);
+/* ── the camera: one push in on what is pointed at, held, then one pull back out ──
+ * Each key is a framing: a scale, and the world point at the frame's centre, kept on the windows (x 40–1880,
+ * y 153–927) so a push never shows empty stage. Between two keys the camera zooms about the one fixed point that
+ * joins them: the scale eases (in log space, so the zoom's speed feels even) and the offset follows the scale, so
+ * the thing pushed into slides steadily to the centre as it grows, with no drift, kink or jump. */
+const framing = (sc, look) => {
+  const hw = 960 / sc, hh = 540 / sc;
+  const px = sc > 1 ? clamp(look.x, 40 + hw - 20, 1880 - hw + 20) : 960, py = sc > 1 ? clamp(look.y, Math.min(540, 153 + hh - 20), Math.max(540, 927 - hh + 20)) : 540;
+  return { s: sc, tx: 960 - sc * px, ty: 540 - sc * py };
+};
+const WIDE = framing(1, { x: 960, y: 540 });
+const CAMK = [[0, WIDE]];
+const camIn = (a, b, sc, look) => { CAMK.push([a, WIDE], [b, framing(sc, look)]); };
+const camOut = (a, b) => { CAMK.push([a, CAMK[CAMK.length - 1][1]], [b, WIDE]); };
+LOOPS.forEach((l) => { const p = W(l.at.x, l.at.y); camIn(l.b.push[0], l.b.push[1], 1.32, { x: lerp(p.x, 760, .25), y: lerp(p.y, 540, .2) }); camOut(l.b.pull[0], l.b.pull[1]); });
+camIn(B.objOpen[0], B.objOpen[0] + 1.0, 1.25, W(720, 64 + 456 + 140)); camOut(B.snaps[2] + .3, B.snaps[2] + 1.2);
 CAMK.sort((a, b) => a[0] - b[0]);
 function camAt(t) {
   let i = 0; while (i < CAMK.length - 1 && t >= CAMK[i + 1][0]) i++;
-  const a = CAMK[i], b = CAMK[i + 1] || a, p = b === a ? 0 : P(t, a[0], b[0]);
-  const sc = lerp(a[1], b[1], p), hw = 960 / sc, hh = 540 / sc;
-  // keep a pushed-in frame on the windows (x 40–1880, y 153–927), never on empty stage
-  const px = sc > 1 ? clamp(lerp(a[2], b[2], p), 40 + hw - 20, 1880 - hw + 20) : lerp(a[2], b[2], p);
-  const py = sc > 1 ? clamp(lerp(a[3], b[3], p), Math.min(540, 153 + hh - 20), Math.max(540, 927 - hh + 20)) : lerp(a[3], b[3], p);
-  return { s: sc, px, py };
+  const [ta, A] = CAMK[i], [tb, Bk] = CAMK[i + 1] || CAMK[i], p = tb === ta ? 0 : P(t, ta, tb);
+  if (Math.abs(Bk.s - A.s) < 1e-6) return { s: A.s, tx: lerp(A.tx, Bk.tx, p), ty: lerp(A.ty, Bk.ty, p) };
+  const sc = A.s * Math.pow(Bk.s / A.s, p), k = (sc - A.s) / (Bk.s - A.s); // the offset is linear in the scale: a fixed point
+  return { s: sc, tx: lerp(A.tx, Bk.tx, k), ty: lerp(A.ty, Bk.ty, k) };
 }
 
 /* ── the pointer (world px) ── */
@@ -627,7 +636,8 @@ function draw(t) {
   STEPS.forEach((s, i) => { if (i === 0 || s.last) return; const a = s.b.in - .3, z = s.b.out + (s.fly ? .55 : .95); const p = fade(t, a, a + .35, z - .35, z); veilO = Math.max(veilO, .9 * p); back = Math.max(back, p); });
   op(veil, Math.max(veilO, .55 * P(t, B.close.in - .3, B.close.in + .2)));
 
-  const c = camAt(t), s = c.s * (1 - .04 * back), tx = 960 - s * c.px, ty = 540 - s * c.py;
+  // the camera, and the windows easing back a touch under each step title (about the frame's centre)
+  const c = camAt(t), bk = 1 - .04 * back, s = c.s * bk, tx = bk * (c.tx - 960) + 960, ty = bk * (c.ty - 540) + 540;
   world.style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
   const rise = 1 - spring(t - B.rise);
   studio.style.transform = `translate(${ST.x}px,${ST.y + rise * 1000}px) scale(${ST.s})`; op(studio, t >= B.rise ? 1 : 0);
