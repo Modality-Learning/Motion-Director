@@ -266,6 +266,12 @@ if (DEV) {
   const { createServer: createVite } = await import('vite');
   vite = await createVite({ configFile: join(PKG, 'vite.config.ts'), server: { middlewareMode: true, ws: { server } }, appType: 'spa' });
 }
+server.on('error', (e) => {
+  // most often a studio is already open on this port: say so, rather than a stack trace
+  if (e.code === 'EADDRINUSE') console.error(`Port ${PORT} is in use, probably by a studio that is already running: open ${ORIGIN}/studio/, or start this one on another port with --port <n>.`);
+  else console.error(e);
+  process.exit(1);
+});
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`Motion Director${CONFIG.name ? ` · ${CONFIG.name}` : ''}: ${ORIGIN}/studio/${DEV ? ' (development, hot reloading)' : ''}`);
   console.log(`project: ${PROMO}`);
