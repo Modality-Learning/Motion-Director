@@ -156,6 +156,7 @@ html.picking.sounding .viewport, html.picking.sounding #stage, html.picking.soun
 .promo-pick.frozen { background: rgba(107, 232, 217, .22); border-width: 3px; }
 .promo-pick-tag { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: pre; background: var(--page-ink); color: var(--page-fg); font: 600 12px/1 'Host Grotesk', sans-serif; padding: 5px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
 .promo-pick.below .promo-pick-tag { bottom: auto; top: 100%; margin: 4px 0 0; }
+.promo-pick.right .promo-pick-tag { left: auto; right: -2px; }
 
 /* sound mode (the studio's Sound tab): elements that make a sound are picked like the comment picker */
 html.sounding .viewport, html.sounding #stage, html.sounding #stage * { cursor: pointer !important; }

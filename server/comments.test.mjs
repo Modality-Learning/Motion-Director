@@ -111,3 +111,10 @@ test('a quote needs its text, and keeps to its limits', () => {
   assert.ok(validateComment({ ...at, target: { quote: { text: 'ok', beat: { title: 'no time' } } } }, FILMS).error);
   assert.ok(!validateComment({ ...at, target: { quote: { text: 'ok' } } }, FILMS).error);
 });
+
+test('any element on a storyboard frame: what it shows, its selector, and the frame', () => {
+  const at = { film: 'tall', view: 'storyboard', frame: 'Where to start', t: 8.2, text: 'Bigger.' };
+  const note = formatComment(validateComment({ ...at, target: { selector: '#chat > div.c-msg', text: 'Make me a launch animation.' } }, FILMS).comment, FILMS[0], 'promo');
+
+  assert.match(note, /^About: "Make me a launch animation\." \(#chat > div\.c-msg\) in "Where to start" \(storyboard, 0:08\.2\)$/m);
+});

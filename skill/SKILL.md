@@ -245,6 +245,7 @@ Comment: <what the user wants>
 |---|---|---|
 | An element with a parameter | `Opening line (param:title-1) at 0:02.6, currently "Life gets busy."` | Copy: the parameter's value in `film.json` (or the composition's, `comp:<name>`); anything else, the code that draws it |
 | A storyboard frame | `"Where to start" (storyboard, 0:08.2)` | That beat as a whole: its held state or its timing |
+| An element on a storyboard frame | `Opening line (param:title-1) in "Where to start" (storyboard, 0:08.2)`, or `"Make me a launch animation." (#cMsgs > div.c-u) in "Claude builds it" (storyboard, 0:03.9)` | That element's held state at that key: its parameter, or the code its selector finds |
 | The preview's background | `the video at 0:11.8` | The film at that moment, often timing or pacing |
 | An element without a parameter | `"Price elasticity…" (#pA1 > div.p-ab) at 0:24.6` | Search the code for the selector's id and classes; read the timeline at that time for its beat |
 | A clip | `gate-latch-click on the sound timeline at 0:11.7 (Track 12)` | The cue in `sound.json` by its id; follow [the sound design guide](SOUND.md) |

@@ -326,12 +326,13 @@
     const pick = el('div', 'promo-pick', '<span class="promo-pick-tag"></span>', document.body);
     pick.hidden = true;
     const pickTag = pick.firstElementChild;
-    function elementAt(x, y) {
-      const sr = stage.getBoundingClientRect(), stageArea = sr.width * sr.height;
+    // root: the stage, or a storyboard frame's copy of it (the same picker works on both)
+    function elementAt(x, y, root = stage) {
+      const sr = root.getBoundingClientRect(), stageArea = sr.width * sr.height;
       for (let n of document.elementsFromPoint(x, y)) {
-        if (!stage.contains(n) || n === stage || !seen(n, stage)) continue;
+        if (!root.contains(n) || n === root || !seen(n, root)) continue;
         const scoped = n.closest('[data-scope]');
-        if (scoped && stage.contains(scoped)) { if (seen(scoped, stage)) return { el: scoped, scope: scoped.dataset.scope }; continue; }
+        if (scoped && root.contains(scoped)) { if (seen(scoped, root)) return { el: scoped, scope: scoped.dataset.scope }; continue; }
         if (n instanceof SVGElement && n.ownerSVGElement) n = n.ownerSVGElement; // an icon, not its path
         const r = n.getBoundingClientRect();
         // too small to mean anything, or the size of the stage (a background); thin bars and lines still count
@@ -343,7 +344,7 @@
     // a short selector up to the nearest id, for finding the element in the film's code
     function selectorOf(n) {
       const parts = [];
-      for (let e = n; e && e !== stage && parts.length < 4; e = e.parentElement) {
+      for (let e = n; e && e !== stage && e.id !== 'stage' && parts.length < 4; e = e.parentElement) {
         if (e.id) { parts.unshift(`#${e.id}`); break; }
         const cls = [...e.classList].filter((c) => !c.startsWith('promo-')).slice(0, 2);
         parts.unshift(e.tagName.toLowerCase() + cls.map((c) => `.${c}`).join(''));
@@ -355,13 +356,14 @@
     function showPick(tg) {
       shownPick = tg;
       if (!tg) { pick.hidden = true; return; }
-      const box = tg.el ? tg.el.getBoundingClientRect() : stage.getBoundingClientRect();
-      const scale = stage.getBoundingClientRect().width / W;
+      const root = tg.root || stage, box = tg.el ? tg.el.getBoundingClientRect() : root.getBoundingClientRect();
+      const scale = root.getBoundingClientRect().width / W;
       Object.assign(pick.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
       const txt = tg.el && !tg.scope ? textOf(tg.el) : '';
       const name = !tg.el ? `The video at ${fmt(t)}` : tg.scope ? (labels[tg.scope] || tg.scope) : txt ? `\u201c${txt.length > 44 ? `${txt.slice(0, 44)}\u2026` : txt}\u201d` : selectorOf(tg.el).split(' > ').pop();
       pickTag.textContent = tg.el ? `${name}  ${Math.round(box.width / scale)} \u00d7 ${Math.round(box.height / scale)}` : name;
       pick.classList.toggle('below', box.top < 30);
+      pick.classList.toggle('right', box.left > innerWidth - 320); // near the right edge the name hangs leftwards, so it stays in view
       pick.classList.toggle('frozen', frozen);
       pick.hidden = false;
     }
@@ -517,6 +519,7 @@
       if (board) {
         document.addEventListener('mousemove', (e) => { if (commenting) showCommentTarget(commentTargetAt(e.clientX, e.clientY)); });
         document.addEventListener('mouseleave', () => showCommentTarget(null));
+        document.addEventListener('scroll', () => { if (commenting && !frozen) showCommentTarget(null); }, { passive: true });
         /* the brief's words beside the frames take comments too: in comment mode a paragraph (the beat's title, what
          * happens, a voice-over line) is outlined as you point at it, and a click comments on it, quoting it with
          * its beat */
@@ -546,7 +549,7 @@
         if (m.type === 'commentMode') {
           commenting = !!m.on && board;
           document.documentElement.classList.toggle('commenting', commenting);
-          if (!commenting) showCommentTarget(null);
+          if (!commenting) { frozen = false; showCommentTarget(null); }
           if (!board) setPicking(m.on);
         } else if (m.type === 'commentDone') { frozen = false; showPick(null); }
         else if (m.type === 'labels') labels = m.labels || {};
@@ -574,19 +577,20 @@
      * so the board is the film itself at those times, not a separate drawing. ── */
     /* comments (storyboard): what a click would comment on, an element with parameters or the whole frame */
     let commenting = false;
+    /* comment mode on the storyboard: the same element picker as the preview's, on a frame's copy of the stage.
+     * An element with parameters snaps to the whole element; anything else is the innermost visible box (named,
+     * with its size); the background means the whole frame. */
     function commentTargetAt(x, y) {
       const cell = document.elementFromPoint(x, y)?.closest('.board-cell');
       if (!cell) return null;
-      const clone = cell.querySelector('#stage');
-      const hit = scopedAt(x, y, clone);
-      return { cell, scope: hit ? hit.dataset.scope : null };
+      const clone = cell.querySelector('#stage'), hit = clone && elementAt(x, y, clone);
+      return { cell, root: clone, el: hit?.el || null, scope: hit?.scope || null };
     }
     function showCommentTarget(tg) {
-      document.querySelectorAll('.promo-hover').forEach((n) => n.classList.remove('promo-hover'));
+      if (frozen) return; // a comment box is open on what was clicked: it stays outlined until that's done
       document.querySelectorAll('.board-cell.frame-hover').forEach((c) => c.classList.remove('frame-hover'));
-      if (!tg) return;
-      if (tg.scope) tg.cell.querySelectorAll(`[data-scope="${CSS.escape(tg.scope)}"]`).forEach((n) => n.classList.add('promo-hover'));
-      else tg.cell.classList.add('frame-hover');
+      if (!tg) { showPick(null); return; }
+      if (tg.el) showPick(tg); else { showPick(null); tg.cell.classList.add('frame-hover'); }
     }
     function buildBoard() {
       const cw = H > W ? 300 : 600, sec = el('section', 'board', null, root);
@@ -603,9 +607,15 @@
         cell.addEventListener('click', (e) => {
           grid.querySelectorAll('.board-cell.sel').forEach((c) => c.classList.remove('sel')); cell.classList.add('sel');
           tell({ type: 'time', t: k.t, key: k.name });
+          if (commenting) {
+            // the element clicked, as the picker outlined it: with parameters, by its scope; else its selector and text
+            const tg = elementAt(e.clientX, e.clientY, frame.firstElementChild);
+            tell({ type: 'commentAt', key: k.name, t: k.t, scope: tg?.scope || null, selector: tg?.el && !tg.scope ? selectorOf(tg.el) : null, text: tg?.el && !tg.scope ? textOf(tg.el) || null : null, client: { x: e.clientX, y: e.clientY } });
+            if (tg?.el) { frozen = true; showPick({ ...tg, root: frame.firstElementChild }); }
+            return;
+          }
           const hit = scopedAt(e.clientX, e.clientY, frame.firstElementChild);
-          if (commenting) tell({ type: 'commentAt', key: k.name, t: k.t, scope: hit ? hit.dataset.scope : null, client: { x: e.clientX, y: e.clientY } });
-          else if (hit) tell({ type: 'pick', id: hit.dataset.scope });
+          if (hit) tell({ type: 'pick', id: hit.dataset.scope });
         });
         const cap = el('figcaption', null, '<b></b><span></span><p></p>', cell);
         cap.querySelector('b').textContent = k.name;

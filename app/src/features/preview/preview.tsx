@@ -57,6 +57,7 @@ export function usePreviews() {
     if (m.type === 'ready') {
       useStudio.setState({ scopes: { ...s.scopes, [from]: (m.scopes as Scope[]) || [] } });
       if (from === 'storyboard') tell('storyboard', { type: 'commentMode', on: s.commentMode && s.route.view === 'work' && s.route.tab === 'brief' });
+      if (from === 'storyboard') tell('storyboard', { type: 'labels', labels: scopeLabels() }); // the picker names elements by their parameters
       if (from === 'edit') tell('edit', { type: 'labels', labels: scopeLabels() });
     } else if (m.type === 'time') {
       const t = m.t as number;

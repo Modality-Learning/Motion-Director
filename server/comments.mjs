@@ -58,7 +58,7 @@ export function formatComment(c, film, base = '') {
   let about;
   if (c.view === 'storyboard') {
     const frame = `"${c.frame}" (storyboard, ${time})`;
-    about = tg ? `${tg.label} (${tg.scope}) in ${frame}${current}` : frame;
+    about = !tg ? frame : tg.scope ? `${tg.label} (${tg.scope}) in ${frame}${current}` : `${tg.text ? `"${tg.text}" ` : ''}(${tg.selector}) in ${frame}`;
   } else if (!tg) about = `the video at ${time}`;
   else if (tg.item) {
     const it = tg.item, detail = it.detail ? ` (${it.detail})` : '';

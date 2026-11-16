@@ -56,7 +56,10 @@ export function openBox(m: CommentAt, tab: FrameTab) {
     const what = label || (m.text ? `“${m.text.slice(0, 40)}${m.text.length > 40 ? '…' : ''}”` : m.selector ? m.selector.split(' > ').pop() : 'The video');
     showBox(x, y, `${what} · ${fmtT(m.t)}`, { view: 'edit', frame: null, t: m.t, target });
   } else {
-    showBox(x, y, label ? `${label} · ${m.key}` : String(m.key), { view: 'storyboard', frame: m.key ?? null, t: m.t, target: label ? { scope: m.scope, label, value } : null });
+    // a frame, an element with parameters on it, or any other element on it (by its selector and text)
+    const target = label ? { scope: m.scope, label, value } : m.selector ? { selector: m.selector, text: m.text || null } : null;
+    const what = label || (m.text ? `“${m.text.slice(0, 40)}${m.text.length > 40 ? '…' : ''}”` : m.selector ? m.selector.split(' > ').pop() : null);
+    showBox(x, y, what ? `${what} · ${m.key}` : String(m.key), { view: 'storyboard', frame: m.key ?? null, t: m.t, target });
   }
 }
 
