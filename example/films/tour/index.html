@@ -10,8 +10,9 @@
 <link rel="stylesheet" href="../../kit/player.css">
 <link rel="stylesheet" href="../../kit/stage.css">
 <style>
-/* The tour: Motion Director's studio, rebuilt from app/src at its real size (1600 × 900 px), floating on a pale
- * stage. Step titles land in the middle of the frame over a pale veil, then swish out as the UI takes over. */
+/* The tour: Motion Director's studio, rebuilt from app/src (1600 × 900 native px), and Claude's chat docked beside
+ * it on a pale stage. Every step runs the comment loop: point at it, copy, paste into Claude, Claude edits.
+ * Step titles land in the middle of the frame over a pale veil, then swish out as the UI takes over. */
 #stage { --font-ui: 'Host Grotesk', 'Helvetica Neue', Arial, sans-serif; --font-display: var(--font-ui); background: #F3F2EE; }
 #dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(28,31,36,.07) 1.4px, transparent 1.6px); background-size: 28px 28px; }
 #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
@@ -159,7 +160,7 @@
 .prog i { display: block; height: 100%; background: var(--fg); transform-origin: 0 0; }
 
 /* Claude's chat, beside the studio */
-#chat { position: absolute; left: 0; top: 0; width: 500px; height: 780px; border-radius: 18px; background: #FAF9F5; color: #1C1F24; overflow: hidden; font: 17px/1.45 var(--font-ui);
+#chat { position: absolute; left: 0; top: 0; width: 442px; height: 774px; border-radius: 18px; background: #FAF9F5; color: #1C1F24; overflow: hidden; font: 17px/1.45 var(--font-ui);
   box-shadow: 0 40px 100px -30px rgba(20,22,28,.5), 0 6px 24px -10px rgba(20,22,28,.3); }
 .ch-top { position: absolute; left: 0; right: 0; top: 0; height: 58px; font-size: 19px; border-bottom: 1px solid rgba(28,31,36,.1); display: flex; align-items: center; gap: 10px; padding: 0 20px; font-weight: 600; }
 .spark { width: 22px; height: 22px; }
@@ -213,35 +214,46 @@
 <script src="../../kit/player.js"></script>
 <script>
 (() => {
-const DUR = 87;
 const $ = (s) => document.querySelector(s);
-const { clamp, lerp, E, P, el, op, tr, spring, impact } = window.Motion;
+const { clamp, lerp, E, P, el, op, tr, spring, impact, keyAt } = window.Motion;
 const fade = (t, a, b, c, d) => P(t, a, b, E.out) * (1 - P(t, c, d, E.in)); // in over a..b, out over c..d
+const r2 = (x) => Math.round(x * 100) / 100;
+
+/* ── the comment loop, the film's spine: point at it, copy, paste into Claude, Claude edits ──
+ * L is when the camera has pushed in on the target; ty how long the comment takes to type; linger how long the
+ * copied badges stay before the pointer heads for the chat (the first loop lingers so it reads). */
+function loop(L, ty, linger = 0) {
+  const o = { L, push: [L - .6, L], click: L + .3, type: [L + .6, L + .6 + ty] };
+  o.enter = r2(o.type[1] + .2);
+  o.pull = [r2(o.enter + .8 + linger), r2(o.enter + 1.4 + linger)];
+  o.paste = r2(o.pull[1] + .3); o.send = r2(o.paste + .45); o.work = r2(o.send + .15); o.reply = r2(o.send + 1.05); o.apply = r2(o.reply + .2);
+  return o;
+}
 
 /* ── named beats (film time): the animation and the sound moments both read these ── */
-const BEAT = {
-  open: { in: 0.3, out: 2.9 }, studioIn: 3.45, tabs: 4.05,
-  s1: { in: 5.4, out: 7.6 }, vibeTab: 8.0, pins: 8.5, pinGap: 0.38, fileIn: 11.2, grab: 11.6, carry: [11.6, 12.6], drop: 12.7, takeType: [13.0, 14.2],
-  s2: { in: 15.3, out: 17.4 }, fly: [17.4, 18.1], treatTab: 17.45, lead: 18.3, rows: [18.8, 19.5, 20.2], hover: [21.5, 23.1], hover2: [23.1, 24.2],
-  s3: { in: 24.5, out: 26.6 }, editTab: 27.0, build: 27.1, play1: [27.8, 32.3], famOpen: 32.0, grabRow: 32.9, drag: [33.0, 34.0], clipDrop: 34.1,
-  s4: { in: 35.9, out: 38.0 }, pickBall: 38.6, objOpen: [38.7, 39.2], graph: [39.2, 39.9], marks: [39.9, 40.05, 40.2], snaps: [41.1, 41.35, 41.6], flyDur: 0.5, play2: [42.0, 46.5],
-  s5: { in: 47.1, out: 49.6 }, cmode: 50.0, hovers: [50.4, 50.7, 51.0],
-  r1: { pick: 51.3, type: [51.6, 52.8], enter: 53.0, chatIn: [53.9, 54.5], paste: 55.1, send: 55.6, work: 55.8, reply: 56.9, apply: 57.2, replay: [57.3, 59.0] },
-  r2: { pick: 59.4, type: [59.6, 60.3], enter: 60.45, paste: 61.05, send: 61.35, work: 61.45, reply: 61.85, apply: 62.0, replay: [62.1, 63.0] },
-  r3: { pick: 63.2, type: [63.35, 63.8], enter: 63.9, paste: 64.35, send: 64.55, work: 64.6, reply: 64.95, apply: 65.05 },
-  chatOut: [65.9, 66.4], cmodeOff: 66.2,
-  s6: { in: 66.9, out: 69.0 }, exportTab: 69.5, exBuild: 69.6, chat2In: [70.6, 71.1], type2: [71.1, 71.9], send2: 72.0, work2: 72.1, reply2: 72.6, chat2Out: [73.4, 73.9],
-  checkAgain: 74.1, render: 74.9, progress: [75.0, 76.8], shutter: 76.85, openBtn: 77.4, grow: [77.5, 78.3], play3: [78.3, 82.8],
-  close: { in: 83.2 },
-};
-const R1 = BEAT.r1, R2 = BEAT.r2, R3 = BEAT.r3;
+const B = { open: { in: .3, out: 2.9 }, rise: 3.45, tabs: 4.05 };
+B.s1 = { in: 5.0, out: 7.0 }; B.vibeTab = 7.6; B.fileIn = 7.75; B.grab = 8.05; B.carry = [8.05, 9.0]; B.drop = 9.1;
+B.l1 = loop(10.4, 1.8, .6); B.pins = B.l1.apply; B.pinGap = .3;
+B.s2 = { in: r2(B.pins + 6 * B.pinGap + 1.1), fly: true }; B.s2.out = r2(B.s2.in + 2.1); B.fly = [B.s2.out, r2(B.s2.out + .7)]; B.treatTab = r2(B.s2.out + .05); B.rows = r2(B.fly[1] + .2);
+B.l2 = loop(r2(B.rows + 1.4), 1.5); B.rewrite = [B.l2.apply, r2(B.l2.apply + .9)];
+B.s3 = { in: r2(B.rewrite[1] + 2.0) }; B.s3.out = r2(B.s3.in + 2.1); B.editTab = r2(B.s3.out + .4); B.build = r2(B.editTab + .1); B.play1 = [r2(B.build + .6), r2(B.build + 5.1)];
+B.l3 = loop(r2(B.play1[1] + .9), 1.2); B.replay = [r2(B.l3.apply + .1), r2(B.l3.apply + 1.8)];
+B.famOpen = r2(B.replay[1] + .4); B.grabRow = r2(B.famOpen + .6); B.drag = [r2(B.grabRow + .1), r2(B.grabRow + 1.0)]; B.clipDrop = r2(B.drag[1] + .1);
+B.s4 = { in: r2(B.clipDrop + 1.0) }; B.s4.out = r2(B.s4.in + 2.1);
+B.l4 = loop(r2(B.s4.out + 1.2), 1.0); B.objOpen = [B.l4.apply, r2(B.l4.apply + .45)]; B.graph = [B.objOpen[1], r2(B.objOpen[1] + .6)];
+B.marks = [0, 1, 2].map((j) => r2(B.graph[1] + j * .15)); B.snaps = [0, 1, 2].map((j) => r2(B.marks[2] + .6 + j * .25)); B.flyDur = .5; B.play2 = [r2(B.snaps[2] + .5), r2(B.snaps[2] + 5.0)];
+B.s5 = { in: r2(B.play2[1] + .6) }; B.s5.out = r2(B.s5.in + 2.1); B.exportTab = r2(B.s5.out + .4); B.exBuild = r2(B.exportTab + .1);
+// Export has no comment mode: the request is typed into the chat, as the app UI check asks
+B.l5 = { type: [r2(B.exBuild + 1.6), r2(B.exBuild + 2.8)] }; B.l5.send = r2(B.l5.type[1] + .2); B.l5.work = r2(B.l5.send + .15); B.l5.reply = r2(B.l5.send + 1.05); B.l5.apply = r2(B.l5.reply + .2);
+B.render = r2(B.l5.apply + 1.0); B.progress = [r2(B.render + .1), r2(B.render + 1.9)]; B.shutter = r2(B.progress[1] + .05); B.openBtn = r2(B.shutter + .55);
+B.grow = [r2(B.openBtn + .1), r2(B.openBtn + .9)]; B.play3 = [B.grow[1], r2(B.grow[1] + 4.5)];
+B.close = { in: r2(B.play3[1] + .4), out: 999 };
+const DUR = Math.ceil(B.close.in + 4.6);
 
-/* ── the film being edited: "Hello, motion." (its own time u, 0–4.5 s), a pure function of u and three edits ──
- * soft: the last landing comes sooner and lower; early: the tile drops in 0.3 s sooner; bold: a heavier headline */
-const LAND0 = [2.1, 2.9, 3.5];
+/* ── the film being edited: "Hello, motion." (its own time u, 0–4.5 s); soft brings the last landing in sooner and lower ── */
+const FLOOR = 350, TOP = -110, G0 = 2 * (FLOOR - TOP) / ((2.1 - 1.2) ** 2);
 const lands = (soft) => [2.1, 2.9, lerp(3.5, 3.34, soft)];
-const FLOOR = 350, TOP = -110, G0 = 2 * (FLOOR - TOP) / ((LAND0[0] - 1.2) ** 2);
-const REST = { pill: [110, 370], tri: [372, 348], ball: 540, tile: [700, 320] };
+const REST = { pill: [110, 370], tri: [372, 348], tile: [700, 320] };
 function makeFilm(parent) {
   const f = el('div', 'film', `<div class="f-head"><span>Hello,</span><span>motion.</span></div><div class="f-floor"></div><div class="f-shadow"></div><div class="f-pill"></div>
     <svg class="f-tri" viewBox="0 0 100 92"><path d="M50 4 L96 88 L4 88 Z" fill="#C6E84A" stroke="#C6E84A" stroke-width="6" stroke-linejoin="round"/></svg><div class="f-ring"></div><div class="f-ball"></div><div class="f-tile"></div>`, parent);
@@ -259,11 +271,10 @@ function makeFilm(parent) {
     return { x, y, sq };
   }
   function render(u, m = {}) {
-    const soft = m.soft || 0, early = m.early || 0, bold = m.bold || 0;
-    F.head.style.fontWeight = Math.round(600 + 200 * bold);
+    const soft = m.soft || 0;
     F.words.forEach((w, j) => { const p = P(u, j * .1, j * .1 + .5, E.out); w.style.opacity = p; w.style.transform = `translateY(${(1 - p) * 50}px)`; });
-    const t0 = .85 - .3 * early, td = P(u, t0, t0 + .35, E.in), tl = u - (t0 + .35);
-    tr(F.tile, REST.tile[0], lerp(-170, REST.tile[1], td) + impact(tl) * 1.4, 1, -8 + (1 - spring(tl)) * 14 * (tl >= 0 ? 1 : 0)); op(F.tile, u >= t0 ? 1 : 0);
+    const td = P(u, .85, 1.2, E.in), tl = u - 1.2;
+    tr(F.tile, REST.tile[0], lerp(-170, REST.tile[1], td) + impact(tl) * 1.4, 1, -8 + (1 - spring(tl)) * 14 * (tl >= 0 ? 1 : 0)); op(F.tile, u >= .85 ? 1 : 0);
     const tg = spring(u - 1.0); F.tri.style.transform = `translate(${REST.tri[0]}px,${REST.tri[1]}px) rotate(${(1 - tg) * -120}deg) scale(${tg})`; op(F.tri, u >= 1.0 ? 1 : 0);
     tr(F.pill, lerp(-280, REST.pill[0], P(u, 1.3, 1.85, E.back)), REST.pill[1]);
     const b = ballAt(u, soft);
@@ -276,9 +287,10 @@ function makeFilm(parent) {
   return { node: f, render, F };
 }
 
-/* ── the studio, rebuilt in its native px ── */
-const ST = { x: 120, y: 84, s: 1.05 };
+/* ── the two windows: the studio (1600 × 900 native px, shown at .86) and Claude's chat docked beside it ── */
+const ST = { x: 40, y: 153, s: .86 };
 const W = (x, y) => ({ x: ST.x + x * ST.s, y: ST.y + y * ST.s }); // studio px -> world (stage) px
+const CH = { x: 1438, y: 153, w: 442, h: 774 };
 const studio = $('#studio');
 const svgC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
 const TABS = [['Vibe', 176, 62], ['Treatment', 246, 104], ['Edit', 358, 58], ['Export', 424, 78]];
@@ -290,43 +302,41 @@ studio.innerHTML = `<div class="a bar"></div><div class="a brand">Motion Directo
 const tabEls = [...studio.querySelectorAll('.tab')];
 const PANE = { vibe: $('#pVibe'), treat: $('#pTreat'), edit: $('#pEdit'), exp: $('#pExport') };
 
-/* vibe: the board's pins, dropped one by one, and the screenshot added at the end */
+/* vibe: an empty board; the screenshot dragged on by hand; then what Claude adds */
 const vp = PANE.vibe;
 vp.innerHTML = `<div class="a" style="left:20px;top:22px;font-size:20px;font-weight:600">Vibe</div>
   <div class="a inp" style="left:780px;top:18px;width:440px">Paste a link: a film, a site, a track</div>
   <div class="a btn" style="left:1236px;top:18px">Add images</div><div class="a btn" style="left:1362px;top:18px">Add note</div>
-  <div class="a lab" style="left:20px;top:74px">Motion · Colour · Type · Look</div>`;
+  <div class="a" id="vEmpty" style="left:20px;top:80px;color:var(--mu);font-size:15px">Nothing on the board yet. Drop images here, paste a link, or ask Claude.</div>`;
 const colX = (c) => 20 + c * 388;
 const thumb = (a, b, h, txt) => `<div class="thumb" style="height:${h}px;background:linear-gradient(135deg,${a},${b})"><div style="position:absolute;left:18px;top:18px;right:18px;font:600 22px/1.15 var(--font-ui);color:#1C1F24;letter-spacing:-.02em">${txt}</div><div class="play"></div></div>`;
+const SLOT = { x: colX(0), y: 104, w: 372, h: 300 };
+const shotPin = el('div', 'a card pin', `<div class="thumb" style="height:190px"><div class="shot" style="height:190px"><i></i><b></b><u></u></div></div><div class="take">soft-shadow.png</div><div class="meta">Image · Look</div>`, vp);
+Object.assign(shotPin.style, { left: SLOT.x + 'px', top: SLOT.y + 'px', height: SLOT.h + 'px' });
 const PINS = [
-  { c: 0, y: 104, h: 300, html: `${thumb('#F6F1E7', '#E9DFCB', 200, 'Plan it out with<br>Claude Whiteboards')}<div class="take">Motion like this: a new beat every second, quick ease-outs that land and settle.</div><div class="meta">Video · youtube.com · from 0:06</div>` },
-  { c: 1, y: 104, h: 200, html: `<div class="sw">${['#0E0E10', '#161618', '#232326', '#ECECEE', '#9D9DA6', '#FAFAF7'].map((c) => `<i style="background:${c}"></i>`).join('')}</div><div class="take">Near-black and grey, floating on a pale stage.</div><div class="meta">Colour · Look</div>` },
+  { c: 1, y: 104, h: 300, html: `${thumb('#F6F1E7', '#E9DFCB', 200, 'Plan it out with<br>Claude Whiteboards')}<div class="take">A new beat every second; quick ease-outs that land and settle.</div><div class="meta">Video · youtube.com · from 0:06</div>` },
   { c: 2, y: 104, h: 300, html: `${thumb('#F3EFE8', '#DCE7F2', 200, 'Introducing<br>Cowork')}<div class="take">The cursor leads: it hovers, presses, and the press is the beat.</div><div class="meta">Video · youtube.com · from 0:17</div>` },
-  { c: 3, y: 104, h: 160, html: `<div class="take" style="font-size:16px">Let the UI do the talking. Panels slide in, rows stagger, chips pop, buttons press.</div><div class="meta">Note · Motion</div>` },
-  { c: 0, y: 420, h: 220, html: `<div class="aa">Aa</div><div style="font-size:20px;font-weight:600;letter-spacing:-.02em">Step 2 · Plan it out</div><div class="take">Host Grotesk for everything, semibold, sentence case.</div><div class="meta">Type · Host Grotesk</div>` },
-  { c: 1, y: 320, h: 200, html: `<div class="sw">${['#E8952E', '#4FC9BC', '#B99AF0', '#E6BF4E', '#78A9F5', '#3CCF7F'].map((c) => `<i style="background:${c}"></i>`).join('')}</div><div class="take">Colour only where it means something: hits, objects, copied.</div><div class="meta">Colour · Meaning</div>` },
-  { c: 3, y: 280, h: 160, html: `<div class="take" style="font-size:16px">Step titles land in the middle of the frame, then swish out.</div><div class="meta">Note · Type</div>` },
+  { c: 3, y: 104, h: 300, html: `${thumb('#F2EEE6', '#E6E0F3', 200, 'Claude Motion')}<div class="take">Words that get a selection box, as if being edited.</div><div class="meta">Video · youtube.com · from 1:13</div>` },
+  { c: 0, y: 420, h: 200, html: `<div class="sw">${['#0E0E10', '#161618', '#232326', '#ECECEE', '#9D9DA6', '#FAFAF7'].map((c) => `<i style="background:${c}"></i>`).join('')}</div><div class="take">Near-black and grey, floating on a pale stage.</div><div class="meta">Colour · Look</div>` },
+  { c: 1, y: 420, h: 220, html: `<div class="aa">Aa</div><div style="font-size:20px;font-weight:600;letter-spacing:-.02em">Step 2 · Plan it out</div><div class="take">Host Grotesk for everything, semibold, sentence case.</div><div class="meta">Type · Host Grotesk</div>` },
+  { c: 2, y: 420, h: 160, html: `<div class="take" style="font-size:16px">Snappy: quick ease-outs, scale and position moves on one canvas, almost no hard cuts.</div><div class="meta">Note · Motion</div>` },
 ];
 PINS.forEach((p) => { p.n = el('div', 'a card pin', p.html, vp); Object.assign(p.n.style, { left: colX(p.c) + 'px', top: p.y + 'px', height: p.h + 'px' }); });
-const SLOT = { x: colX(2), y: 420, w: 372, h: 330 };
-const dropzone = el('div', 'a dropzone', null, vp); Object.assign(dropzone.style, { left: SLOT.x + 'px', top: SLOT.y + 'px', width: SLOT.w + 'px', height: SLOT.h + 'px' });
-const newPin = el('div', 'a card pin', `<div class="thumb" style="height:190px"><div class="shot" style="height:190px"><i></i><b></b><u></u></div></div><div class="take" id="newTake"></div><div class="meta">Image · Look</div>`, vp);
-Object.assign(newPin.style, { left: SLOT.x + 'px', top: SLOT.y + 'px', height: SLOT.h + 'px' });
-const TAKE = 'The soft shadow under the panels: wide and faint, so the UI floats.';
 
-/* treatment: the heading (the step title lands here), the lead, and each beat beside its frame */
+/* treatment: the heading (Step 2's title lands here), the lead, each beat beside its frame; the second beat gets rewritten */
 const tp = PANE.treat;
 tp.innerHTML = `<div class="a doc" style="left:52px;top:30px"><h1 id="tH1">Plan it out</h1></div>
-  <div class="a" id="tLead" style="left:52px;top:94px;width:900px;color:var(--mu);font-size:17px">Hello, motion. · 4.5 s, 16:9 · A ball drops in under its headline and bounces three times.</div>`;
+  <div class="a" style="left:52px;top:94px;width:900px;color:var(--mu);font-size:17px">Hello, motion. · 4.5 s, 16:9 · A ball drops in under its headline.</div>`;
+const BEAT2 = { before: ['The ball drops in', 'The ball falls in and bounces once.'], after: ['Three bounces', 'The ball falls in and bounces three times, each lower than the last. Each landing is a hit.'] };
 const TROWS = [
   { y: 142, time: '0–1.2 s', h: 'The headline rises', p: 'Hello, motion. rises word by word; the tile drops in and the triangle spins up.', u: 1.15 },
-  { y: 372, time: '1.2–3.5 s', h: 'Three bounces', p: 'The ball falls in and lands three times, lower each time. Each landing is a hit.', u: 2.13 },
+  { y: 372, time: '1.2–3.5 s', h: BEAT2.before[0], p: BEAT2.before[1], u: 2.13 },
   { y: 602, time: '3.5–4.5 s', h: 'Everything rests', p: 'The pill slides home and the ball settles. Hold on the finished frame.', u: 4.4 },
 ].map((r) => {
-  const n = el('div', 'a trow', `<div class="t"><span class="chip">${r.time}</span><h3>${r.h}</h3><p>${r.p}</p></div><div class="frame"></div>`, tp);
-  n.style.top = r.y + 'px';
+  const n = el('div', 'a trow', `<div class="t"><span class="chip">${r.time}</span><h3></h3><p></p></div><div class="frame"></div>`, tp);
+  n.style.top = r.y + 'px'; n.querySelector('h3').textContent = r.h; n.querySelector('p').textContent = r.p;
   const fr = n.querySelector('.frame'); const film = makeFilm(fr); film.node.style.transform = 'scale(.4)';
-  return { ...r, n, fr, film };
+  return { ...r, n, fr, film, h3: n.querySelector('h3'), pp: n.querySelector('p') };
 });
 
 /* edit: the sound library, the preview (with the film), the timeline and the inspector */
@@ -335,23 +345,21 @@ ep.innerHTML = `<div class="a lib" id="lib"><div class="a lab" style="left:14px;
   <div class="a" style="left:14px;top:84px;display:flex;gap:6px">${['Short', 'Sharp', 'Swell', 'Bright', 'Heavy'].map((x) => `<span class="btn" style="height:28px;padding:4px 9px;font-size:13px">${x}</span>`).join('')}</div>
   <div class="a" style="left:14px;top:124px;font-size:13px;color:var(--mu)">14 of 14 sounds organised by Claude</div></div>
   <div class="a prev" id="prev"></div><div class="a vbar"><span>Fit · 74%</span><span style="margin-left:auto">Pinch or ⌘-scroll to zoom</span></div>
-  <div class="a tl" id="tl"></div><div class="a insp" id="insp"></div>
-  <div class="a toast" id="toast"></div>`;
+  <div class="a tl" id="tl"></div><div class="a insp" id="insp"></div>`;
 const FAMS = [['Whooshes & sweeps', 3], ['Impacts', 1], ['Clicks & pops', 6], ['Typing', 2], ['Paper & pages', 1], ['Bells & alerts', 1]];
 const famEls = FAMS.map(([n, c]) => el('div', 'a fam', `<i>›</i>${n}<small>${c}</small>`, $('#lib')));
 const SROWS = [['ball-bounce', '0.45s'], ['click', '0.08s'], ['latch', '0.15s'], ['pop', '0.20s'], ['pop-high', '0.18s'], ['shutter', '0.35s']].map(([n, d]) => el('div', 'a srow', `<span class="pl"></span>${n}<small>${d}</small>`, $('#lib')));
-const PF = { x: 145, y: 8, k: .74 }; // the film in the preview, relative to the preview's own box
+const PF = { x: 145, y: 8, k: .74 };
 const prevFilm = makeFilm($('#prev')); prevFilm.node.style.transform = `translate(${PF.x}px,${PF.y}px) scale(${PF.k})`;
 const inFilm = (x, y) => ({ x: 290 + PF.x + x * PF.k, y: 64 + PF.y + y * PF.k }); // film px -> studio px
-// the timeline: 0–4.6 s of the film across its 830 px
-const tlEl = $('#tl'), TLX = (s) => 150 + s * 180, ROWH = { ruler: 32, beats: 26, objs: 30 };
+const tlEl = $('#tl'), TLX = (s) => 150 + s * 180;
 const trow = (cls, gut) => el('div', 'a trk ' + cls, `<div class="gut">${gut}</div>`, tlEl);
 const ruler = trow('', '<span class="pbtn"></span><span class="clock" id="clock">0:00.00</span>');
 for (let s = 0; s <= 4.5; s += .25) { const k = el('div', 'tick' + (s % 1 === 0 ? ' mj' : ''), s % 1 === 0 ? `<span>${s}s</span>` : null, ruler); k.style.left = TLX(s) + 'px'; }
 const beats = trow('', 'Beats');
 [['The headline rises', 0], ['Three bounces', 1.2], ['Everything rests', 3.5]].forEach(([n, s]) => { const b = el('span', 'beat', n, beats); b.style.left = TLX(s) + 6 + 'px'; });
 const objs = trow('', '<b style="color:var(--fg);font-weight:600">› Objects</b>&nbsp;4');
-const OM = [[0.05, .55, 'var(--d3)'], [0.85, .5, 'var(--d1)'], [1.0, .35, 'var(--d4)'], [1.2, 2.5, 'var(--d2)']].map(([s, d, c]) => { const m = el('span', 'omini', null, objs); Object.assign(m.style, { left: TLX(s) + 'px', width: d * 180 + 'px' }); m.style.setProperty('--o', c); return { m, s }; });
+[[0.05, .55, 'var(--d3)'], [0.85, .5, 'var(--d1)'], [1.0, .35, 'var(--d4)'], [1.2, 2.5, 'var(--d2)']].forEach(([s, d, c]) => { const m = el('span', 'omini', null, objs); Object.assign(m.style, { left: TLX(s) + 'px', width: d * 180 + 'px' }); m.style.setProperty('--o', c); });
 const objH = trow('objh', '◆ Ball'), graph = trow('', '<span style="font-size:12px"><b style="color:var(--warn)">speed</b> · <b style="color:var(--d2)">squash</b></span>'), lane = trow('', 'Ball · sounds');
 const tracks = [1, 2, 3, 4].map((k) => trow('', `Track ${k}`));
 const clipEl = (parent, s, len, name, cls = '', hit = null) => { const c = el('div', 'clip ' + cls, `${hit != null ? `<i class="hm" style="left:${hit * 100}%"></i>` : ''}<span class="cn">${name}</span>`, parent); Object.assign(c.style, { left: TLX(s) + 'px', width: len * 180 + 'px' }); return c; };
@@ -368,110 +376,130 @@ function drawGraph(soft, reveal) {
   const L = lands(soft), H = 70;
   const speed = (s) => { const seg = [[1.2, L[0], 1], [L[0], L[1], .72], [L[1], L[2], .48 * (1 - .35 * soft)]]; for (const [a, b, v] of seg) { if (s < a || s >= b) continue; if (a === 1.2) return v * (s - a) / (b - a); const mm = (a + b) / 2; return v * Math.abs(s - mm) / (mm - a); } return 0; };
   const pts = (f) => Array.from({ length: 185 }, (_, j) => { const s = j * .025; return `${(TLX(s)).toFixed(1)},${(H - 8 - f(s) * (H - 18)).toFixed(1)}`; }).join(' ');
-  const w = 830 * reveal;
-  gSvg.innerHTML = `<svg width="1000" height="${H}" style="position:absolute;left:0;top:0"><defs><clipPath id="gc"><rect x="150" y="0" width="${w}" height="${H}"/></clipPath></defs><g clip-path="url(#gc)">
+  gSvg.innerHTML = `<svg width="1000" height="${H}" style="position:absolute;left:0;top:0"><defs><clipPath id="gc"><rect x="150" y="0" width="${830 * reveal}" height="${H}"/></clipPath></defs><g clip-path="url(#gc)">
     <polygon points="${TLX(0)},${H} ${pts(speed)} ${TLX(4.6)},${H}" fill="rgba(232,149,46,.12)"/><polyline points="${pts(speed)}" fill="none" stroke="#e8952e" stroke-width="2.2"/>
     <polyline points="${pts((s) => L.reduce((a, Lk, k) => a + (s >= Lk && s < Lk + .2 ? Math.sin(Math.PI * (s - Lk) / .2) * (.45 - k * .1) : 0), 0))}" fill="none" stroke="#4fc9bc" stroke-width="1.8"/></g></svg>`;
 }
-// the inspector: the film's parameters, or the selected ball and its sounds
 const insp = $('#insp');
 const INSP = {
   params: `<h2>Parameters</h2><div class="sub">At <span class="clk">0:00.0</span></div><div class="lab" style="margin-top:18px">On screen now</div><div style="margin-top:10px;font-size:14px;font-weight:600">Headline</div><div class="inp" style="margin-top:6px;color:var(--fg)">Hello, motion.</div><div class="lab" style="margin-top:22px">› Global (1)</div>`,
   ball: `<div class="lab">Element</div><h2 style="margin-top:6px">#ball</h2><div class="sub">90 × 90 · 3 landings</div><div class="lab" style="margin-top:18px">Sounds (3)</div>${[1, 2, 3].map((k) => `<div class="snd">ball-bounce<b>landing ${k}</b></div>`).join('')}<div class="sub" style="margin-top:12px;font-size:13px">Each follows its landing when the motion is retimed.</div>`,
 };
 function setInsp(k) { if (insp.dataset.k !== k) { insp.innerHTML = INSP[k]; insp.dataset.k = k; } }
-// over the preview: the picker, the selection and the comment box
-const pick = el('div', 'a pick', '<span class="tag"></span>', ep), pickTag = pick.querySelector('.tag');
-const sel = el('div', 'a sel', null, ep);
-const cbox = el('div', 'a cbox', `<div class="ct" id="cbT"></div><div id="cbBody"></div>`, ep);
+
+/* over the studio: the picker, and the comment box with its copied badges */
+const pick = el('div', 'a pick', '<span class="tag"></span>', studio), pickTag = pick.querySelector('.tag');
+const cbox = el('div', 'a cbox', `<div class="ct" id="cbT"></div><div id="cbBody"></div>`, studio);
 const cbBody = cbox.querySelector('#cbBody'), cbT = cbox.querySelector('#cbT');
-const toast = $('#toast');
 
 /* export: the app UI check, the render form and the renders list */
 const xp = PANE.exp;
-xp.innerHTML = `<div class="a card" id="xDrift" style="left:32px;top:28px;width:720px;height:330px;padding:22px"><div style="font-size:20px;font-weight:600">App UI check</div><div id="xNote" style="margin-top:16px"></div><div class="btn" id="xAgain" style="position:absolute;left:22px;bottom:22px">Check again</div></div>
+xp.innerHTML = `<div class="a card" style="left:32px;top:28px;width:720px;height:330px;padding:22px"><div style="font-size:20px;font-weight:600">App UI check</div><div id="xNote" style="margin-top:16px"></div><div class="btn" style="position:absolute;left:22px;bottom:22px">Check again</div></div>
   <div class="a card" style="left:32px;top:380px;width:720px;height:200px;padding:22px"><div style="font-size:20px;font-weight:600">Renders</div><div id="xJobs" style="margin-top:16px"></div></div>
   <div class="a card" style="left:784px;top:28px;width:784px;height:640px;padding:22px"><div style="font-size:20px;font-weight:600">Render</div>
     <div style="margin-top:18px;font-size:14px;font-weight:600">Format</div>
     <div style="display:grid;gap:8px;margin-top:10px">${[['Share', 'H.264 MP4: small, plays anywhere. Compressed, so not for editing.', 1], ['Edit master', 'ProRes 422 HQ MOV: visually lossless, for Premiere.'], ['Edit master, sharpest', 'ProRes 4444 MOV: full colour resolution for the crispest coloured text.']].map(([b, s, on]) => `<div class="fmt${on ? ' on' : ''}"><i class="radio"></i><div><b>${b}</b><span>${s}</span></div></div>`).join('')}</div>
     <div style="margin-top:18px;font-size:14px;font-weight:600">Size</div><div class="tog" style="margin-top:10px"><span class="on">1080p</span><span>1440p</span><span>4K</span></div>
-    <div style="margin-top:18px;font-size:14px;color:var(--fg)">☑&nbsp; Sound: include this film's 23 sounds in the video</div>
-    <div style="margin-top:22px;display:flex;gap:12px;align-items:center"><span class="btn pri" id="xRender">Render</span><span class="sub" id="xStatus" style="color:var(--mu);font-size:14px"></span></div></div>`;
+    <div style="margin-top:18px;font-size:14px;color:var(--fg)">☑&nbsp; Sound: include this film's sounds in the video</div>
+    <div style="margin-top:22px;display:flex;gap:12px;align-items:center"><span class="btn pri">Render</span><span id="xStatus" style="color:var(--mu);font-size:14px"></span></div></div>`;
 const xNote = $('#xNote'), xJobs = $('#xJobs');
 const DRIFT = { warn: `<div class="note warn">The app has changed since this film's screens were built (47 lines). Ask for the screens to be updated before a final render.<br><code>app/src/features/edit/Timeline.tsx</code> +31 −9<br><code>app/src/features/comments/CommentBox.tsx</code> +5 −2</div>`,
   ok: `<div class="note ok">The app screens this film copies are unchanged since 2b24a00e.</div>` };
 
-/* Claude's chat */
+/* Claude's chat, docked: one thread through the whole film */
 const chat = $('#chat');
 chat.innerHTML = `<div class="ch-top"><svg class="spark" viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" fill="#D97757"/></svg>Claude</div><div class="ch-msgs" id="chMsgs"></div>
   <div class="ch-cmp"><span class="tx" id="chTx"></span><span class="ch-send"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></span></div>`;
 const chMsgs = $('#chMsgs'), chTx = $('#chTx');
-const CH = { x: 1380, y: 170 };
-const noteHtml = (about, c) => `<p><b>Motion Director comment on "Hello, motion."</b></p><p>Film: films/hello/index.html</p><p>About: ${about}</p><p>Comment: ${c}</p>`;
-const ROUNDS = [
-  { ...R1, what: 'ball', about: '(#ball) at 0:03.5', text: 'Make the last bounce softer.', says: 'Softened the last landing: it comes in sooner and lower. Its bounce sound moved with it.' },
-  { ...R2, what: 'tile', about: '(#tile) at 0:01.2', text: 'Bring the tile in sooner.', says: 'Done: the tile now lands 0.3 s sooner.' },
-  { ...R3, what: 'head', about: '(.f-head) at 0:00.6', text: 'Bolder headline.', says: 'Done: the headline is bolder.' },
+const note = (lines) => lines.map(([k, v], i) => `<p>${i === 0 ? `<b>${v}</b>` : `${k} ${v}`}</p>`).join('');
+const HEAD = 'Motion Director comment on "Hello, motion."';
+/* each loop: what is pointed at (studio px, the box it frames), the comment, the note it makes, Claude's reply */
+const LOOPS = [
+  { b: B.l1, tab: 'vibe', at: { x: SLOT.x + 186, y: 64 + SLOT.y + 100 }, box: { x: SLOT.x, y: 64 + SLOT.y, w: SLOT.w, h: SLOT.h }, tag: 'image pin  soft-shadow.png', title: 'Vibe · soft-shadow.png',
+    text: 'This soft shadow. Find a few snappy launch films like it.', note: [['', HEAD], ['Vibe:', 'films/hello/vibe.json (pin "soft-shadow")'], ['About:', 'the vibe board\'s image pin "soft-shadow.png" (Look)'], ['Comment:', 'This soft shadow. Find a few snappy launch films like it.']],
+    work: 'Searching and editing vibe.json…', says: 'Added three launch films, the palette, a typeface and a note on motion, each with what to take from it.' },
+  { b: B.l2, tab: 'treat', at: { x: 330, y: 64 + 372 + 95 }, box: { x: 46, y: 64 + 372 + 64, w: 536, h: 52 }, tag: 'beat 1.2–3.5 s', title: 'Treatment · the beat at 1.2–3.5 s',
+    text: 'Make it three bounces, each lower than the last.', note: [['', HEAD], ['Treatment:', 'films/hello/TREATMENT.md'], ['About:', 'the beat at 1.2–3.5 s: "The ball falls in and bounces once."'], ['Comment:', 'Make it three bounces, each lower than the last.']],
+    work: 'Editing TREATMENT.md and index.html…', says: 'Rewrote the beat and the ball\'s motion: it now lands three times, lower each time.' },
+  { b: B.l3, tab: 'edit', at: inFilm(585, 395), box: null, tag: '#ball  90 × 90', title: '#ball · 0:03.5',
+    text: 'Land the last bounce softer.', note: [['', HEAD], ['Film:', 'films/hello/index.html'], ['About:', '(#ball) at 0:03.5'], ['Comment:', 'Land the last bounce softer.']],
+    work: 'Editing index.html…', says: 'Softened the last landing: it comes in sooner and lower.' },
+  { b: B.l4, tab: 'edit', at: { x: 290 + TLX(2.1) + 40, y: 64 + 456 + 88 + 40 + 20 }, box: { x: 290 + TLX(2.1) - 3, y: 64 + 456 + 88 + 40 + 2, w: BOUNCE.len * 180 + 6, h: 36 }, tag: 'clip  ball-bounce', title: 'ball-bounce · 0:02.1',
+    text: 'Put this on every landing.', note: [['', HEAD], ['Film:', 'films/hello/index.html'], ['Sounds:', 'films/hello/sound.json (cue "ball-bounce")'], ['About:', 'ball-bounce on the sound timeline at 0:02.1'], ['Comment:', 'Put this on every landing.']],
+    work: 'Editing sound.json…', says: 'Linked the bounce to the ball: one on each landing, so they follow it if the motion changes.' },
 ];
+const ASK = 'The app has changed. Bring the screens in step.';
 const MSG = [];
-ROUNDS.forEach((r) => { MSG.push({ k: 'u', at: r.send, html: noteHtml(r.about, r.text), thread: 1 }); MSG.push({ k: 'a', at: r.reply, work: r.work, html: r.says, thread: 1 }); });
-MSG.push({ k: 'u', at: BEAT.send2, html: '<p>The app changed. Bring the tour’s screens in step.</p>', thread: 2 });
-MSG.push({ k: 'a', at: BEAT.reply2, work: BEAT.work2, html: 'Rebuilt the timeline and the comment box from the app, and marked the film synced.', thread: 2 });
-MSG.forEach((m) => { m.n = el('div', m.k === 'u' ? 'ch-u' : 'ch-a', m.html, chMsgs); if (m.k === 'a') { m.w = el('div', 'work', '<svg class="spark" viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" fill="#D97757"/></svg><span>Editing films/hello/index.html…</span>', chMsgs); chMsgs.insertBefore(m.w, m.n); } });
+LOOPS.forEach((l) => { MSG.push({ k: 'u', at: l.b.send, html: note(l.note) }); MSG.push({ k: 'a', at: l.b.reply, work: l.b.work, wtxt: l.work, html: l.says }); });
+MSG.push({ k: 'u', at: B.l5.send, html: `<p>${ASK}</p>` });
+MSG.push({ k: 'a', at: B.l5.reply, work: B.l5.work, wtxt: 'Comparing the screens with the app…', html: 'Rebuilt the timeline and the comment box from the app, and marked the film synced.' });
+MSG.forEach((m) => {
+  m.n = el('div', m.k === 'u' ? 'ch-u' : 'ch-a', m.html, chMsgs);
+  if (m.k === 'a') { m.w = el('div', 'work', '<svg class="spark" viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" fill="#D97757"/></svg><span></span>', chMsgs); m.w.querySelector('span').textContent = m.wtxt; chMsgs.insertBefore(m.w, m.n); }
+});
 
-/* the finished film, full frame */
 const finalFilm = makeFilm($('#final'));
 
-/* ── the camera: one push or pull at a time ── */
-// [t, scale, the world point at the frame's centre]: hold, push in on what matters, come back out
-const CAMK = [[0, 1, 960, 540], [12.15, 1, 960, 540], [12.85, 1.22, 1150, 740], [14.5, 1.22, 1150, 740], [15.1, 1, 960, 540],
-  [31.7, 1, 960, 540], [32.4, 1.14, 560, 600], [34.6, 1.14, 560, 600], [35.2, 1, 960, 540],
-  [38.8, 1, 960, 540], [39.5, 1.16, 950, 720], [41.9, 1.16, 950, 720], [42.5, 1, 960, 540],
-  [50.8, 1, 960, 540], [51.5, 1.18, 1100, 480], [53.5, 1.18, 1100, 480], [54.1, 1, 960, 540]];
+/* ── the camera: [t, scale, the world point at the frame's centre]; each loop pushes in on what is pointed at ── */
+const CAMK = [[0, 1, 960, 540]];
+const camIn = (a, b, s, p) => { CAMK.push([a, 1, 960, 540], [b, s, p.x, p.y]); };
+const camOut = (a, b) => { const last = CAMK[CAMK.length - 1]; CAMK.push([a, last[1], last[2], last[3]], [b, 1, 960, 540]); };
+LOOPS.forEach((l) => { const p = W(l.at.x, l.at.y); camIn(l.b.push[0], l.b.push[1], 1.4, { x: lerp(p.x, 760, .25), y: lerp(p.y, 540, .2) }); camOut(l.b.pull[0], l.b.pull[1]); });
+camIn(B.objOpen[0], B.objOpen[0] + .6, 1.3, W(720, 64 + 456 + 140)); camOut(B.snaps[2] + .3, B.snaps[2] + .9);
+CAMK.sort((a, b) => a[0] - b[0]);
 function camAt(t) {
   let i = 0; while (i < CAMK.length - 1 && t >= CAMK[i + 1][0]) i++;
   const a = CAMK[i], b = CAMK[i + 1] || a, p = b === a ? 0 : P(t, a[0], b[0]);
-  return { s: lerp(a[1], b[1], p), px: lerp(a[2], b[2], p), py: lerp(a[3], b[3], p) };
+  const sc = lerp(a[1], b[1], p), hw = 960 / sc, hh = 540 / sc;
+  // keep a pushed-in frame on the windows (x 40–1880, y 153–927), never on empty stage
+  const px = sc > 1 ? clamp(lerp(a[2], b[2], p), 40 + hw - 20, 1880 - hw + 20) : lerp(a[2], b[2], p);
+  const py = sc > 1 ? clamp(lerp(a[3], b[3], p), Math.min(540, 153 + hh - 20), Math.max(540, 927 - hh + 20)) : lerp(a[3], b[3], p);
+  return { s: sc, px, py };
 }
 
-/* ── the pointer: where it is (world px) and how it looks ── */
-const S = (x, y) => W(x, y);
-const tabC = (i) => S(TABS[i][1] + TABS[i][2] / 2, 34);
-const BALLC = (soft) => inFilm(585, 395), TILEC = inFilm(760, 380), HEADC = inFilm(300, 102);
-const CUR = [
-  [7.7, 960, 640], [BEAT.vibeTab - .05, ...xy(tabC(0))], [BEAT.vibeTab + .6, ...xy(tabC(0))], [BEAT.fileIn, 1560, 820], [BEAT.grab, 1800, 760],
-  [BEAT.carry[1], ...xy(S(SLOT.x + SLOT.w / 2, SLOT.y + 64 + SLOT.h / 2))], [14.6, ...xy(S(SLOT.x + 200, SLOT.y + 64 + 280))],
-  [17.2, ...xy(S(500, 140))], [BEAT.treatTab, ...xy(tabC(1))], [21.0, ...xy(tabC(1))], [21.5, ...xy(S(320, 64 + 372 + 110))], [23.1, ...xy(S(330, 64 + 372 + 120))], [23.6, ...xy(S(340, 64 + 602 + 110))], [24.3, ...xy(S(340, 64 + 602 + 110))],
-  [26.7, ...xy(S(700, 300))], [BEAT.editTab, ...xy(tabC(2))], [31.4, ...xy(S(600, 300))], [BEAT.famOpen, ...xy(S(110, 64 + 214))], [BEAT.grabRow - .05, ...xy(S(90, 64 + 260))],
-  [BEAT.drag[1], ...xy(S(TLX(2.1) + 290 + 30, 64 + 456 + 108))], [35.6, ...xy(S(TLX(2.1) + 290 + 60, 64 + 456 + 160))],
-  [38.1, ...xy(S(860, 300))], [BEAT.pickBall, ...xy(BALLC(0))], [40.4, ...xy(BALLC(0))], [40.9, ...xy(S(700, 700))], [46.8, ...xy(S(700, 720))],
-  [49.7, ...xy(S(1300, 200))], [BEAT.cmode, ...xy(S(1510, 32))], [BEAT.hovers[0], ...xy(TILEC)], [BEAT.hovers[1], ...xy(HEADC)], [BEAT.hovers[2], ...xy(BALLC(0))], [R1.pick, ...xy(BALLC(0))],
-  [53.1, ...xy(BALLC(0))], [54.8, CH.x + 200, CH.y + 735], [R1.send, CH.x + 200, CH.y + 735], [R2.pick - .3, ...xy(TILEC)], [R2.enter, ...xy(TILEC)], [R2.paste - .1, CH.x + 200, CH.y + 735],
-  [R2.reply + .2, CH.x + 200, CH.y + 735], [R3.pick - .25, ...xy(HEADC)], [R3.enter, ...xy(HEADC)], [R3.paste - .1, CH.x + 200, CH.y + 735], [65.4, CH.x + 200, CH.y + 735], [66.4, 1100, 700],
-  [69.1, 960, 600], [BEAT.exportTab, ...xy(tabC(3))], [70.2, ...xy(S(600, 300))], [71.0, 1450, 940], [73.2, 1450, 940], [BEAT.checkAgain, ...xy(S(100, 64 + 28 + 330 - 40))],
-  [BEAT.render, ...xy(S(842, 64 + 520))], [76.9, ...xy(S(842, 64 + 560))], [BEAT.openBtn, ...xy(S(640, 64 + 486))], [78.2, ...xy(S(700, 64 + 600))],
-];
-function xy(p) { return [p.x, p.y]; }
-const CLICKS = [BEAT.vibeTab, BEAT.grab, BEAT.drop, BEAT.treatTab, BEAT.editTab, BEAT.famOpen, BEAT.grabRow, BEAT.clipDrop, BEAT.pickBall, BEAT.cmode, R1.pick, R1.paste - .25, R1.send, R2.pick, R2.paste - .2, R2.send, R3.pick, R3.paste - .15, R3.send, BEAT.exportTab, BEAT.checkAgain, BEAT.render, BEAT.openBtn];
-const HELD = [[BEAT.grab, BEAT.drop], [BEAT.grabRow, BEAT.clipDrop]];
+/* ── the pointer (world px) ── */
+const tabC = (i) => W(TABS[i][1] + TABS[i][2] / 2, 34);
+const COMPOSER = { x: CH.x + 200, y: CH.y + CH.h - 48 };
+const CUR = [[7.2, 760, 640], [B.vibeTab - .05, tabC(0).x, tabC(0).y], [B.vibeTab + .1, tabC(0).x, tabC(0).y], [B.fileIn, 1300, 900], [B.grab, 1300, 900],
+  [B.carry[1], W(SLOT.x + 186, 64 + SLOT.y + 150).x, W(SLOT.x + 186, 64 + SLOT.y + 150).y]];
+const CLICKS = [B.vibeTab, B.grab, B.drop];
+LOOPS.forEach((l, j) => {
+  const p = W(l.at.x, l.at.y), b = l.b;
+  if (j === 1) CUR.push([B.treatTab, tabC(1).x, tabC(1).y], [B.treatTab + .4, tabC(1).x, tabC(1).y]);
+  if (j === 2) CUR.push([B.editTab, tabC(2).x, tabC(2).y], [B.play1[0], W(700, 400).x, W(700, 400).y]);
+  if (j === 3) CUR.push([B.clipDrop + .5, W(800, 760).x, W(800, 760).y]);
+  const cb = W(1510, 32); // the Comment button
+  CUR.push([b.click - .9, cb.x, cb.y], [b.click - .7, cb.x, cb.y], [b.click, p.x, p.y], [b.enter + .6, p.x, p.y], [b.paste - .15, COMPOSER.x, COMPOSER.y], [b.reply + .3, COMPOSER.x, COMPOSER.y]);
+  CLICKS.push(b.click - .8, b.click, b.send);
+  if (j === 2) {
+    const fam = W(110, 64 + 160 + 2 * 32 + 15), row = W(90, 64 + 160 + 96 + 14), drop = W(290 + TLX(2.1) + 30, 64 + 456 + 88 + 40 + 20);
+    CUR.push([B.famOpen, fam.x, fam.y], [B.grabRow, row.x, row.y], [B.drag[1], drop.x, drop.y], [B.clipDrop + .4, drop.x + 20, drop.y + 30]);
+    CLICKS.push(B.famOpen, B.grabRow, B.clipDrop);
+  }
+});
+CUR.push([B.exportTab, tabC(3).x, tabC(3).y], [B.l5.type[0] - .1, COMPOSER.x, COMPOSER.y], [B.l5.send, COMPOSER.x, COMPOSER.y], [B.render - .4, W(842, 64 + 520).x, W(842, 64 + 520).y], [B.render, W(842, 64 + 520).x, W(842, 64 + 520).y],
+  [B.openBtn, W(640, 64 + 486).x, W(640, 64 + 486).y], [B.grow[1], W(700, 64 + 600).x, W(700, 64 + 600).y]);
+CLICKS.push(B.exportTab, B.l5.type[0] - .05, B.l5.send, B.render, B.openBtn);
+CUR.sort((a, b) => a[0] - b[0]);
+const HELD = [[B.grab, B.drop], [B.grabRow, B.clipDrop]];
 function cursorAt(t) {
   let i = 0; while (i < CUR.length - 1 && t >= CUR[i + 1][0]) i++;
   const a = CUR[i], b = CUR[i + 1] || a, p = b === a ? 0 : P(t, a[0], b[0]);
   const dx = b[1] - a[1], dy = b[2] - a[2], arc = Math.sin(Math.PI * p) * .08;
   return { x: lerp(a[1], b[1], p) - dy * arc, y: lerp(a[2], b[2], p) + dx * arc };
 }
-const commenting = (t) => t >= BEAT.cmode && t < BEAT.cmodeOff;
+// comment mode is on from the Comment button's press until the note is sent
+const commenting = (t) => LOOPS.some((l) => t >= l.b.click - .8 && t < l.b.paste - .3);
 
-/* ── step titles: land in the middle, hold, swish out ── */
+/* ── step titles: land in the middle, hold, swish out (Step 2 flies into the treatment instead) ── */
 const STEPS = [
-  { b: BEAT.open, k: '', m: 'Films about your product, made with Claude.' },
-  { b: BEAT.s1, k: 'Step 1', m: 'Set the vibe.' },
-  { b: BEAT.s2, k: 'Step 2', m: 'Plan it out', fly: true },
-  { b: BEAT.s3, k: 'Step 3', m: 'Edit, with sound.' },
-  { b: BEAT.s4, k: 'Step 4', m: 'Sync sound to motion.' },
-  { b: BEAT.s5, k: 'Step 5', m: 'Point at it. Claude edits.' },
-  { b: BEAT.s6, k: 'Step 6', m: 'Export.' },
-  { b: { in: BEAT.close.in, out: 999 }, k: '', m: 'You direct. Claude edits.' },
+  { b: B.open, k: '', m: 'Films about your product, made with Claude.' },
+  { b: B.s1, k: 'Step 1', m: 'Set the vibe.' },
+  { b: B.s2, k: 'Step 2', m: 'Plan it out', fly: true },
+  { b: B.s3, k: 'Step 3', m: 'Edit the motion.' },
+  { b: B.s4, k: 'Step 4', m: 'Sync sound to motion.' },
+  { b: B.s5, k: 'Step 5', m: 'Export.' },
+  { b: B.close, k: '', m: 'You direct. Claude edits.', last: true },
 ];
 const stepT = $('#stepT'), stepK = $('#stepK'), stepM = $('#stepM');
 let shownStep = -1;
@@ -483,35 +511,60 @@ function setStep(i) {
 }
 const H1AT = W(52, 64 + 30);
 
-/* ── render ── */
-const veil = $('#veil'), world = $('#world'), curEl = $('#cursor'), ripple = $('#ripple'), keycap = $('#keycap'), fileEl = $('#file'), finalEl = $('#final');
-function typed(s, t, a, b) { return s.slice(0, Math.round(s.length * clamp((t - a) / (b - a)))); }
-function render(t) {
-  /* the veil behind each step title, and the studio easing back under it */
-  let veilO = 0, back = 0;
-  // the veil is fully up before a step title's words arrive, and lifts only once the last word has swished out
-  STEPS.forEach((s, i) => { if (i === 0 || i === 7) return; const a = s.b.in - .3, z = s.b.out + (s.fly ? .55 : .95); const p = fade(t, a, a + .35, z - .35, z); veilO = Math.max(veilO, .9 * p); back = Math.max(back, p); });
-  const closing = P(t, BEAT.close.in - .3, BEAT.close.in + .2);
-  op(veil, Math.max(veilO, .55 * closing));
+/* ── keyframes pass: the key moments, held. The transitions pass replaces the hold with draw(t). ── */
+const HOLD = true;
+const KEYS = [
+  { t: 1.6, name: 'Opening line', note: 'Films about your product, made with Claude.' },
+  { t: 6.0, name: 'Step 1', note: 'Set the vibe.' },
+  { t: B.drop + .5, name: 'The screenshot', note: 'Dragged onto the empty board by hand.' },
+  { t: B.l1.enter + .9, name: 'Comment copied', note: 'On the pin: copied, then paste it into Claude.' },
+  { t: B.l1.reply + .4, name: 'Claude replies', note: 'The note is in the chat; Claude says what it added.' },
+  { t: B.pins + 6 * B.pinGap + .6, name: 'The board filled', note: "Claude's edit: films, palette, type, a note." },
+  { t: B.s2.in + 1.0, name: 'Step 2', note: 'Plan it out.' },
+  { t: B.l2.enter + .9, name: 'Comment on a beat', note: 'The second beat: copied.' },
+  { t: B.rewrite[1] + .6, name: 'Beat rewritten', note: 'Three bounces, and its frame updated.' },
+  { t: B.s3.in + 1.0, name: 'Step 3', note: 'Edit the motion.' },
+  { t: B.play1[0] + 3.0, name: 'The film plays', note: 'The Edit tab, silent so far.' },
+  { t: B.l3.enter + .9, name: 'Comment on the ball', note: 'At its last landing: copied.' },
+  { t: B.replay[0] + 1.3, name: 'A softer bounce', note: "Claude's edit, replayed." },
+  { t: B.clipDrop + .5, name: 'A sound, by hand', note: 'ball-bounce dragged from the library onto a track.' },
+  { t: B.s4.in + 1.0, name: 'Step 4', note: 'Sync sound to motion.' },
+  { t: B.l4.enter + .9, name: 'Comment on the clip', note: 'Put this on every landing: copied.' },
+  { t: B.snaps[2] + .3, name: 'On every landing', note: 'The motion graph, a bounce snapped to each landing.' },
+  { t: B.s5.in + 1.0, name: 'Step 5', note: 'Export.' },
+  { t: B.l5.type[1] - .1, name: 'Ask Claude', note: 'The app UI check says the app changed; the request is typed in the chat.' },
+  { t: B.l5.apply + .6, name: 'Back in step', note: 'The check turns green.' },
+  { t: B.progress[0] + 1.2, name: 'Rendering', note: 'The render runs.' },
+  { t: B.play3[0] + 3.0, name: 'The finished film', note: 'Hello, motion. fills the frame.' },
+  { t: B.close.in + 2.0, name: 'Closing line', note: 'You direct. Claude edits.' },
+];
+const SCENES = [['Opening', 0], ['Vibe', B.s1.in], ['Treatment', B.s2.in], ['Edit', B.s3.in], ['Sync', B.s4.in], ['Export', B.s5.in], ['Ending', B.close.in]];
 
-  /* the camera and the world */
-  const c = camAt(t), sb = 1 - .04 * back;
-  const s = c.s * sb, tx = 960 - s * c.px, ty = 540 - s * c.py; // world px -> stage px: x * s + tx
+const veil = $('#veil'), world = $('#world'), curEl = $('#cursor'), ripple = $('#ripple'), keycap = $('#keycap'), fileEl = $('#file'), finalEl = $('#final');
+const typed = (s, t, a, b) => s.slice(0, Math.round(s.length * clamp((t - a) / (b - a))));
+function render(t) { draw(HOLD ? keyAt(KEYS, t).key.t : t); }
+function draw(t) {
+  /* the veil behind each step title, and the windows easing back under it */
+  let veilO = 0, back = 0;
+  STEPS.forEach((s, i) => { if (i === 0 || s.last) return; const a = s.b.in - .3, z = s.b.out + (s.fly ? .55 : .95); const p = fade(t, a, a + .35, z - .35, z); veilO = Math.max(veilO, .9 * p); back = Math.max(back, p); });
+  op(veil, Math.max(veilO, .55 * P(t, B.close.in - .3, B.close.in + .2)));
+
+  const c = camAt(t), s = c.s * (1 - .04 * back), tx = 960 - s * c.px, ty = 540 - s * c.py;
   world.style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
-  const rise = 1 - spring(t - BEAT.studioIn);
-  studio.style.transform = `translate(${ST.x}px,${ST.y + rise * 1000}px) scale(${ST.s})`;
-  op(studio, t >= BEAT.studioIn ? 1 : 0);
-  renderStudio(t);
-  renderChat(t);
+  const rise = 1 - spring(t - B.rise);
+  studio.style.transform = `translate(${ST.x}px,${ST.y + rise * 1000}px) scale(${ST.s})`; op(studio, t >= B.rise ? 1 : 0);
+  const rise2 = 1 - spring(t - B.rise - .12);
+  tr(chat, CH.x, CH.y + rise2 * 1000); op(chat, t >= B.rise + .12 ? 1 : 0);
+  drawStudio(t); drawChat(t);
 
   /* the screenshot from the desktop, carried onto the board */
   const cu = cursorAt(t);
-  const fOn = t >= BEAT.fileIn && t < BEAT.drop + .12;
-  op(fileEl, fOn ? 1 - P(t, BEAT.drop, BEAT.drop + .12) : 0);
-  if (fOn) { const toPin = P(t, BEAT.drop - .2, BEAT.drop + .1, E.in); tr(fileEl, (t < BEAT.grab ? 1820 : cu.x - 40), (t < BEAT.grab ? 700 : cu.y - 30), lerp(1, .8, toPin), (t < BEAT.grab ? 0 : Math.sin(t * 5) * 3)); }
+  const fOn = t >= B.fileIn && t < B.drop + .12;
+  op(fileEl, fOn ? 1 - P(t, B.drop, B.drop + .12) : 0);
+  if (fOn) tr(fileEl, t < B.grab ? 1250 : cu.x - 40, t < B.grab ? 860 : cu.y - 30, lerp(1, .8, P(t, B.drop - .2, B.drop + .1, E.in)), t < B.grab ? 0 : Math.sin(t * 5) * 3);
 
-  /* the pointer */
-  const curO = t >= 7.7 && t < BEAT.grow[0] ? clamp(P(t, 7.7, 8.0)) * (1 - veilO / .9) : 0;
+  /* the pointer: an arrow, or the comment bubble whose point is the click point */
+  const curO = t >= 7.2 && t < B.grow[1] ? clamp(P(t, 7.2, 7.5)) * (1 - veilO / .9) : 0;
   op(curEl, curO);
   const bub = commenting(t);
   curEl.querySelector('.arr').style.display = bub ? 'none' : ''; curEl.querySelector('.bub').style.display = bub ? '' : 'none';
@@ -519,23 +572,21 @@ function render(t) {
   for (const ck of CLICKS) { if (t >= ck && t < ck + .18) press = Math.sin(Math.PI * (t - ck) / .18); if (t >= ck && t < ck + .5) rip = (t - ck) / .5; }
   for (const [a, z] of HELD) if (t >= a && t < z) press = Math.max(press, Math.min(1, (t - a) / .08) * .7);
   const k = 1 / s;
-  // the arrow's tip is its top-left; the bubble's point is its bottom-left (3, 25 of 28)
-  curEl.style.transform = bub ? `translate(${cu.x - 3.6 * k}px,${cu.y - 30.4 * k}px) scale(${k * (1 - press * .14)})` : `translate(${cu.x - 5.5 * k}px,${cu.y - 3 * k}px) scale(${k * (1 - press * .14)})`;
   curEl.style.transformOrigin = bub ? '3.6px 30.4px' : '5.5px 3px';
+  curEl.style.transform = bub ? `translate(${cu.x - 3.6}px,${cu.y - 30.4}px) scale(${k * (1 - press * .14)})` : `translate(${cu.x - 5.5}px,${cu.y - 3}px) scale(${k * (1 - press * .14)})`;
   if (rip !== null && curO > 0) { op(ripple, .5 * (1 - rip)); tr(ripple, cu.x, cu.y, lerp(.3, 1.4, rip) * k); } else op(ripple, 0);
-  // ⌘V, shown as a keycap when the note is pasted
-  let kc = null; for (const r of ROUNDS) if (t >= r.paste - .25 && t < r.paste + .45) kc = { p: t - (r.paste - .25) };
+  let kc = null; for (const l of LOOPS) if (t >= l.b.paste - .25 && t < l.b.paste + .45) kc = { p: t - (l.b.paste - .25) };
   op(keycap, kc ? clamp(spring(kc.p) * 2) * (1 - P(kc.p, .55, .7)) : 0);
-  if (kc) tr(keycap, cu.x + 22, cu.y - 64 - spring(kc.p) * 10, lerp(.6, 1, clamp(spring(kc.p))));
+  if (kc) tr(keycap, cu.x + 22, cu.y - 64 - spring(kc.p) * 10, lerp(.6, 1, clamp(spring(kc.p))) * k);
 
   /* the finished film grows out of the renders list to fill the frame */
-  const g = P(t, BEAT.grow[0], BEAT.grow[1]);
-  op(finalEl, t >= BEAT.grow[0] ? 1 : 0);
-  if (t >= BEAT.grow[0]) {
-    const from = W(40, 64 + 380 + 70); const fw = lerp(220 * ST.s, 1920, g), fk = fw / 960;
+  const g = P(t, B.grow[0], B.grow[1]);
+  op(finalEl, t >= B.grow[0] ? 1 : 0);
+  if (t >= B.grow[0]) {
+    const from = W(40, 64 + 380 + 70), fk = lerp(220 * ST.s * s, 1920, g) / 960;
     finalEl.style.transform = `translate(${lerp(from.x * s + tx, 0, g)}px,${lerp(from.y * s + ty, 0, g)}px) scale(${fk})`;
     finalEl.style.borderRadius = lerp(10, 0, g) / fk + 'px';
-    finalFilm.render(clamp((t - BEAT.play3[0]) / (BEAT.play3[1] - BEAT.play3[0])) * 4.5, { soft: 1, early: 1, bold: 1, ring: t < BEAT.play3[1] + .8 });
+    finalFilm.render(clamp((t - B.play3[0]) / (B.play3[1] - B.play3[0])) * 4.5, { soft: 1, ring: t < B.play3[1] + .8 });
   }
 
   /* the step title on screen now */
@@ -543,20 +594,18 @@ function render(t) {
   op(stepT, si >= 0 ? 1 : 0);
   if (si >= 0) {
     setStep(si);
-    const st = STEPS[si], words = [...stepM.children];
-    const h = stepT.offsetHeight, y0 = 540 - h / 2;
+    const st = STEPS[si], words = [...stepM.children], y0 = 540 - stepT.offsetHeight / 2;
     const kIn = spring(t - st.b.in); stepK.style.opacity = clamp(kIn * 2); stepK.style.transform = `translateY(${(1 - kIn) * 24}px) scale(${lerp(.8, 1, clamp(kIn))})`;
     words.forEach((w, j) => { const p = spring(t - st.b.in - .08 - j * .05); w.style.opacity = clamp(p * 2); w.style.transform = `translateY(${(1 - p) * 60}px)`; });
     stepT.style.transform = `translate(0px,${y0}px)`;
     if (st.fly) {
-      // Step 2 flies down into the treatment and becomes its heading (40 px in the studio)
-      const f = P(t, BEAT.fly[0], BEAT.fly[1]);
+      const f = P(t, B.fly[0], B.fly[1]);
       const mw = stepM.offsetWidth, mLeft = 960 - mw / 2, mTop = y0 + stepM.offsetTop;
       const to = { x: H1AT.x * s + tx, y: H1AT.y * s + ty }, ks = 40 * ST.s * s / 96;
-      stepK.style.opacity = clamp(kIn * 2) * (1 - P(t, BEAT.fly[0], BEAT.fly[0] + .2));
+      stepK.style.opacity = clamp(kIn * 2) * (1 - P(t, B.fly[0], B.fly[0] + .2));
       stepM.style.transform = `translate(${(to.x - mLeft) * f}px,${(to.y - mTop) * f}px) scale(${lerp(1, ks, f)})`;
-      stepM.style.color = Motion.mix('#1C1F24', '#ECECEE', P(t, BEAT.fly[0] + .25, BEAT.fly[1]));
-      op(stepT, t < BEAT.fly[1] ? 1 : 0);
+      stepM.style.color = Motion.mix('#1C1F24', '#ECECEE', P(t, B.fly[0] + .25, B.fly[1]));
+      op(stepT, t < B.fly[1] ? 1 : 0);
     } else {
       stepM.style.transform = ''; stepM.style.color = '#1C1F24';
       const out = P(t, st.b.out, st.b.out + .42, E.in);
@@ -566,131 +615,111 @@ function render(t) {
   }
 }
 
-function renderStudio(t) {
-  /* the top bar: the tabs pop in, the underline follows the open tab */
-  tabEls.forEach((n, j) => { const p = spring(t - BEAT.tabs - j * .07); n.style.opacity = clamp(p * 2); n.style.transform = `translateY(${(1 - p) * 14}px)`; });
-  op($('#crumbs'), P(t, BEAT.tabs + .3, BEAT.tabs + .7)); op($('#cbtn'), P(t, BEAT.tabs + .4, BEAT.tabs + .8));
-  const TAB_AT = [[BEAT.vibeTab, 0], [BEAT.treatTab, 1], [BEAT.editTab, 2], [BEAT.exportTab, 3]];
+function drawStudio(t) {
+  /* the top bar: tabs pop in; the underline follows the open tab */
+  tabEls.forEach((n, j) => { const p = spring(t - B.tabs - j * .07); n.style.opacity = clamp(p * 2); n.style.transform = `translateY(${(1 - p) * 14}px)`; });
+  op($('#crumbs'), P(t, B.tabs + .3, B.tabs + .7)); op($('#cbtn'), P(t, B.tabs + .4, B.tabs + .8));
+  const TAB_AT = [[B.vibeTab, 0], [B.treatTab, 1], [B.editTab, 2], [B.exportTab, 3]];
   let ti = -1, prev = -1, since = 0; TAB_AT.forEach(([a, i]) => { if (t >= a) { prev = ti; ti = i; since = t - a; } });
   tabEls.forEach((n, j) => n.classList.toggle('on', j === ti));
   const ul = $('#uline'); op(ul, ti >= 0 ? 1 : 0);
-  if (ti >= 0) { const m = P(since, 0, .3), A = TABS[prev >= 0 ? prev : ti], B = TABS[ti]; ul.style.left = lerp(A[1], B[1], m) + 'px'; ul.style.width = lerp(A[2], B[2], m) + 'px'; }
+  if (ti >= 0) { const m = P(since, 0, .3), A = TABS[prev >= 0 ? prev : ti], Bt = TABS[ti]; ul.style.left = lerp(A[1], Bt[1], m) + 'px'; ul.style.width = lerp(A[2], Bt[2], m) + 'px'; }
   $('#cbtn').classList.toggle('on', commenting(t));
-  const paneOf = ['vibe', 'treat', 'edit', 'exp'];
-  paneOf.forEach((k, j) => { const on = j === ti, p = on ? P(since, 0, .3, E.out) : 0; op(PANE[k], p); PANE[k].style.transform = `translateY(${(1 - p) * 12}px)`; });
+  ['vibe', 'treat', 'edit', 'exp'].forEach((k, j) => { const p = j === ti ? P(since, 0, .3, E.out) : 0; op(PANE[k], p); PANE[k].style.transform = `translateY(${(1 - p) * 12}px)`; });
 
-  /* vibe: pins drop in, the screenshot lands, its take types itself */
-  PINS.forEach((pin, j) => { const a = BEAT.pins + j * BEAT.pinGap, p = spring(t - a); op(pin.n, t >= a ? clamp(p * 2) : 0); pin.n.style.transform = `translateY(${(1 - p) * -60}px) rotate(${(1 - p) * (j % 2 ? 3 : -3)}deg)`; });
-  op(dropzone, t >= BEAT.grab && t < BEAT.drop ? P(t, BEAT.grab, BEAT.grab + .3) : 0);
-  const np = spring(t - BEAT.drop); op(newPin, t >= BEAT.drop ? clamp(np * 2) : 0); newPin.style.transform = `scale(${lerp(.85, 1, clamp(np))})`;
-  const tk = typed(TAKE, t, BEAT.takeType[0], BEAT.takeType[1]); const nt = $('#newTake');
-  nt.textContent = tk; if (t >= BEAT.takeType[0] && t < BEAT.takeType[1] + .6) el('span', 'caret', null, nt).style.opacity = Math.floor(t * 2.6) % 2 ? 1 : .2;
+  /* vibe: the screenshot lands; after Claude's reply, the pins it added drop in */
+  op($('#vEmpty'), t < B.drop ? 1 : 0);
+  const np = spring(t - B.drop); op(shotPin, t >= B.drop ? clamp(np * 2) : 0); shotPin.style.transform = `scale(${lerp(.85, 1, clamp(np))})`;
+  PINS.forEach((pin, j) => { const a = B.pins + j * B.pinGap, p = spring(t - a); op(pin.n, t >= a ? clamp(p * 2) : 0); pin.n.style.transform = `translateY(${(1 - p) * -60}px) rotate(${(1 - p) * (j % 2 ? 3 : -3)}deg)`; });
 
-  /* treatment: the heading takes over from the flying title, then the lead and the beats arrive */
-  op($('#tH1'), t >= BEAT.fly[1] ? 1 : 0);
-  const lp = P(t, BEAT.lead, BEAT.lead + .4, E.out); op($('#tLead'), lp); $('#tLead').style.transform = `translateY(${(1 - lp) * 14}px)`;
+  /* treatment: the heading takes over from the flying title; the beats are there; the second gets rewritten */
+  op($('#tH1'), t >= B.fly[1] ? 1 : 0);
   TROWS.forEach((r, j) => {
-    const a = BEAT.rows[j], p = P(t, a, a + .45, E.out), fp = spring(t - a - .12);
-    op(r.n, t >= a ? 1 : 0); r.n.querySelector('.t').style.opacity = p; r.n.querySelector('.t').style.transform = `translateY(${(1 - p) * 18}px)`;
-    r.fr.style.opacity = clamp(fp * 2); r.fr.style.transform = `translateX(${(1 - fp) * 120}px)`;
-    const hov = j === 1 ? fade(t, BEAT.hover[0], BEAT.hover[0] + .15, BEAT.hover[1], BEAT.hover[1] + .15) : j === 2 ? fade(t, BEAT.hover2[0], BEAT.hover2[0] + .15, 24.6, 24.75) : 0;
-    r.n.style.background = `rgba(255,255,255,${.05 * hov})`;
-    r.fr.style.boxShadow = `0 0 0 ${2 * hov}px #ececee`;
-    // a hovered frame plays its beat
-    r.film.render(hov > 0 ? r.u + ((t - (j === 1 ? BEAT.hover[0] : BEAT.hover2[0])) % 1.4) * (j === 1 ? .8 : .3) : r.u);
+    const p = P(t, B.rows + j * .12, B.rows + j * .12 + .45, E.out); op(r.n, t >= B.rows + j * .12 ? 1 : 0);
+    r.n.querySelector('.t').style.opacity = p; r.fr.style.opacity = p;
+    if (j === 1) {
+      const re = t >= B.rewrite[0];
+      r.h3.textContent = re ? BEAT2.after[0] : BEAT2.before[0];
+      r.pp.textContent = re ? typed(BEAT2.after[1], t, B.rewrite[0], B.rewrite[1]) : BEAT2.before[1];
+      const hl = fade(t, B.l2.click, B.l2.click + .15, B.l2.paste, B.l2.paste + .3) + fade(t, B.rewrite[0], B.rewrite[0] + .15, B.rewrite[1] + 1.2, B.rewrite[1] + 1.6);
+      r.n.style.background = `rgba(255,255,255,${.06 * clamp(hl)})`;
+      // before Claude's edit the frame shows the one landing; after, it plays the three
+      r.film.render(re && t >= B.rewrite[1] ? 1.9 + ((t - B.rewrite[1]) % 2.2) : r.u, { ring: re });
+      r.fr.style.boxShadow = re ? `0 0 0 ${2 * fade(t, B.rewrite[0], B.rewrite[0] + .2, B.rewrite[1] + 1.2, B.rewrite[1] + 1.6)}px #3ccf7f` : '';
+    } else { r.film.render(r.u); r.n.style.background = ''; }
   });
 
   /* edit: the panes assemble */
-  const bp = (d) => P(t, BEAT.build + d, BEAT.build + d + .45, E.out);
+  const bp = (d) => P(t, B.build + d, B.build + d + .45, E.out);
   $('#lib').style.transform = `translateX(${(1 - bp(0)) * -290}px)`; $('#insp').style.transform = `translateX(${(1 - bp(.25)) * 310}px)`;
   $('#prev').style.opacity = bp(.1); $('#tl').style.transform = `translateY(${(1 - bp(.15)) * 380}px)`;
-  // the library's families, and Clicks & pops opening
-  const open = P(t, BEAT.famOpen, BEAT.famOpen + .3, E.out);
-  famEls.forEach((n, j) => { const p = P(t, BEAT.build + .2 + j * .04, BEAT.build + .55 + j * .04, E.out); n.style.top = 160 + j * 32 + (j > 2 ? open * 6 * 30 : 0) + 'px'; n.style.opacity = p; n.querySelector('i').style.transform = j === 2 ? `rotate(${open * 90}deg)` : ''; });
-  SROWS.forEach((n, j) => { const p = P(t, BEAT.famOpen + .04 * j, BEAT.famOpen + .25 + .04 * j, E.out); n.style.top = 160 + 3 * 32 + j * 30 + 'px'; op(n, p); n.style.transform = `translateX(${(1 - p) * -12}px)`; n.classList.toggle('hot', j === 0 && t >= BEAT.grabRow - .3 && t < BEAT.clipDrop); });
+  const open = P(t, B.famOpen, B.famOpen + .3, E.out);
+  famEls.forEach((n, j) => { const p = P(t, B.build + .2 + j * .04, B.build + .55 + j * .04, E.out); n.style.top = 160 + j * 32 + (j > 2 ? open * 6 * 30 : 0) + 'px'; n.style.opacity = p; n.querySelector('i').style.transform = j === 2 ? `rotate(${open * 90}deg)` : ''; });
+  SROWS.forEach((n, j) => { const p = P(t, B.famOpen + .04 * j, B.famOpen + .25 + .04 * j, E.out); n.style.top = 160 + 3 * 32 + j * 30 + 'px'; op(n, p); n.style.transform = `translateX(${(1 - p) * -12}px)`; n.classList.toggle('hot', j === 0 && t >= B.grabRow - .3 && t < B.clipDrop); });
 
-  /* the timeline: rows, the object area opening for the ball, the clips */
-  const objOpen = P(t, BEAT.objOpen[0], BEAT.objOpen[1]);
-  const Y = { ruler: 0, beats: 32, objs: 58, objH: 88, graph: 112, lane: 182 }, shift = objOpen * 130;
-  const place = (n, y, h, d) => { const p = P(t, BEAT.build + .3 + d, BEAT.build + .7 + d, E.out); n.style.top = y + 'px'; n.style.height = h + 'px'; n.style.opacity = p; };
-  place(ruler, Y.ruler, 32, 0); place(beats, Y.beats, 26, .04); place(objs, Y.objs, 30, .08);
+  /* the timeline: rows; the ball's object area opens when Claude links the sound to it */
+  const objOpen = P(t, B.objOpen[0], B.objOpen[1]), shift = objOpen * 130;
+  const place = (n, y, h, d) => { const p = P(t, B.build + .3 + d, B.build + .7 + d, E.out); n.style.top = y + 'px'; n.style.height = h + 'px'; n.style.opacity = p; };
+  place(ruler, 0, 32, 0); place(beats, 32, 26, .04); place(objs, 58, 30, .08);
   tracks.forEach((n, j) => place(n, 88 + shift + j * 40, 40, .12 + j * .04));
-  [[objH, Y.objH, 24], [graph, Y.graph, 70], [lane, Y.lane, 36]].forEach(([n, y, h]) => { n.style.top = y + 'px'; n.style.height = h + 'px'; op(n, objOpen); });
-  // the film's three edits, applied when Claude replies
-  const soft = P(t, R1.apply, R1.apply + .45), early = P(t, R2.apply, R2.apply + .45), bold = P(t, R3.apply, R3.apply + .4);
-  OM[1].m.style.left = TLX(OM[1].s - .3 * early) + 'px';
-  drawGraph(soft, P(t, BEAT.graph[0], BEAT.graph[1], E.lin));
-  const L = lands(soft);
-  marks.forEach((m, j) => { const p = spring(t - BEAT.marks[j]); op(m, t >= BEAT.marks[j] ? clamp(p * 2) : 0); m.style.left = TLX(L[j] - .02) + 'px'; m.style.top = 70 - 8 - [1, .72, .48 * (1 - .35 * soft)][j] * 52 + 'px'; m.style.transform = `scale(${clamp(p) * 1.0})`; });
-  // the dropped clip: dragged from the library, then it becomes the ball's, one bounce on each landing
-  const lib2tl = P(t, BEAT.drag[0], BEAT.drag[1]);
-  const dropP = t >= BEAT.clipDrop ? 1 : 0;
-  op(dropped, t >= BEAT.drag[0] && t < BEAT.snaps[0] - BEAT.flyDur ? 1 : 0);
-  dropped.classList.toggle('fly', t < BEAT.clipDrop);
-  if (t >= BEAT.drag[0] && t < BEAT.clipDrop) {
-    const cu = cursorAt(t), tlOrigin = W(290, 64 + 456 + 88 + 40); // where Track 2 sits, in world px
-    const lx = (cu.x - tlOrigin.x) / ST.s - 30, ly = (cu.y - tlOrigin.y) / ST.s - 20;
-    dropped.style.transform = `translate(${lx - TLX(2.1)}px,${ly - 5 + 5}px) scale(${lerp(.9, 1, lib2tl)})`;
-  } else dropped.style.transform = `translateY(${impact(t - BEAT.clipDrop) * .6}px)`;
-  void dropP;
-  laneClips.forEach((c, j) => {
-    const land = BEAT.snaps[j], a = land - BEAT.flyDur, p = P(t, a, land, E.io);
-    op(c, t >= a ? 1 : 0);
-    const target = TLX(L[j] - BOUNCE.hit), from = { x: TLX(2.1), y: 88 + shift + 40 - Y.lane };
-    const bump = impact(t - land) * .5;
-    c.style.left = target + 'px';
-    c.style.transform = p < 1 ? `translate(${(from.x - target) * (1 - p)}px,${from.y * (1 - p) - Math.sin(Math.PI * p) * 40}px)` : `translateY(${bump}px)`;
-    c.classList.toggle('fly', p < 1);
-    c.style.borderColor = t >= land && t < land + .3 ? 'var(--warn)' : '';
+  [[objH, 88, 24], [graph, 112, 70], [lane, 182, 36]].forEach(([n, y, h]) => { n.style.top = y + 'px'; n.style.height = h + 'px'; op(n, objOpen); });
+  const soft = P(t, B.l3.apply, B.l3.apply + .45), L = lands(soft);
+  drawGraph(soft, P(t, B.graph[0], B.graph[1], E.lin));
+  marks.forEach((m, j) => { const p = spring(t - B.marks[j]); op(m, t >= B.marks[j] ? clamp(p * 2) : 0); m.style.left = TLX(L[j] - .02) + 'px'; m.style.top = 70 - 8 - [1, .72, .48 * (1 - .35 * soft)][j] * 52 + 'px'; m.style.transform = `scale(${clamp(p)})`; });
+  // the clip dragged from the library; then Claude moves it to the ball's lane, one on each landing
+  op(dropped, t >= B.drag[0] && t < B.snaps[0] - B.flyDur ? 1 : 0);
+  dropped.classList.toggle('fly', t < B.clipDrop);
+  if (t >= B.drag[0] && t < B.clipDrop) {
+    const cu = cursorAt(t), o = W(290, 64 + 456 + 88 + 40);
+    dropped.style.transform = `translate(${(cu.x - o.x) / ST.s - 30 - TLX(2.1)}px,${(cu.y - o.y) / ST.s - 20}px) scale(${lerp(.9, 1, P(t, B.drag[0], B.drag[1]))})`;
+  } else dropped.style.transform = `translateY(${impact(t - B.clipDrop) * .6}px)`;
+  laneClips.forEach((cl, j) => {
+    const land = B.snaps[j], a = land - B.flyDur, p = P(t, a, land, E.io), target = TLX(L[j] - BOUNCE.hit), fromX = TLX(2.1), fromY = 88 + shift + 40 - 182;
+    op(cl, t >= a ? 1 : 0); cl.style.left = target + 'px';
+    cl.style.transform = p < 1 ? `translate(${(fromX - target) * (1 - p)}px,${fromY * (1 - p) - Math.sin(Math.PI * p) * 40}px)` : `translateY(${impact(t - land) * .5}px)`;
+    cl.classList.toggle('fly', p < 1); cl.style.borderColor = t >= land && t < land + .3 ? 'var(--warn)' : '';
   });
-  guides.forEach((g, j) => { const on = fade(t, BEAT.snaps[j] - .3, BEAT.snaps[j], BEAT.snaps[j] + .4, BEAT.snaps[j] + .7); op(g, on); g.style.left = TLX(L[j]) + 'px'; g.style.top = Y.graph + 'px'; g.style.height = Y.lane + 36 - Y.graph + 'px'; });
+  guides.forEach((gd, j) => { op(gd, fade(t, B.snaps[j] - .3, B.snaps[j], B.snaps[j] + .4, B.snaps[j] + .7)); gd.style.left = TLX(L[j]) + 'px'; gd.style.top = '112px'; gd.style.height = '106px'; });
 
-  /* the preview: paused, or playing (with rings on the landings while it plays with its sounds) */
-  const plays = [[BEAT.play1, 0, 4.5], [BEAT.play2, 0, 4.5], [R1.replay, 1.9, 4.5], [R2.replay, .5, 1.6]];
-  let u = 4.5, playing = false; if (t < BEAT.play1[0]) u = 0;
+  /* the preview: paused at the last landing for the comment, or playing */
+  const plays = [[B.play1, 0, 4.5], [B.replay, 1.9, 4.5], [B.play2, 0, 4.5]];
+  let u = 0, playing = false;
   for (const [[a, b], u0, u1] of plays) if (t >= a) { u = t < b ? lerp(u0, u1, (t - a) / (b - a)) : u1; playing = t < b; }
-  if (t >= R2.replay[1]) u = 4.5;
-  prevFilm.render(u, { soft, early, bold, ring: playing && t >= BEAT.play2[0] });
+  if (t >= B.play1[1] && t < B.replay[0]) u = 3.5; // parked at the last landing, where the comment is
+  prevFilm.render(u, { soft, ring: playing && t >= B.play2[0] });
   $('#clock').textContent = `0:${u.toFixed(2).padStart(5, '0')}`;
-  playhead.style.left = TLX(u) + 'px'; op(playhead, P(t, BEAT.build + .4, BEAT.build + .8));
-  setInsp(t >= BEAT.pickBall && t < BEAT.cmode ? 'ball' : 'params');
+  playhead.style.left = TLX(u) + 'px'; op(playhead, P(t, B.build + .4, B.build + .8));
+  setInsp(t >= B.objOpen[0] && t < B.s5.in ? 'ball' : 'params');
   const clk = insp.querySelector('.clk'); if (clk) clk.textContent = `0:${u.toFixed(1).padStart(4, '0')}`;
-  // the selected ball
-  const bc = BALLC(0), selOn = t >= BEAT.pickBall && t < BEAT.cmode;
-  op(sel, selOn ? 1 : 0); Object.assign(sel.style, { left: bc.x - 36 + 'px', top: bc.y - 64 - 36 + 'px', width: '72px', height: '72px' });
-  // toast after the drop
-  const tp2 = fade(t, BEAT.clipDrop + .1, BEAT.clipDrop + .3, BEAT.clipDrop + 1.6, BEAT.clipDrop + 1.9);
-  toast.textContent = 'ball-bounce on Track 2 at 0:02.10'; op(toast, tp2); toast.style.transform = `translateY(${(1 - tp2) * 10}px)`;
 
-  /* comment mode: the picker hops across what it would comment on; each round's box, then the copied badges */
-  const TARGET = { ball: { c: bc, w: 72, h: 72, tag: '#ball  90 × 90' }, tile: { c: TILEC, w: 100, h: 100, tag: '#tile  120 × 120' }, head: { c: HEADC, w: 440, h: 70, tag: '.f-head  596 × 76' } };
-  let tgt = null, frozen = false;
-  if (commenting(t)) {
-    const hv = [['tile', BEAT.hovers[0]], ['head', BEAT.hovers[1]], ['ball', BEAT.hovers[2]]];
-    hv.forEach(([w, a]) => { if (t >= a) tgt = w; });
-    ROUNDS.forEach((r) => { if (t >= r.pick - .25) { tgt = r.what; frozen = t >= r.pick; } });
-    if (t < BEAT.hovers[0]) tgt = null;
+  /* comment mode: the picker frames what is pointed at; the box, then the copied badges */
+  let lp = null; LOOPS.forEach((l) => { if (t >= l.b.click - .3 && t < l.b.paste + .2) lp = l; });
+  const frozen = lp && t >= lp.b.click;
+  op(pick, lp && commenting(t) ? 1 : 0);
+  if (lp) {
+    const bx = lp.box || { x: lp.at.x - 36, y: lp.at.y - 36, w: 72, h: 72 };
+    Object.assign(pick.style, { left: bx.x + 'px', top: bx.y + 'px', width: bx.w + 'px', height: bx.h + 'px', borderWidth: frozen ? '3px' : '2px' }); pickTag.textContent = lp.tag;
   }
-  op(pick, tgt ? 1 : 0);
-  if (tgt) { const T = TARGET[tgt]; Object.assign(pick.style, { left: T.c.x - T.w / 2 + 'px', top: T.c.y - 64 - T.h / 2 + 'px', width: T.w + 'px', height: T.h + 'px', borderWidth: frozen ? '3px' : '2px' }); pickTag.textContent = T.tag; }
-  // which comment box is open
-  let rnd = null; ROUNDS.forEach((r, j) => { const end = j < 2 ? ROUNDS[j + 1].pick : BEAT.cmodeOff; const close = j === 0 ? Math.min(end, r.enter + 4.5) : end; if (t >= r.pick + .05 && t < close) rnd = { r, j, close }; });
-  op(cbox, rnd ? 1 : 0);
-  if (rnd) {
-    const { r } = rnd, T = TARGET[r.what], cp = spring(t - r.pick - .05);
-    cbox.style.left = Math.min(T.c.x + 50, 940) + 'px'; cbox.style.top = (r.what === 'head' ? 150 : 330) + 'px';
+  let cl = null; LOOPS.forEach((l) => { if (t >= l.b.click + .05 && t < Math.min(l.b.enter + 4.5, l.b.paste + .2)) cl = l; });
+  op(cbox, cl ? 1 : 0);
+  if (cl) {
+    const b = cl.b, cp = spring(t - b.click - .05), bx = cl.box || { x: cl.at.x - 36, y: cl.at.y - 36, w: 72, h: 72 };
+    // beside what it is about, or under it in the preview, so the box never covers the thing it comments on
+    let x = bx.x + bx.w + 16, y = bx.y;
+    if (cl.tab === 'edit' && !cl.box) { x = bx.x - 40; y = bx.y + bx.h + 14; }
+    if (x + 340 > 1590) x = bx.x - 356; if (y + 200 > 890) y = 890 - 200;
+    cbox.style.left = x + 'px'; cbox.style.top = y + 'px';
     cbox.style.transform = `scale(${lerp(.9, 1, clamp(cp))})`; cbox.style.transformOrigin = '0 0';
-    cbT.textContent = `${T.tag.split('  ')[0]} · ${r.about.split(' at ')[1]}`;
-    const copied = t >= r.enter;
-    const key = copied ? `c${rnd.j}` : `t${rnd.j}`;
+    cbT.textContent = cl.title;
+    const copied = t >= b.enter, key = (copied ? 'c' : 't') + LOOPS.indexOf(cl);
     if (cbBody.dataset.k !== key) {
       cbBody.dataset.k = key;
       cbBody.innerHTML = copied ? `<div style="display:grid;gap:8px"><span class="badge ok"><svg viewBox="0 0 16 16" width="16" height="16"><path class="tick" d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16"/></svg>Copied to clipboard</span><span class="badge next">Now paste it into Claude <kbd>⌘V</kbd></span><div class="lbar"><i></i></div></div>`
         : `<div class="ta"></div><div class="hint">Enter to copy the note · Esc to cancel</div>`;
     }
-    if (!copied) { const ta = cbBody.querySelector('.ta'); ta.textContent = typed(r.text, t, r.type[0], r.type[1]); el('span', 'caret', null, ta).style.opacity = Math.floor(t * 2.6) % 2 ? 1 : .2; }
+    if (!copied) { const ta = cbBody.querySelector('.ta'); ta.textContent = typed(cl.text, t, b.type[0], b.type[1]); el('span', 'caret', null, ta).style.opacity = Math.floor(t * 2.6) % 2 ? 1 : .2; }
     else {
-      const e = t - r.enter, b1 = cbBody.querySelector('.ok'), b2 = cbBody.querySelector('.next');
+      const e = t - b.enter, b1 = cbBody.querySelector('.ok'), b2 = cbBody.querySelector('.next');
       const p1 = P(e, 0, .42, E.back); b1.style.opacity = clamp(p1 * 2); b1.style.transform = `scale(${lerp(.6, 1, p1)})`;
       cbBody.querySelector('.tick').style.strokeDashoffset = 16 * (1 - P(e, .18, .5, E.out));
       const p2 = P(e, .55, .87, E.out), nudge = e > 1.1 && e < 2.1 ? Math.sin((e - 1.1) / .5 * Math.PI) * 3 : 0;
@@ -699,89 +728,55 @@ function renderStudio(t) {
     }
   }
 
-  /* export: the drift note, its fix, the render */
-  const fixed = t >= BEAT.checkAgain + .15;
-  const xk = fixed ? 'ok' : 'warn'; if (xNote.dataset.k !== xk) { xNote.innerHTML = DRIFT[xk]; xNote.dataset.k = xk; }
-  const np2 = fixed ? spring(t - BEAT.checkAgain - .15) : 1; xNote.style.transform = `scale(${lerp(.96, 1, clamp(np2))})`;
-  const prog = clamp((t - BEAT.progress[0]) / (BEAT.progress[1] - BEAT.progress[0]));
-  const done = t >= BEAT.shutter, jk = t < BEAT.progress[0] ? 'none' : done ? 'done' : 'run';
-  if (xJobs.dataset.k !== jk) { xJobs.dataset.k = jk; xJobs.innerHTML = jk === 'none' ? '<div style="color:var(--mu)">Nothing rendered in this session yet.</div>' : `<div style="display:flex;justify-content:space-between;font-size:15px"><b style="font-weight:600">tour.mp4</b><span id="xSt" style="color:var(--mu)"></span></div><div class="prog" style="margin-top:12px"><i></i></div>${jk === 'done' ? '<div style="margin-top:14px;display:flex;gap:8px"><span class="btn">Show in folder</span><span class="btn pri">Open</span></div>' : ''}`; }
+  /* export: the check, back in step after Claude's reply; then the render */
+  const fixed = t >= B.l5.apply, xk = fixed ? 'ok' : 'warn';
+  if (xNote.dataset.k !== xk) { xNote.innerHTML = DRIFT[xk]; xNote.dataset.k = xk; }
+  xNote.style.transform = `scale(${lerp(.96, 1, clamp(fixed ? spring(t - B.l5.apply) : 1))})`;
+  const prog = clamp((t - B.progress[0]) / (B.progress[1] - B.progress[0])), done = t >= B.shutter, jk = t < B.progress[0] ? 'none' : done ? 'done' : 'run';
+  if (xJobs.dataset.k !== jk) { xJobs.dataset.k = jk; xJobs.innerHTML = jk === 'none' ? '<div style="color:var(--mu)">Nothing rendered in this session yet.</div>' : `<div style="display:flex;justify-content:space-between;font-size:15px"><b style="font-weight:600">hello.mp4</b><span id="xSt" style="color:var(--mu)"></span></div><div class="prog" style="margin-top:12px"><i></i></div>${jk === 'done' ? '<div style="margin-top:14px;display:flex;gap:8px"><span class="btn">Show in folder</span><span class="btn pri">Open</span></div>' : ''}`; }
   if (jk !== 'none') { xJobs.querySelector('.prog i').style.transform = `scaleX(${done ? 1 : prog})`; xJobs.querySelector('#xSt').textContent = done ? 'Done' : `${prog < .8 ? 'capture' : 'encode'} · ${Math.round(prog * 100)}%`; }
-  $('#xStatus').textContent = t >= BEAT.render && t < BEAT.progress[0] + .3 ? 'Starting…' : '';
+  $('#xStatus').textContent = t >= B.render && t < B.progress[0] + .3 ? 'Starting…' : '';
 }
 
-function renderChat(t) {
-  const ins = [[BEAT.r1.chatIn, BEAT.chatOut], [BEAT.chat2In, BEAT.chat2Out]];
-  let x = 2000, thread = 0;
-  ins.forEach(([[a, b], [c, d]], j) => { if (t >= a - .01 && t < d + .01) { const p = P(t, a, b, E.out) * (1 - P(t, c, d, E.in)); x = lerp(2000, CH.x, p); thread = j + 1; } });
-  op(chat, thread ? 1 : 0); tr(chat, x, CH.y);
+function drawChat(t) {
   MSG.forEach((m) => {
-    const vis = m.thread === thread && t >= (m.work ?? m.at);
-    m.n.style.display = vis && t >= m.at ? '' : 'none';
-    if (m.w) m.w.style.display = vis && t < m.at ? '' : 'none';
-    if (m.w && vis && t < m.at) m.w.querySelector('svg').style.transform = `rotate(${(t - m.work) * 240}deg)`;
+    m.n.style.display = t >= m.at ? '' : 'none';
+    if (m.w) { const w = t >= m.work && t < m.at; m.w.style.display = w ? '' : 'none'; if (w) m.w.querySelector('svg').style.transform = `rotate(${(t - m.work) * 240}deg)`; }
     const p = spring(t - m.at); m.n.style.opacity = clamp(p * 2); m.n.style.transform = `translateY(${(1 - p) * 24}px) scale(${lerp(.94, 1, clamp(p))})`; m.n.style.transformOrigin = m.k === 'u' ? '100% 100%' : '0 100%';
   });
-  // the composer: the pasted note waiting to send, or the typed request
   let txt = null;
-  ROUNDS.forEach((r) => { if (t >= r.paste && t < r.send) txt = `Motion Director comment on "Hello, motion." · ${r.text}`; });
-  if (t >= BEAT.type2[0] && t < BEAT.send2) txt = typed('The app changed. Bring the tour’s screens in step.', t, BEAT.type2[0], BEAT.type2[1]);
+  LOOPS.forEach((l) => { if (t >= l.b.paste && t < l.b.send) txt = `${HEAD} · ${l.text}`; });
+  if (t >= B.l5.type[0] && t < B.l5.send) txt = typed(ASK, t, B.l5.type[0], B.l5.type[1]);
   if (txt !== null) { chTx.textContent = txt; el('span', 'ccaret', null, chTx).style.opacity = Math.floor(t * 2.6) % 2 ? 1 : .2; }
   else chTx.innerHTML = '<span class="ph">Reply to Claude…</span>';
 }
 
-/* ── keys (the storyboard) and sound moments ── */
-const KEYS = [
-  { t: 1.6, name: 'Opening line', note: 'Films about your product, made with Claude.' },
-  { t: 6.3, name: 'Step 1', note: 'Set the vibe.' },
-  { t: 14.0, name: 'The vibe board', note: 'Pins, and the screenshot added with its take.' },
-  { t: 16.3, name: 'Step 2', note: 'Plan it out.' },
-  { t: 22.3, name: 'The treatment', note: 'Beats beside their frames.' },
-  { t: 25.4, name: 'Step 3', note: 'Edit, with sound.' },
-  { t: 33.6, name: 'Edit and sound', note: 'The bounce dragged onto a track.' },
-  { t: 36.8, name: 'Step 4', note: 'Sync sound to motion.' },
-  { t: 41.7, name: 'Synced', note: 'A bounce on every landing.' },
-  { t: 48.2, name: 'Step 5', note: 'Point at it. Claude edits.' },
-  { t: 54.3, name: 'Copied', note: 'Copied, then paste it into Claude.' },
-  { t: 57.6, name: 'Claude edits', note: 'The note pasted; Claude replies; the film updates.' },
-  { t: 67.8, name: 'Step 6', note: 'Export.' },
-  { t: 72.8, name: 'Back in step', note: 'The app changed; Claude re-syncs the screens.' },
-  { t: 76.0, name: 'Rendering', note: 'The render runs.' },
-  { t: 85.0, name: 'Closing line', note: 'You direct. Claude edits.' },
-];
-const SCENES = [['Opening', 0], ['Vibe', 5.4], ['Treatment', 15.3], ['Edit', 24.5], ['Sync', 35.9], ['Comment', 47.1], ['Export', 66.9], ['Ending', 83.2]];
+/* ── sound moments (the sound pass comes after the motion is approved) ── */
 {
   const M = Motion.moment;
-  STEPS.forEach((st, i) => { M(`title-${i}-in`, { t: st.b.in, host: stepT, label: `Title ${i} lands` }); if (st.b.out < 900 && !st.fly) M(`title-${i}-out`, { t: st.b.out, dur: .42, host: stepT, label: `Title ${i} swishes out` }); });
-  M('title-2-fly', { t: BEAT.fly[0], dur: BEAT.fly[1] - BEAT.fly[0], host: stepT, label: 'Step 2 flies into the treatment' });
-  M('studio-in', { t: BEAT.studioIn, dur: .8, host: studio, label: 'The studio rises in' });
-  M('tabs-in', { times: tabEls.map((_, j) => BEAT.tabs + j * .07), host: tabEls, label: 'The tabs pop in' });
+  STEPS.forEach((st, i) => { M(`title-${i}-in`, { t: st.b.in, host: stepT, label: `Title ${i} lands` }); if (!st.last && !st.fly) M(`title-${i}-out`, { t: st.b.out, dur: .42, host: stepT, label: `Title ${i} swishes out` }); });
+  M('title-2-fly', { t: B.fly[0], dur: B.fly[1] - B.fly[0], host: stepT, label: 'Step 2 flies into the treatment' });
+  M('windows-in', { t: B.rise, dur: .8, host: [studio, chat], label: 'The studio and the chat rise in' });
   M('clicks', { times: CLICKS, host: curEl, label: 'Pointer clicks' });
-  M('pins-in', { times: PINS.map((_, j) => BEAT.pins + j * BEAT.pinGap), host: PINS.map((p) => p.n), label: 'Pins drop onto the board' });
-  M('file-drop', { t: BEAT.drop, host: newPin, label: 'The screenshot lands on the board' });
-  M('take-typed', { t: BEAT.takeType[0], dur: BEAT.takeType[1] - BEAT.takeType[0], host: newPin, label: 'Its take is typed' });
-  M('rows-in', { times: BEAT.rows, host: TROWS.map((r) => r.n), label: 'Beats and frames arrive' });
-  M('clip-drop', { t: BEAT.clipDrop, host: dropped, label: 'The bounce lands on Track 2' });
-  M('snaps', { times: BEAT.snaps, host: laneClips, label: 'A bounce snaps to each landing' });
-  const playL = (play, u0, u1, soft) => lands(soft).filter((L) => L >= u0 && L <= u1).map((L) => play[0] + (L - u0) / (u1 - u0) * (play[1] - play[0]));
-  M('play1-bounces', { times: playL(BEAT.play1, 0, 4.5, 0), host: prevFilm.F.ball, label: 'The ball lands (first play, unsynced)' });
-  M('play2-bounces', { times: playL(BEAT.play2, 0, 4.5, 0), host: prevFilm.F.ball, label: 'The ball lands, with its bounces' });
-  M('replay-bounces', { times: playL(R1.replay, 1.9, 4.5, 1), host: prevFilm.F.ball, label: 'The softer bounce' });
-  M('final-bounces', { times: playL(BEAT.play3, 0, 4.5, 1), host: finalFilm.F.ball, label: 'The finished film lands' });
-  ROUNDS.forEach((r, j) => {
-    M(`r${j + 1}-type`, { t: r.type[0], dur: r.type[1] - r.type[0], host: cbox, label: `Comment ${j + 1} typed` });
-    M(`r${j + 1}-copied`, { t: r.enter, host: cbox, label: `Comment ${j + 1} copied` });
-    M(`r${j + 1}-send`, { t: r.send, host: chat, label: `Note ${j + 1} sent to Claude` });
-    M(`r${j + 1}-reply`, { t: r.reply, host: chat, label: `Claude's reply ${j + 1}` });
+  M('file-drop', { t: B.drop, host: shotPin, label: 'The screenshot lands on the board' });
+  M('pins-in', { times: PINS.map((_, j) => B.pins + j * B.pinGap), host: PINS.map((p) => p.n), label: "Claude's pins drop onto the board" });
+  M('beat-rewritten', { t: B.rewrite[0], dur: B.rewrite[1] - B.rewrite[0], host: TROWS[1].n, label: 'Claude rewrites the beat' });
+  M('clip-drop', { t: B.clipDrop, host: dropped, label: 'The bounce lands on Track 2' });
+  M('snaps', { times: B.snaps, host: laneClips, label: 'A bounce snaps to each landing' });
+  LOOPS.forEach((l, j) => {
+    M(`l${j + 1}-type`, { t: l.b.type[0], dur: l.b.type[1] - l.b.type[0], host: cbox, label: `Comment ${j + 1} typed` });
+    M(`l${j + 1}-copied`, { t: l.b.enter, host: cbox, label: `Comment ${j + 1} copied` });
+    M(`l${j + 1}-paste`, { t: l.b.paste, host: chat, label: `Note ${j + 1} pasted` });
+    M(`l${j + 1}-reply`, { t: l.b.reply, host: chat, label: `Claude's reply ${j + 1}` });
   });
-  M('chat-in', { times: [BEAT.r1.chatIn[0], BEAT.chat2In[0]], dur: .6, host: chat, label: 'The chat slides in' });
-  M('drift-fixed', { t: BEAT.checkAgain + .15, host: xNote, label: 'Back in step with the app' });
-  M('shutter', { t: BEAT.shutter, host: xJobs, label: 'The render finishes' });
-  M('grow', { t: BEAT.grow[0], dur: BEAT.grow[1] - BEAT.grow[0], host: finalEl, label: 'The finished film fills the frame' });
+  M('ask-typed', { t: B.l5.type[0], dur: B.l5.type[1] - B.l5.type[0], host: chat, label: 'The request is typed' });
+  M('in-step', { t: B.l5.apply, host: xNote, label: 'Back in step with the app' });
+  M('shutter', { t: B.shutter, host: xJobs, label: 'The render finishes' });
+  M('grow', { t: B.grow[0], dur: B.grow[1] - B.grow[0], host: finalEl, label: 'The finished film fills the frame' });
 }
 
-Object.assign(window.__film = window.__film || {}, { BEAT, camAt });
-Motion.mountPlayer({ duration: DUR, poster: 57.6, scenes: SCENES, keys: KEYS, render });
+Object.assign(window.__film = window.__film || {}, { B, camAt, draw });
+Motion.mountPlayer({ duration: DUR, poster: B.l1.reply + .4, scenes: SCENES, keys: KEYS, render });
 })();
 </script>
 </body>
