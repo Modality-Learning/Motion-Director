@@ -1,5 +1,5 @@
 // The library (left): your sound files (never tracked). Play one, drag it onto the timeline, + to add it at the
-// playhead, ✎ to edit it. Sound files dragged in from Finder are copied in.
+// playhead, ✎ to edit it. Sound files dragged in from the computer's files are copied in.
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Pencil, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,8 +40,8 @@ export function Library() {
   const organised = useMemo(() => files.filter((f) => lib.sounds[f.path]?.organised).length, [files, lib]);
   const toggleTrait = (k: TraitKey) => { const next = new Set(traitFilter); if (next.has(k)) next.delete(k); else next.add(k); useEdit.setState({ traitFilter: next, folded: new Set() }); };
 
-  // the whole library column takes the drop; only Finder files (not a sound dragged from the list)
-  const fromFinder = (e: React.DragEvent) => e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('text/x-promo-sound');
+  // the whole library column takes the drop; only files from the computer (not a sound dragged from the list)
+  const fromFiles = (e: React.DragEvent) => e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('text/x-promo-sound');
   const suggested = useMemo(() => (suggest ? suggestFor(suggest.kind === 'out' ? 'in' : suggest.kind, info).map((p) => byPath.get(p)!).filter(Boolean) : []), [suggest, info, byPath]);
   const lines = useMemo(() => {
     const out: Line[] = [];
@@ -60,11 +60,11 @@ export function Library() {
   return (
     <aside ref={colRef} aria-label="Sound library"
       className={cn('min-h-0 min-w-0 overflow-hidden border-r bg-card', dropping && 'bg-primary/8 shadow-[inset_0_0_0_2px_var(--primary)]')}
-      onDragOver={(e) => { if (!fromFinder(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setDropping(true); }}
+      onDragOver={(e) => { if (!fromFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setDropping(true); }}
       onDragLeave={(e) => { if (!colRef.current?.contains(e.relatedTarget as Node)) setDropping(false); }}
-      onDrop={(e) => { if (!fromFinder(e)) return; e.preventDefault(); setDropping(false); importFiles(e.dataTransfer.files); }}>
+      onDrop={(e) => { if (!fromFiles(e)) return; e.preventDefault(); setDropping(false); importFiles(e.dataTransfer.files); }}>
       <div className="grid h-full min-h-0 grid-rows-[auto_auto_auto_auto_minmax(0,1fr)_auto] gap-2 px-3.5 py-3 [&>*]:min-w-0">
-        <SideK as="div">Library</SideK>
+        <SideK as="div">Sound library</SideK>
         <Input type="search" placeholder="Find: name, family, tag" aria-label="Find a sound" value={query} className="h-8 bg-background"
           onChange={(e) => useEdit.setState({ query: e.target.value, folded: new Set() })} />
         <div role="group" aria-label="Filter by sound" className="flex flex-wrap gap-1">
@@ -83,8 +83,8 @@ export function Library() {
         {files.length ? (shown.length || suggest ? (
           <VirtualList lines={lines} />
         ) : <p className="text-sm text-muted-foreground">No sound matches.</p>)
-          : <p className="text-sm text-muted-foreground">No sounds yet. Drag sound files here from Finder.</p>}
-        <p className={cn('rounded-lg border border-dashed px-2.5 py-2 text-center text-sm text-muted-foreground', dropping && 'border-primary text-foreground')}>Drop sound files from Finder here to add them.</p>
+          : <p className="text-sm text-muted-foreground">No sounds yet. Drag sound files here to add them.</p>}
+        <p className={cn('rounded-lg border border-dashed px-2.5 py-2 text-center text-sm text-muted-foreground', dropping && 'border-primary text-foreground')}>Drop sound files here to add them.</p>
       </div>
     </aside>
   );

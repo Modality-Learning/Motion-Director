@@ -103,4 +103,7 @@
   /* dragging the timeline's grip: nothing else takes the pointer, the preview included */
   .tl-resizing, .tl-resizing * { cursor: row-resize !important; user-select: none; }
   .tl-resizing iframe { pointer-events: none; }
+  /* dragging a side column's grip: likewise */
+  .col-resizing, .col-resizing * { cursor: col-resize !important; user-select: none; }
+  .col-resizing iframe { pointer-events: none; }
 }

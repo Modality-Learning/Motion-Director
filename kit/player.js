@@ -190,14 +190,81 @@
     function setBg(v) { stage.classList.toggle('plain', v !== 'textured'); }
     setBg(window.Motion.param('background', q.get('bg') || 'white'));
 
-    /* ── fit the 1920×1080 stage to its frame ── */
+    /* ── fit the 1920×1080 stage to its frame ──
+     * In the studio's Edit tab (?bare) the view can also be zoomed and panned, like a compositor's viewer: the
+     * studio's view bar sends zoom steps, Fit and 100%; a pinch (or ⌘/Ctrl-scroll) zooms about the pointer;
+     * scrolling, a middle-button drag or the hand tool pans. Fit follows the frame as it resizes; a zoom you
+     * chose stays put. Measuring reads positions in stage units, so the view never changes a measurement. */
+    const viewable = q.has('bare') && embedded;
+    const view = { fit: true, scale: 1, x: 0, y: 0, hand: false };
+    const STEPS = [0.125, 0.25, 0.33, 0.5, 0.66, 0.75, 1, 1.5, 2, 3, 4];
+    let toldView = '';
+    function applyView() {
+      stage.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+      const msg = JSON.stringify([Math.round(view.scale * 1000) / 1000, view.fit]);
+      if (viewable && msg !== toldView) { toldView = msg; tell({ type: 'view', scale: view.scale, fit: view.fit }); }
+    }
+    // keeps some of the stage on screen, however far it is panned
+    function clampPan() {
+      const cw = viewport.clientWidth, ch = viewport.clientHeight, sw = W * view.scale, sh = H * view.scale, keep = 48;
+      view.x = Math.min(cw - keep, Math.max(keep - sw, view.x));
+      view.y = Math.min(ch - keep, Math.max(keep - sh, view.y));
+    }
     function fit() {
       const cw = viewport.clientWidth, ch = viewport.clientHeight;
-      const sc = Math.min(cw / W, ch / H);
-      stage.style.transform = `translate(${(cw - W * sc) / 2}px,${(ch - H * sc) / 2}px) scale(${sc})`;
+      if (view.fit || !viewable) {
+        const sc = Math.min(cw / W, ch / H);
+        Object.assign(view, { scale: sc, x: (cw - W * sc) / 2, y: (ch - H * sc) / 2 });
+      } else clampPan();
+      applyView();
       if (cw > 0) { render(t); afterRender(); }
     }
+    /** Zooms to a scale (stage px → screen px) about a point in the viewport (its centre by default). */
+    function zoomTo(scale, ax = viewport.clientWidth / 2, ay = viewport.clientHeight / 2) {
+      const s = Math.min(8, Math.max(0.05, scale));
+      view.x = ax - (ax - view.x) * (s / view.scale); view.y = ay - (ay - view.y) * (s / view.scale);
+      view.scale = s; view.fit = false; clampPan(); applyView();
+    }
+    function viewCommand(m) {
+      if (m.do === 'fit') { view.fit = true; fit(); }
+      else if (m.do === 'set' && m.scale > 0) zoomTo(m.scale);
+      else if (m.do === 'in') zoomTo(STEPS.find((v) => v > view.scale * 1.001) ?? view.scale * 1.5);
+      else if (m.do === 'out') zoomTo([...STEPS].reverse().find((v) => v < view.scale * 0.999) ?? view.scale / 1.5);
+      if (m.hand !== undefined) { view.hand = !!m.hand; document.documentElement.classList.toggle('hand', view.hand); }
+    }
     new ResizeObserver(fit).observe(viewport); fit();
+    if (viewable) {
+      const local = (e) => { const r = viewport.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+      viewport.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomTo(view.scale * Math.exp(-e.deltaY * 0.01), ...local(e)); return; }
+        if (view.fit) return; // a fitted view has nothing to pan
+        e.preventDefault(); view.x -= e.deltaX; view.y -= e.deltaY; clampPan(); applyView();
+      }, { passive: false });
+      // Safari's pinch
+      let g0 = 1;
+      viewport.addEventListener('gesturestart', (e) => { e.preventDefault(); g0 = view.scale; });
+      viewport.addEventListener('gesturechange', (e) => { e.preventDefault(); zoomTo(g0 * e.scale, ...local(e)); });
+      // panning: the hand tool's drag, or a middle-button drag; a pan is never also a click on the film
+      let pan = null, panned = false;
+      viewport.addEventListener('pointerdown', (e) => {
+        if (!(view.hand && e.button === 0) && e.button !== 1) return;
+        e.preventDefault(); e.stopPropagation(); viewport.setPointerCapture(e.pointerId);
+        pan = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; panned = false;
+        if (view.fit) { view.fit = false; tell({ type: 'view', scale: view.scale, fit: false }); }
+        document.documentElement.classList.add('panning');
+      }, true);
+      viewport.addEventListener('pointermove', (e) => {
+        if (!pan) return;
+        e.stopPropagation();
+        view.x = pan.vx + e.clientX - pan.x; view.y = pan.vy + e.clientY - pan.y; panned = true; clampPan(); applyView();
+      }, true);
+      const endPan = () => { pan = null; document.documentElement.classList.remove('panning'); };
+      viewport.addEventListener('pointerup', endPan, true); viewport.addEventListener('pointercancel', endPan, true);
+      viewport.addEventListener('click', (e) => { if (view.hand || panned) { e.stopPropagation(); e.preventDefault(); panned = false; } }, true);
+      viewport.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); }, true);
+      // with the hand tool nothing under the pointer is outlined or picked
+      viewport.addEventListener('mousemove', (e) => { if (view.hand || pan) e.stopPropagation(); }, true);
+    }
     const refresh = () => { invalidate(); render(t); };
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => {
@@ -474,6 +541,7 @@
         else if (m.type === 'soundMode' && !board) setSounding(m.on);
         else if (m.type === 'moment') showMoment(m.id);
         else if (m.type === 'toggle' && !board) toggle();
+        else if (m.type === 'view' && viewable) viewCommand(m);
         else if (m.type === 'elementClear') pickSoundEl(null);
         else if (m.type === 'selectElement') pickSoundEl(find(m.address));
       });

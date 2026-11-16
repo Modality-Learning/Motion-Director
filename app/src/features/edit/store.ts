@@ -48,7 +48,7 @@ export interface EditState {
   /** library sections you opened (they start folded), and, while searching, the ones you folded (they start open) */
   opened: Set<string>;
   folded: Set<string>;
-  /** sounds just added from Finder, marked in the list */
+  /** sounds just added (dropped in from the computer's files), marked in the list */
   fresh: Set<string>;
   zoom: number;
   playing: boolean;
@@ -460,7 +460,7 @@ export async function loadAnalysis() {
   const r = await getJson<{ analysis?: Record<string, Analysis> }>('/api/sounds/analysis').catch(() => null);
   if (r?.analysis) set({ analysis: r.analysis });
 }
-/* sound files dragged in from Finder are copied into the library (never over an existing file) */
+/* sound files dragged in from the computer are copied into the library (never over an existing file) */
 export async function importFiles(list: FileList | File[]) {
   const files = [...list].filter((f) => f.size > 0);
   if (!files.length) return;

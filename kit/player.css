@@ -150,3 +150,6 @@ html.sounding .viewport, html.sounding #stage, html.sounding #stage * { cursor: 
 
 /* ?bare (the studio's Sound tab): the stage alone; its timeline plays and scrubs */
 html.bare .controls, html.bare .scenes { display: none !important; }
+/* the Edit tab's view: the hand tool pans (and nothing is picked meanwhile) */
+html.bare.hand .viewport, html.bare.hand .viewport * { cursor: grab !important; }
+html.bare.panning .viewport, html.bare.panning .viewport * { cursor: grabbing !important; }

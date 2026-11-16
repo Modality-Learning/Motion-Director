@@ -23,20 +23,36 @@ import { Library } from './Library';
 import { Timeline } from './Timeline';
 import { Inspector } from './Inspector';
 import { SoundEditor } from './SoundEditor';
+import { ViewBar } from './ViewBar';
+import { ColumnGrip, useColumnWidth } from '@/components/ColumnGrip';
 
 export function EditTab() {
   useEditWiring();
   const editing = useEdit((s) => s.editing);
   const sound = useEdit((s) => s.kind === 'film');
+  // the side columns are as wide as you drag them (remembered in this browser); the centre takes the rest
+  const [libW, setLibW, libR] = useColumnWidth('library', 280, 200, 560);
+  const [inspW, setInspW, inspR] = useColumnWidth('inspector', 320, 260, 560);
+  const cols = !sound ? `minmax(0,1fr) ${inspW}px` : editing ? `${libW}px minmax(0,1fr)` : `${libW}px minmax(0,1fr) ${inspW}px`;
   return (
-    <div className={cn('grid h-full min-h-0', !sound ? 'grid-cols-[minmax(0,1fr)_340px]' : editing ? 'grid-cols-[280px_minmax(0,1fr)]' : 'grid-cols-[280px_minmax(0,1fr)_320px] max-[1200px]:grid-cols-[240px_minmax(0,1fr)_280px]')}>
-      {sound ? <Library /> : null}
-      <div data-edit-main="" className={cn('grid min-h-0 min-w-0', editing ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[minmax(220px,1fr)_auto]')}>
+    <div className="grid h-full min-h-0" style={{ gridTemplateColumns: cols }}>
+      {sound ? (
+        <div className="relative grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)]">
+          <Library />
+          <ColumnGrip label="Sound library width" width={libW} onWidth={setLibW} edge="right" {...libR} />
+        </div>
+      ) : null}
+      <div data-edit-main="" className={cn('grid min-h-0 min-w-0', editing ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[minmax(220px,1fr)_auto_auto]')}>
         <div hidden={!!editing} className="flex min-h-0"><PreviewFrame tab="edit" title="Preview" className="h-full min-h-0" /></div>
+        {!editing ? <ViewBar /> : null}
         <Timeline hidden={!!editing} />
         {editing ? <SoundEditor path={editing} /> : null}
       </div>
-      <Inspector hidden={!!editing} />
+      {/* kept while the sound editor is open (hidden), so the mix and the fields keep their place */}
+      <div hidden={!!editing} className="relative grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)]">
+        <Inspector hidden={false} />
+        <ColumnGrip label="Inspector width" width={inspW} onWidth={setInspW} edge="left" {...inspR} />
+      </div>
     </div>
   );
 }

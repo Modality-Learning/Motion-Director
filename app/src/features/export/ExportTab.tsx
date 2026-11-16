@@ -159,7 +159,7 @@ function useJobs() {
   useEffect(() => { if (!started.current) { started.current = true; refreshJobs(); } }, []);
 }
 
-const revealBtn = (file: string) => <Button key="reveal" size="sm" variant="secondary" onClick={() => post('/api/reveal', { file })}>Show in Finder</Button>;
+const revealBtn = (file: string) => <Button key="reveal" size="sm" variant="secondary" onClick={() => post('/api/reveal', { file })}>Show in folder</Button>;
 const openBtn = (file: string) => <Button key="open" size="sm" variant="secondary" onClick={() => post('/api/open', { file })}>Open</Button>;
 
 function JobsCard() {

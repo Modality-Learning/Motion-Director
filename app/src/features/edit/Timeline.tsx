@@ -222,7 +222,7 @@ function Ruler({ axis, markRef, nowRef }: { axis: Axis; markRef: React.RefObject
 
 /* the keyboard shortcuts, from the ? in the timeline's corner */
 const KEYS: [string, string][] = [
-  ['Space', 'Play or pause'], ['C', 'Comment mode: click anything to comment on it'], ['⌘Z, ⇧⌘Z', 'Undo, redo'], ['Pinch, ⌥ scroll', 'Zoom the timeline'],
+  ['Space', 'Play or pause'], ['C', 'Comment mode: click anything to comment on it'], ['⌘Z, ⇧⌘Z', 'Undo, redo'], ['Pinch, ⌥ scroll', 'Zoom the timeline'], ['Pinch, ⌘ scroll', 'Zoom the preview (scroll pans it)'], ['H', 'Hand tool: drag the preview to pan'],
   ['Clip edges', 'Drag to trim; ⌥ drag to stretch'], ['Clip line', 'Drag for volume'], ['← →, Delete', 'Nudge a clip a frame, remove it'],
 ];
 function ShortcutsButton() {
