@@ -35,7 +35,7 @@ export const DEFAULTS = Object.fromEntries(Object.entries(SETTINGS).map(([k, s])
 export const AUDIO_EXT = /\.(wav|aif|aiff|aifc|caf|mp3|m4a|aac|flac)$/i;
 export const MOMENT_ID = /^[a-z0-9][a-z0-9.-]{0,59}$/;
 const CUE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
-const LIMITS = { cues: 500, sounds: 5000, path: 300 };
+const LIMITS = { cues: 500, sounds: 20000, path: 300 };
 
 /** A library-relative path to an audio file: no "..", no absolute paths, an audio extension. */
 export function soundPathOk(p) {
@@ -102,10 +102,10 @@ export function validateSheet(sheet) {
 /** A sound's library entry: its default settings, plus the family and tags set by hand (kit/sound-library.mjs). */
 export function cleanEntry(obj = {}) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { error: 'Settings must be an object' };
-  const { family, tags, description, uses, ...settings } = obj;
+  const { family, tags, description, uses, organised, ...settings } = obj;
   const s = cleanSettings(settings);
   if (s.error) return s;
-  const m = cleanMeta({ family, tags, description, uses });
+  const m = cleanMeta({ family, tags, description, uses, organised });
   return m.error ? m : { values: { ...s.values, ...m.values } };
 }
 

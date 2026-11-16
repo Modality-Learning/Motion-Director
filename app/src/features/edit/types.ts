@@ -31,7 +31,7 @@ export interface Cue extends Partial<Settings> {
 export interface SheetObject { label: string; selector: string }
 export interface Sheet { master: number; tracks?: number; objects?: Record<string, SheetObject>; cues: Cue[] }
 
-export interface LibEntry extends Partial<Settings> { family?: string; tags?: string[]; uses?: string[]; description?: string }
+export interface LibEntry extends Partial<Settings> { family?: string; tags?: string[]; uses?: string[]; description?: string; /** the day Claude organised it, YYYY-MM-DD */ organised?: string }
 export interface Library { sounds: Record<string, LibEntry> }
 
 export interface Moment { id: string; times: number[]; dur?: number; label?: string }

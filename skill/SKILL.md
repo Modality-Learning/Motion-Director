@@ -14,7 +14,8 @@ Finished films in `films/` show the patterns, but don't read them to start a fil
 and the story in words first, and look up a pattern when you need it. The project's own notes (its
 README, agent notes or project skill) say which films are good references and what each shows.
 
-[The motion principles](MOTION.md) and [the sound design guide](SOUND.md) sit beside this file.
+[The motion principles](MOTION.md), [the sound design guide](SOUND.md) and [organising the sound library](LIBRARY.md) sit
+beside this file.
 
 ## What this is for
 
@@ -35,8 +36,9 @@ with it:
 - **Motion is measured, so sound can be placed.** The studio measures how each element moves, grows,
   turns and shows, and marks its arrivals, fastest moments, landings and exits: the impacts. It measures
   each sound in the user's library too (its hit point, length and character) and sorts it into families
-  by name and sound. With both, you can put a sound's hit on an impact without hearing either, as long as
-  the library's sounds are named for what they are. That is a best first pass, not a final mix.
+  by name and sound. You organise the library far better than those rules ([LIBRARY.md](LIBRARY.md)).
+  With both, you can put a sound's hit on an impact without hearing either, as long as the library's
+  sounds are named for what they are. That is a best first pass, not a final mix.
 - **The user fine-tunes what's theirs to tune.** Sound they adjust by hand (timing, trim, volume, speed,
   fades, which sound), with undo. Text and look they change through **parameters** (titles, background,
   options a film declares). Motion and layout stay with you: they comment, you change the code.
@@ -147,7 +149,9 @@ When the motion is approved, or when asked, add sound effects following
 [the sound design guide](SOUND.md): read the film's intent, sound its key beats and fill its silences,
 put each hit where the motion lands (measured, not guessed), repeat as little as you can, and run
 `motion-director sound-check <film>` before reporting. Then point the user at the Edit tab to listen and
-adjust. If the library lacks a kind of sound the film needs, say which.
+adjust. If the library lacks a kind of sound the film needs, say which. If `motion-director organise`
+reports sounds not organised yet, offer to organise them first ([LIBRARY.md](LIBRARY.md)): you choose far
+better from a library you have described.
 
 ## 6. Final check and render
 
@@ -250,7 +254,9 @@ Clips sit on the Edit tab's timeline, saved in `films/<film>/sound.json`, with p
 volume, hit point, family, tags) in the library's `library.json`, where the user can also describe a sound
 and mark what it is good for (UI click, notification, transition, impact…). Those, then good names, make
 good guesses: if sounds are named by number or by pack, ask the user to describe and mark the ones they
-want used.
+want used. Organising the library is your job when asked, or offered before a sound pass: follow
+[LIBRARY.md](LIBRARY.md), which writes family, tags, a description and uses for each sound in batches and
+marks it organised.
 
 - To add or change sound effects, read [the sound design guide](SOUND.md) first and follow it: sound
   the key beats and fill silences, repeat as little as you can (another sound where the library has one,
@@ -272,7 +278,8 @@ want used.
   the same kind nearest where it was, within 1.5 s. Further than that, or gone, the clip stays put and the
   studio says to check it.
 - Write `sound.json` through the studio's save (SOUND.md, Tools), which refuses to overwrite a newer
-  sheet; don't edit `sound.json` or `library.json` by hand unless asked.
+  sheet; don't edit `sound.json` or `library.json` by hand unless asked. Organising the library goes through
+  `motion-director organise apply` (LIBRARY.md), which keeps every sound's own settings.
 
 ## Changing an existing film
 

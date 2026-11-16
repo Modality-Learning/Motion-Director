@@ -36,6 +36,8 @@ export function Library() {
   const info = useMemo(() => soundsInfo(files, lib, analysis, fileLen), [files, lib, analysis]);
   const byPath = useMemo(() => new Map(info.map((x) => [x.path, x])), [info]);
   const shown = useMemo(() => info.filter((x) => matches(x, query, traitFilter)), [info, query, traitFilter]);
+  // how much of the library Claude has organised (skill/LIBRARY.md); the rest is filed by name and sound alone
+  const organised = useMemo(() => files.filter((f) => lib.sounds[f.path]?.organised).length, [files, lib]);
   const toggleTrait = (k: TraitKey) => { const next = new Set(traitFilter); if (next.has(k)) next.delete(k); else next.add(k); useEdit.setState({ traitFilter: next, folded: new Set() }); };
 
   // the whole library column takes the drop; only Finder files (not a sound dragged from the list)
@@ -61,7 +63,7 @@ export function Library() {
       onDragOver={(e) => { if (!fromFinder(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setDropping(true); }}
       onDragLeave={(e) => { if (!colRef.current?.contains(e.relatedTarget as Node)) setDropping(false); }}
       onDrop={(e) => { if (!fromFinder(e)) return; e.preventDefault(); setDropping(false); importFiles(e.dataTransfer.files); }}>
-      <div className="grid h-full min-h-0 grid-rows-[auto_auto_auto_minmax(0,1fr)_auto] gap-2 px-3.5 py-3 [&>*]:min-w-0">
+      <div className="grid h-full min-h-0 grid-rows-[auto_auto_auto_auto_minmax(0,1fr)_auto] gap-2 px-3.5 py-3 [&>*]:min-w-0">
         <SideK as="div">Library</SideK>
         <Input type="search" placeholder="Find: name, family, tag" aria-label="Find a sound" value={query} className="h-8 bg-background"
           onChange={(e) => useEdit.setState({ query: e.target.value, folded: new Set() })} />
@@ -75,6 +77,9 @@ export function Library() {
             </Hint>
           ))}
         </div>
+        <p className="text-xs text-muted-foreground" title="Claude files sounds by their names, folders and how they sound: ask it to organise the library. The rest are filed by simple rules.">
+          {files.length ? (organised === files.length ? `All ${files.length} sounds organised by Claude` : `${organised} of ${files.length} sounds organised by Claude`) : ''}
+        </p>
         {files.length ? (shown.length || suggest ? (
           <VirtualList lines={lines} />
         ) : <p className="text-sm text-muted-foreground">No sound matches.</p>)

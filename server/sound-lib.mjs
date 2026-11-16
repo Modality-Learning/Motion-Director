@@ -86,6 +86,22 @@ export function saveLibraryEntry(promoDir, path, settings) {
   return { library: { sounds: sorted } };
 }
 
+/** Sets many sounds' entries in one write (the organising pass): each value replaces that sound's entry, or
+ * null clears it. Every path must be in the library. Returns { library, count } or { error }. */
+export function saveLibraryEntries(promoDir, entries) {
+  const lib = readLibrary(promoDir), known = new Set(listSounds(promoDir).map((f) => f.path));
+  for (const [path, settings] of Object.entries(entries)) {
+    if (!soundPathOk(path) || !known.has(path)) return { error: `Not in the library: ${path}` };
+    if (settings == null) delete lib.sounds[path]; else lib.sounds[path] = settings;
+  }
+  const v = validateLibrary(lib);
+  if (v.error) return v;
+  mkdirSync(join(promoDir, 'sounds'), { recursive: true });
+  const sorted = Object.fromEntries(Object.entries(v.library.sounds).sort(([a], [b]) => a.localeCompare(b)));
+  writeFileSync(libraryFile(promoDir), JSON.stringify({ sounds: sorted }, null, 2) + '\n');
+  return { library: { sounds: sorted }, count: Object.keys(entries).length };
+}
+
 /** Which version of a film's cue sheet is on disk (0 when it has none): a save must start from it, so two
  * studio windows can't silently overwrite each other's work. */
 export function sheetVersion(promoDir, film) {

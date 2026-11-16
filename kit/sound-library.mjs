@@ -167,5 +167,11 @@ export function cleanMeta(obj = {}) {
     const uses = [...USES.map((u) => u.id).filter((id) => ids.includes(id)), ...new Set(ids.filter((u) => !USE_IDS.has(u)))];
     if (uses.length) values.uses = uses;
   }
+  // the day Claude last organised the sound (its family, tags, description and uses, read from its name, folder
+  // and measurements): the skill's organising pass skips these, and the studio counts them
+  if (obj.organised !== undefined && obj.organised !== null) {
+    if (typeof obj.organised !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(obj.organised)) return { error: 'Organised is a date, YYYY-MM-DD' };
+    values.organised = obj.organised;
+  }
   return { values };
 }
