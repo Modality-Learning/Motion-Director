@@ -1,0 +1,905 @@
+{
+  "master": 0,
+  "tracks": 10,
+  "objects": {},
+  "cues": [
+    {
+      "id": "title-0-in",
+      "sound": "title-swell.wav",
+      "at": 0,
+      "track": 2,
+      "gain": -13
+    },
+    {
+      "id": "title-0-out",
+      "sound": "quick-swish.wav",
+      "at": 3.089,
+      "track": 2,
+      "gain": -14,
+      "rate": 1.12,
+      "keepPitch": false
+    },
+    {
+      "id": "windows-in",
+      "sound": "soft-impact.wav",
+      "at": 3.677,
+      "track": 4,
+      "gain": -8
+    },
+    {
+      "id": "tab-1",
+      "sound": "pop-high.wav",
+      "at": 4.088,
+      "track": 1,
+      "gain": -17
+    },
+    {
+      "id": "tab-2",
+      "sound": "pop-high.wav",
+      "at": 4.158,
+      "track": 8,
+      "gain": -17,
+      "rate": 1.08,
+      "keepPitch": false
+    },
+    {
+      "id": "tab-3",
+      "sound": "pop-high.wav",
+      "at": 4.228,
+      "track": 9,
+      "gain": -17,
+      "rate": 1.16,
+      "keepPitch": false
+    },
+    {
+      "id": "tab-4",
+      "sound": "pop-high.wav",
+      "at": 4.298,
+      "track": 1,
+      "gain": -17,
+      "rate": 1.24,
+      "keepPitch": false
+    },
+    {
+      "id": "welcome",
+      "sound": "pop.wav",
+      "at": 4.987,
+      "track": 1,
+      "gain": -12,
+      "rate": 0.96,
+      "keepPitch": false
+    },
+    {
+      "id": "linked",
+      "sound": "click.wav",
+      "at": 4.999,
+      "track": 6,
+      "gain": -9
+    },
+    {
+      "id": "title-1-in",
+      "sound": "title-swell.wav",
+      "at": 6.06,
+      "track": 2,
+      "gain": -13,
+      "rate": 1.06,
+      "keepPitch": false
+    },
+    {
+      "id": "title-1-out",
+      "sound": "quick-swish.wav",
+      "at": 8.572,
+      "track": 2,
+      "gain": -14,
+      "rate": 0.97,
+      "keepPitch": false
+    },
+    {
+      "id": "click",
+      "sound": "click.wav",
+      "at": 9.449,
+      "track": 0,
+      "gain": -8,
+      "rate": 0.9,
+      "keepPitch": false
+    },
+    {
+      "id": "file-carry",
+      "sound": "paper-slide.wav",
+      "at": 9.644,
+      "track": 3,
+      "gain": -12
+    },
+    {
+      "id": "file-lands",
+      "sound": "pop.wav",
+      "at": 10.497,
+      "track": 3,
+      "gain": -6
+    },
+    {
+      "id": "click-2",
+      "sound": "click.wav",
+      "at": 10.499,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.04,
+      "keepPitch": false
+    },
+    {
+      "id": "click-3",
+      "sound": "click.wav",
+      "at": 11.299,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.18,
+      "keepPitch": false
+    },
+    {
+      "id": "click-4",
+      "sound": "click.wav",
+      "at": 12.099,
+      "track": 0,
+      "gain": -8,
+      "rate": 0.96,
+      "keepPitch": false
+    },
+    {
+      "id": "l1-type",
+      "sound": "typing.wav",
+      "at": 12.337,
+      "track": 0,
+      "gain": -16,
+      "to": 1.9,
+      "fadeOut": 0.05
+    },
+    {
+      "id": "l1-sent",
+      "sound": "success-chime.wav",
+      "at": 14.292,
+      "track": 6,
+      "gain": -12
+    },
+    {
+      "id": "l1-enter",
+      "sound": "key-tap.wav",
+      "at": 14.398,
+      "track": 0,
+      "gain": -6
+    },
+    {
+      "id": "l1-arrives",
+      "sound": "pop.wav",
+      "at": 15.487,
+      "track": 1,
+      "gain": -11,
+      "rate": 0.92,
+      "keepPitch": false
+    },
+    {
+      "id": "l1-reply",
+      "sound": "pop-high.wav",
+      "at": 16.788,
+      "track": 1,
+      "gain": -13
+    },
+    {
+      "id": "pin-1",
+      "sound": "pop.wav",
+      "at": 16.987,
+      "track": 3,
+      "gain": -12,
+      "rate": 0.9,
+      "keepPitch": false
+    },
+    {
+      "id": "pin-2",
+      "sound": "pop.wav",
+      "at": 17.287,
+      "track": 3,
+      "gain": -14,
+      "rate": 0.96,
+      "keepPitch": false
+    },
+    {
+      "id": "pin-3",
+      "sound": "pop.wav",
+      "at": 17.587,
+      "track": 3,
+      "gain": -14,
+      "rate": 1.02,
+      "keepPitch": false
+    },
+    {
+      "id": "pin-4",
+      "sound": "pop.wav",
+      "at": 17.887,
+      "track": 3,
+      "gain": -14,
+      "rate": 1.08,
+      "keepPitch": false
+    },
+    {
+      "id": "pin-5",
+      "sound": "pop.wav",
+      "at": 18.187,
+      "track": 3,
+      "gain": -14,
+      "rate": 1.14,
+      "keepPitch": false
+    },
+    {
+      "id": "pin-6",
+      "sound": "pop.wav",
+      "at": 18.487,
+      "track": 3,
+      "gain": -14,
+      "rate": 1.2,
+      "keepPitch": false
+    },
+    {
+      "id": "title-2-in",
+      "sound": "title-swell.wav",
+      "at": 19.451,
+      "track": 2,
+      "gain": -13,
+      "rate": 0.94,
+      "keepPitch": false
+    },
+    {
+      "id": "title-2-fly",
+      "sound": "soft-whoosh.wav",
+      "at": 22.01,
+      "track": 2,
+      "gain": -12
+    },
+    {
+      "id": "row-1",
+      "sound": "paper-slide.wav",
+      "at": 22.654,
+      "track": 3,
+      "gain": -16,
+      "rate": 0.95,
+      "keepPitch": false
+    },
+    {
+      "id": "row-2",
+      "sound": "paper-slide.wav",
+      "at": 22.802,
+      "track": 8,
+      "gain": -16,
+      "rate": 1.05,
+      "keepPitch": false
+    },
+    {
+      "id": "row-3",
+      "sound": "paper-slide.wav",
+      "at": 22.946,
+      "track": 9,
+      "gain": -16,
+      "rate": 1.15,
+      "keepPitch": false
+    },
+    {
+      "id": "click-5",
+      "sound": "click.wav",
+      "at": 23.749,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.1,
+      "keepPitch": false
+    },
+    {
+      "id": "click-6",
+      "sound": "click.wav",
+      "at": 24.549,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.24,
+      "keepPitch": false
+    },
+    {
+      "id": "l2-type",
+      "sound": "typing.wav",
+      "at": 24.791,
+      "track": 0,
+      "gain": -16,
+      "rate": 1.04,
+      "keepPitch": false,
+      "to": 1.6,
+      "fadeOut": 0.05
+    },
+    {
+      "id": "l2-sent",
+      "sound": "success-chime.wav",
+      "at": 26.45,
+      "track": 6,
+      "gain": -12,
+      "rate": 1.05,
+      "keepPitch": false
+    },
+    {
+      "id": "l2-enter",
+      "sound": "key-tap.wav",
+      "at": 26.548,
+      "track": 0,
+      "gain": -6,
+      "rate": 0.95,
+      "keepPitch": false
+    },
+    {
+      "id": "l2-arrives",
+      "sound": "pop.wav",
+      "at": 27.137,
+      "track": 1,
+      "gain": -11
+    },
+    {
+      "id": "l2-reply",
+      "sound": "pop-high.wav",
+      "at": 28.438,
+      "track": 1,
+      "gain": -13,
+      "rate": 1.07,
+      "keepPitch": false
+    },
+    {
+      "id": "beat-rewritten",
+      "sound": "typing.wav",
+      "at": 28.549,
+      "track": 0,
+      "gain": -18,
+      "rate": 1.15,
+      "keepPitch": false,
+      "to": 0.9,
+      "fadeOut": 0.05
+    },
+    {
+      "id": "title-3-in",
+      "sound": "title-swell.wav",
+      "at": 31.184,
+      "track": 2,
+      "gain": -13,
+      "rate": 1.12,
+      "keepPitch": false
+    },
+    {
+      "id": "title-3-out",
+      "sound": "quick-swish.wav",
+      "at": 33.764,
+      "track": 2,
+      "gain": -14,
+      "rate": 0.91,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-line-1",
+      "sound": "click.wav",
+      "at": 34.499,
+      "track": 7,
+      "gain": -14,
+      "rate": 0.95,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-line-2",
+      "sound": "click.wav",
+      "at": 35.279,
+      "track": 7,
+      "gain": -14
+    },
+    {
+      "id": "ff-line-3",
+      "sound": "click.wav",
+      "at": 36.059,
+      "track": 7,
+      "gain": -14,
+      "rate": 1.05,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-line-4",
+      "sound": "click.wav",
+      "at": 36.839,
+      "track": 7,
+      "gain": -14,
+      "rate": 1.1,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-line-5",
+      "sound": "click.wav",
+      "at": 37.619,
+      "track": 7,
+      "gain": -14,
+      "rate": 1.15,
+      "keepPitch": false
+    },
+    {
+      "id": "edit-opens",
+      "sound": "paper-slide.wav",
+      "at": 38.069,
+      "track": 4,
+      "gain": -13
+    },
+    {
+      "id": "ff-line-6",
+      "sound": "click.wav",
+      "at": 38.399,
+      "track": 7,
+      "gain": -14,
+      "rate": 1.2,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-line-7",
+      "sound": "click.wav",
+      "at": 39.179,
+      "track": 7,
+      "gain": -14,
+      "rate": 1.25,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-riser",
+      "sound": "soft-whoosh.wav",
+      "at": 40.882,
+      "track": 4,
+      "gain": -10,
+      "rate": 0.62,
+      "keepPitch": false
+    },
+    {
+      "id": "ff-done",
+      "sound": "soft-impact.wav",
+      "at": 41.367,
+      "track": 8,
+      "gain": -8
+    },
+    {
+      "id": "title-4-in",
+      "sound": "title-swell.wav",
+      "at": 42.867,
+      "track": 2,
+      "gain": -13,
+      "rate": 0.97,
+      "keepPitch": false
+    },
+    {
+      "id": "title-4-out",
+      "sound": "quick-swish.wav",
+      "at": 45.542,
+      "track": 2,
+      "gain": -14,
+      "rate": 1.15,
+      "keepPitch": false
+    },
+    {
+      "id": "click-7",
+      "sound": "click.wav",
+      "at": 50.849,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.02,
+      "keepPitch": false
+    },
+    {
+      "id": "click-8",
+      "sound": "click.wav",
+      "at": 51.649,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.16,
+      "keepPitch": false
+    },
+    {
+      "id": "l3-type",
+      "sound": "typing.wav",
+      "at": 51.884,
+      "track": 0,
+      "gain": -16,
+      "rate": 0.97,
+      "keepPitch": false,
+      "to": 1.3,
+      "fadeOut": 0.05
+    },
+    {
+      "id": "l3-sent",
+      "sound": "success-chime.wav",
+      "at": 53.235,
+      "track": 6,
+      "gain": -12,
+      "rate": 0.96,
+      "keepPitch": false
+    },
+    {
+      "id": "l3-enter",
+      "sound": "key-tap.wav",
+      "at": 53.348,
+      "track": 0,
+      "gain": -6,
+      "rate": 1.05,
+      "keepPitch": false
+    },
+    {
+      "id": "l3-arrives",
+      "sound": "pop.wav",
+      "at": 53.937,
+      "track": 1,
+      "gain": -11,
+      "rate": 1.08,
+      "keepPitch": false
+    },
+    {
+      "id": "l3-reply",
+      "sound": "pop-high.wav",
+      "at": 55.238,
+      "track": 1,
+      "gain": -13,
+      "rate": 0.95,
+      "keepPitch": false
+    },
+    {
+      "id": "click-9",
+      "sound": "click.wav",
+      "at": 57.599,
+      "track": 0,
+      "gain": -8,
+      "rate": 0.94,
+      "keepPitch": false
+    },
+    {
+      "id": "click-10",
+      "sound": "click.wav",
+      "at": 58.199,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.08,
+      "keepPitch": false
+    },
+    {
+      "id": "drag",
+      "sound": "paper-slide.wav",
+      "at": 58.495,
+      "track": 3,
+      "gain": -16,
+      "rate": 1.1,
+      "keepPitch": false
+    },
+    {
+      "id": "clip-drop",
+      "sound": "latch.wav",
+      "at": 59.259,
+      "track": 7,
+      "gain": -10
+    },
+    {
+      "id": "click-11",
+      "sound": "click.wav",
+      "at": 59.299,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.22,
+      "keepPitch": false
+    },
+    {
+      "id": "title-5-in",
+      "sound": "title-swell.wav",
+      "at": 59.972,
+      "track": 2,
+      "gain": -13,
+      "rate": 1.09,
+      "keepPitch": false
+    },
+    {
+      "id": "title-5-out",
+      "sound": "quick-swish.wav",
+      "at": 62.576,
+      "track": 2,
+      "gain": -14
+    },
+    {
+      "id": "click-12",
+      "sound": "click.wav",
+      "at": 63.499,
+      "track": 0,
+      "gain": -8
+    },
+    {
+      "id": "click-13",
+      "sound": "click.wav",
+      "at": 64.299,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.14,
+      "keepPitch": false
+    },
+    {
+      "id": "l4-type",
+      "sound": "typing.wav",
+      "at": 64.544,
+      "track": 0,
+      "gain": -16,
+      "rate": 1.08,
+      "keepPitch": false,
+      "to": 1.1,
+      "fadeOut": 0.05
+    },
+    {
+      "id": "l4-sent",
+      "sound": "success-chime.wav",
+      "at": 65.706,
+      "track": 6,
+      "gain": -12,
+      "rate": 1.1,
+      "keepPitch": false
+    },
+    {
+      "id": "l4-enter",
+      "sound": "key-tap.wav",
+      "at": 65.798,
+      "track": 0,
+      "gain": -6,
+      "rate": 0.98,
+      "keepPitch": false
+    },
+    {
+      "id": "l4-arrives",
+      "sound": "pop.wav",
+      "at": 66.387,
+      "track": 1,
+      "gain": -11,
+      "rate": 0.96,
+      "keepPitch": false
+    },
+    {
+      "id": "l4-reply",
+      "sound": "pop-high.wav",
+      "at": 67.688,
+      "track": 1,
+      "gain": -13,
+      "rate": 1.12,
+      "keepPitch": false
+    },
+    {
+      "id": "object-opens",
+      "sound": "paper-slide.wav",
+      "at": 67.869,
+      "track": 4,
+      "gain": -11
+    },
+    {
+      "id": "graph-draws",
+      "sound": "soft-whoosh.wav",
+      "at": 68.677,
+      "track": 2,
+      "gain": -16,
+      "rate": 1.3,
+      "keepPitch": false
+    },
+    {
+      "id": "mark-1",
+      "sound": "pop-high.wav",
+      "at": 68.938,
+      "track": 6,
+      "gain": -15,
+      "rate": 1.1,
+      "keepPitch": false
+    },
+    {
+      "id": "mark-2",
+      "sound": "pop-high.wav",
+      "at": 69.088,
+      "track": 8,
+      "gain": -15,
+      "rate": 1.2,
+      "keepPitch": false
+    },
+    {
+      "id": "mark-3",
+      "sound": "pop-high.wav",
+      "at": 69.238,
+      "track": 6,
+      "gain": -15,
+      "rate": 1.3,
+      "keepPitch": false
+    },
+    {
+      "id": "snap-1",
+      "sound": "latch.wav",
+      "at": 69.759,
+      "track": 7,
+      "gain": -3
+    },
+    {
+      "id": "snap-2",
+      "sound": "latch.wav",
+      "at": 70.013,
+      "track": 7,
+      "gain": -3,
+      "rate": 1.1,
+      "keepPitch": false
+    },
+    {
+      "id": "snap-3",
+      "sound": "latch.wav",
+      "at": 70.266,
+      "track": 7,
+      "gain": -3,
+      "rate": 1.2,
+      "keepPitch": false
+    },
+    {
+      "id": "synced-bounce-1",
+      "sound": "ball-bounce.wav",
+      "at": 72.888,
+      "track": 0,
+      "gain": -5
+    },
+    {
+      "id": "synced-bounce-2",
+      "sound": "ball-bounce.wav",
+      "at": 73.689,
+      "track": 0,
+      "gain": -7,
+      "rate": 1.12,
+      "keepPitch": false
+    },
+    {
+      "id": "synced-bounce-3",
+      "sound": "ball-bounce.wav",
+      "at": 74.13,
+      "track": 5,
+      "gain": -11,
+      "rate": 1.26,
+      "keepPitch": false
+    },
+    {
+      "id": "title-6-in",
+      "sound": "title-swell.wav",
+      "at": 75.484,
+      "track": 2,
+      "gain": -13,
+      "rate": 0.91,
+      "keepPitch": false
+    },
+    {
+      "id": "title-6-out",
+      "sound": "quick-swish.wav",
+      "at": 78.183,
+      "track": 2,
+      "gain": -14,
+      "rate": 1.06,
+      "keepPitch": false
+    },
+    {
+      "id": "click-14",
+      "sound": "click.wav",
+      "at": 78.399,
+      "track": 0,
+      "gain": -8,
+      "rate": 0.92,
+      "keepPitch": false
+    },
+    {
+      "id": "ask-type",
+      "sound": "typing.wav",
+      "at": 80.041,
+      "track": 0,
+      "gain": -16,
+      "rate": 1.05,
+      "keepPitch": false,
+      "to": 1.2,
+      "fadeOut": 0.05
+    },
+    {
+      "id": "click-15",
+      "sound": "click.wav",
+      "at": 80.049,
+      "track": 8,
+      "gain": -8,
+      "rate": 1.06,
+      "keepPitch": false
+    },
+    {
+      "id": "ask-send",
+      "sound": "key-tap.wav",
+      "at": 81.498,
+      "track": 0,
+      "gain": -6,
+      "rate": 1.02,
+      "keepPitch": false
+    },
+    {
+      "id": "click-16",
+      "sound": "click.wav",
+      "at": 81.499,
+      "track": 8,
+      "gain": -8,
+      "rate": 1.2,
+      "keepPitch": false
+    },
+    {
+      "id": "ask-reply",
+      "sound": "pop-high.wav",
+      "at": 82.588,
+      "track": 1,
+      "gain": -13,
+      "rate": 1.03,
+      "keepPitch": false
+    },
+    {
+      "id": "in-step",
+      "sound": "success-chime.wav",
+      "at": 82.632,
+      "track": 6,
+      "gain": -11
+    },
+    {
+      "id": "click-17",
+      "sound": "click.wav",
+      "at": 83.749,
+      "track": 0,
+      "gain": -8,
+      "rate": 0.98,
+      "keepPitch": false
+    },
+    {
+      "id": "shutter",
+      "sound": "shutter.wav",
+      "at": 85.614,
+      "track": 7,
+      "gain": -8
+    },
+    {
+      "id": "click-18",
+      "sound": "click.wav",
+      "at": 86.249,
+      "track": 0,
+      "gain": -8,
+      "rate": 1.12,
+      "keepPitch": false
+    },
+    {
+      "id": "film-grows",
+      "sound": "soft-whoosh.wav",
+      "at": 86.409,
+      "track": 2,
+      "gain": -10,
+      "rate": 0.85,
+      "keepPitch": false
+    },
+    {
+      "id": "final-bounce-1",
+      "sound": "ball-bounce.wav",
+      "at": 88.438,
+      "track": 5,
+      "gain": -5
+    },
+    {
+      "id": "final-bounce-2",
+      "sound": "ball-bounce.wav",
+      "at": 89.239,
+      "track": 5,
+      "gain": -7,
+      "rate": 1.12,
+      "keepPitch": false
+    },
+    {
+      "id": "final-bounce-3",
+      "sound": "ball-bounce.wav",
+      "at": 89.68,
+      "track": 5,
+      "gain": -11,
+      "rate": 1.26,
+      "keepPitch": false
+    },
+    {
+      "id": "title-7-in",
+      "sound": "success-chime.wav",
+      "at": 91.212,
+      "track": 6,
+      "gain": -11
+    }
+  ]
+}

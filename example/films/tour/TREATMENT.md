@@ -11,10 +11,14 @@ ball that bounces, so there is always something moving to point at and to put so
   the part no step names: Claude making the animation itself, in one big fast-forward between planning and editing. The steps are setting the vibe, planning the treatment, editing the motion, syncing sound to it, and
   exporting.
 - **Length and format:** 97 s, landscape 16:9.
-- **Sound:** only the example's own sounds (`example/sounds`, made by `make-sounds.mjs`). Each loop has the
-  same small signature: a click on the thing, typing, Enter with a sent chime, the note landing in the chat,
-  Claude's reply, then the sound of the edit itself (pins dropping, a frame updating, a bounce landing). There is also a
-  swell and a swish for each step title. No music bed.
+- **Sound:** sounds from the library's Social SFX pack (`sfx/`): a reversed riser drawing each title in and a
+  fast swoosh taking it away, clicks and Mixkit typing for the pointer and the comments, a walkie chirp as each
+  comment is sent, message pops as it lands and as Claude replies, paper for the vibe board and the treatment,
+  a ticking riser under the fast-forward that lands in a drop when the film is made, stopwatch clicks for
+  Claude's work, a latch for each bounce snapping on, then the ball's bounces themselves, a Polaroid motor while
+  it renders and a shutter when it's done. No music bed. The pack isn't shipped, so `sound.shipped.json` holds
+  the same cues with the example's own sounds (`example/sounds`, made by `make-sounds.mjs`), for the package's
+  copy to switch to.
 - **Not product-specific:** this is the package's example, so it shows Motion Director and nothing else.
 
 ## Visual direction

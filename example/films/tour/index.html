@@ -394,6 +394,7 @@ const famEls = FAMS.map(([n, c]) => el('div', 'a fam', `<i>›</i>${n}<small>${c
 const SROWS = [['ball-bounce', '0.45s'], ['click', '0.08s'], ['latch', '0.15s'], ['pop', '0.20s'], ['pop-high', '0.18s'], ['shutter', '0.35s']].map(([n, d]) => el('div', 'a srow', `<span class="pl"></span>${n}<small>${d}</small>`, $('#lib')));
 const PF = { x: 145, y: 8, k: .74 };
 const prevFilm = makeFilm($('#prev')); prevFilm.node.style.transform = `translate(${PF.x}px,${PF.y}px) scale(${PF.k})`;
+prevFilm.F.ball.id = 'ball'; // the ball the bounces belong to (sound.json links them to it)
 const inFilm = (x, y) => ({ x: 290 + PF.x + x * PF.k, y: 64 + PF.y + y * PF.k }); // film px -> studio px
 const tlEl = $('#tl'), TLX = (s) => 150 + s * 180;
 const trow = (cls, gut) => el('div', 'a trk ' + cls, `<div class="gut">${gut}</div>`, tlEl);
@@ -488,6 +489,7 @@ MSG.forEach((m) => {
 });
 
 const finalFilm = makeFilm($('#final'));
+finalFilm.F.ball.id = 'finalBall';
 
 /* ── Claude does its thing: the animation made in fast-forward, over the studio ── */
 const FFW = 1600 * ST.s, FFH = 900 * ST.s, FRAME = 278, FRAMES = [.5, 1.15, 2.1, 2.9, 3.5, 4.4];
@@ -904,6 +906,12 @@ function drawChat(t) {
   M('in-step', { t: B.l5.apply, host: xNote, label: 'Back in step with the app' });
   M('shutter', { t: B.shutter, host: xJobs, label: 'The render finishes' });
   M('grow', { t: B.grow[0], dur: B.grow[1] - B.grow[0], host: finalEl, label: 'The finished film fills the frame' });
+  M('linked', { t: B.linked, host: [$('#slink'), chat], label: 'Claude opens the studio: linked' });
+  M('ff', { t: B.ff[0], dur: B.ff[1] - B.ff[0], host: ffLayer, label: 'Claude does its thing (fast-forward)' });
+  M('ff-lines', { times: B.ffLines, host: chat, label: "Claude's work, a line at a time" });
+  M('edit-opens', { t: B.editTab, host: [PANE.edit], label: 'Claude opens Edit with the film built' });
+  M('ff-done', { t: B.ffDone, host: chat, label: "Claude: it's made" });
+  M('render', { t: B.progress[0], dur: B.progress[1] - B.progress[0], host: xJobs, label: 'The render runs' });
 }
 
 Object.assign(window.__film = window.__film || {}, { B, camAt, draw });
