@@ -1,6 +1,6 @@
 {
   "master": 0,
-  "tracks": 10,
+  "tracks": 11,
   "objects": {
     "oball": {
       "label": "Ball",
@@ -203,15 +203,16 @@
       "fadeOut": 0.15
     },
     {
-      "id": "l1-enter",
-      "sound": "sfx/mixkit-keyboard-typing-1386.wav",
-      "at": 14.38,
-      "track": 0,
-      "gain": -7,
-      "from": 3.726,
-      "to": 3.83,
-      "rate": 1,
-      "hit": 3.746
+      "id": "l1-send",
+      "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
+      "at": 14.301,
+      "track": 10,
+      "gain": 3,
+      "to": 0.95,
+      "rate": 2.2,
+      "keepPitch": false,
+      "fadeOut": 0.12,
+      "hit": 0.35
     },
     {
       "id": "l1-arrives",
@@ -379,16 +380,16 @@
       "fadeOut": 0.15
     },
     {
-      "id": "l2-enter",
-      "sound": "sfx/mixkit-keyboard-typing-1386.wav",
-      "at": 26.529,
-      "track": 0,
-      "gain": -7,
-      "from": 3.726,
-      "to": 3.83,
-      "rate": 0.95,
+      "id": "l2-send",
+      "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
+      "at": 26.46,
+      "track": 10,
+      "gain": 3,
+      "to": 0.95,
+      "rate": 2.32,
       "keepPitch": false,
-      "hit": 3.746
+      "fadeOut": 0.12,
+      "hit": 0.35
     },
     {
       "id": "l2-arrives",
@@ -470,10 +471,10 @@
       "sound": "sfx/Social SFX Pack - Collection 1/Risers/Clock Ticking Riser.mp3",
       "at": 35.544,
       "track": 4,
-      "gain": -10,
-      "rate": 0.62,
-      "keepPitch": false,
-      "hit": 3.6
+      "gain": -9,
+      "rate": 0.427,
+      "keepPitch": true,
+      "hit": 2.497
     },
     {
       "id": "ff-line-3",
@@ -614,16 +615,16 @@
       "fadeOut": 0.15
     },
     {
-      "id": "l3-enter",
-      "sound": "sfx/mixkit-keyboard-typing-1386.wav",
-      "at": 53.331,
-      "track": 0,
-      "gain": -7,
-      "from": 3.726,
-      "to": 3.83,
-      "rate": 1.05,
+      "id": "l3-send",
+      "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
+      "at": 53.245,
+      "track": 10,
+      "gain": 3,
+      "to": 0.95,
+      "rate": 2.12,
       "keepPitch": false,
-      "hit": 3.746
+      "fadeOut": 0.12,
+      "hit": 0.35
     },
     {
       "id": "l3-arrives",
@@ -766,16 +767,16 @@
       "fadeOut": 0.15
     },
     {
-      "id": "l4-enter",
-      "sound": "sfx/mixkit-keyboard-typing-1386.wav",
-      "at": 65.78,
-      "track": 0,
-      "gain": -7,
-      "from": 3.726,
-      "to": 3.83,
-      "rate": 0.98,
+      "id": "l4-send",
+      "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
+      "at": 65.714,
+      "track": 10,
+      "gain": 3,
+      "to": 0.95,
+      "rate": 2.4,
       "keepPitch": false,
-      "hit": 3.746
+      "fadeOut": 0.12,
+      "hit": 0.35
     },
     {
       "id": "l4-arrives",
@@ -977,15 +978,15 @@
     },
     {
       "id": "ask-send",
-      "sound": "sfx/mixkit-keyboard-typing-1386.wav",
-      "at": 81.48,
-      "track": 0,
-      "gain": -7,
-      "from": 3.726,
-      "to": 3.83,
-      "rate": 1.02,
+      "sound": "sfx/mixkit-sliding-wooden-light-door-1522.wav",
+      "at": 81.405,
+      "track": 10,
+      "gain": 3,
+      "to": 0.95,
+      "rate": 2.26,
       "keepPitch": false,
-      "hit": 3.746
+      "fadeOut": 0.12,
+      "hit": 0.35
     },
     {
       "id": "click-16",

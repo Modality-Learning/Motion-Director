@@ -161,11 +161,13 @@
       "gain": -12
     },
     {
-      "id": "l1-enter",
-      "sound": "key-tap.wav",
-      "at": 14.398,
+      "id": "l1-send",
+      "sound": "paper-slide.wav",
+      "at": 14.304,
       "track": 0,
-      "gain": -6
+      "gain": -12,
+      "rate": 1.8,
+      "keepPitch": false
     },
     {
       "id": "l1-arrives",
@@ -319,12 +321,12 @@
       "keepPitch": false
     },
     {
-      "id": "l2-enter",
-      "sound": "key-tap.wav",
-      "at": 26.548,
+      "id": "l2-send",
+      "sound": "paper-slide.wav",
+      "at": 26.462,
       "track": 0,
-      "gain": -6,
-      "rate": 0.95,
+      "gain": -12,
+      "rate": 1.9,
       "keepPitch": false
     },
     {
@@ -513,12 +515,12 @@
       "keepPitch": false
     },
     {
-      "id": "l3-enter",
-      "sound": "key-tap.wav",
-      "at": 53.348,
+      "id": "l3-send",
+      "sound": "paper-slide.wav",
+      "at": 53.248,
       "track": 0,
-      "gain": -6,
-      "rate": 1.05,
+      "gain": -12,
+      "rate": 1.74,
       "keepPitch": false
     },
     {
@@ -635,12 +637,12 @@
       "keepPitch": false
     },
     {
-      "id": "l4-enter",
-      "sound": "key-tap.wav",
-      "at": 65.798,
+      "id": "l4-send",
+      "sound": "paper-slide.wav",
+      "at": 65.717,
       "track": 0,
-      "gain": -6,
-      "rate": 0.98,
+      "gain": -12,
+      "rate": 1.96,
       "keepPitch": false
     },
     {
@@ -803,11 +805,11 @@
     },
     {
       "id": "ask-send",
-      "sound": "key-tap.wav",
-      "at": 81.498,
+      "sound": "paper-slide.wav",
+      "at": 81.408,
       "track": 0,
-      "gain": -6,
-      "rate": 1.02,
+      "gain": -12,
+      "rate": 1.85,
       "keepPitch": false
     },
     {
