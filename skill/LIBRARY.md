@@ -52,6 +52,16 @@ library column shows how many are organised.
 
 ## Judgement
 
+- **Write descriptions yourself, not from a template.** A script may gather the lines and write the JSON, but
+  a description assembled from the name's words and the measurements ("Close-up foley of metal object
+  slide, long with a tail of 6 seconds") says nothing the line didn't, and marks the sound organised all
+  the same. Packs are mostly numbered takes of a few dozen kinds of sound: write one real description per
+  kind (what you would hear, what it suits), give it to every take, and add only what sets a take apart
+  where it matters (a much longer tail, a softer start). Don't put the length in: the studio shows it.
+- **Say when the families don't fit.** `other` is right for a sound that fits none, but when hundreds land
+  there (foley handling, scrapes, sci-fi electronics), tell the user: the families are the studio's, and a
+  library like theirs may want its own.
+
 - **Names decide most of it.** When a name says nothing ("SFX_0412", "Untitled 3", a pack name and a
   number), don't guess a description from the measurements alone. Give it the family the measurements
   suggest and no description, leave it out of the batch so it stays unorganised, and list those for the
