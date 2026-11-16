@@ -13,7 +13,7 @@ import { nameOf, shortName } from './geometry';
 import { fileLen, loadSound } from './audio';
 import { matches, soundsInfo, tipOf, type SoundInfo } from './sound-info';
 import { MARKS } from './motion';
-import { addHere, importFiles, openEditor, soundDefaults, useEdit } from './store';
+import { addHere, droppedSounds, importFiles, openEditor, soundDefaults, useEdit } from './store';
 import { PlayButton, SideK } from './controls';
 
 /* The sections start folded, so a big library opens as a short list of families with a count each; a search
@@ -62,7 +62,7 @@ export function Library() {
       className={cn('min-h-0 min-w-0 overflow-hidden border-r bg-card', dropping && 'bg-primary/8 shadow-[inset_0_0_0_2px_var(--primary)]')}
       onDragOver={(e) => { if (!fromFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setDropping(true); }}
       onDragLeave={(e) => { if (!colRef.current?.contains(e.relatedTarget as Node)) setDropping(false); }}
-      onDrop={(e) => { if (!fromFiles(e)) return; e.preventDefault(); setDropping(false); importFiles(e.dataTransfer.files); }}>
+      onDrop={async (e) => { if (!fromFiles(e)) return; e.preventDefault(); setDropping(false); const { sounds, skipped } = await droppedSounds(e.dataTransfer.items, e.dataTransfer.files); importFiles(sounds, skipped); }}>
       <div className="grid h-full min-h-0 grid-rows-[auto_auto_auto_auto_minmax(0,1fr)_auto] gap-2 px-3.5 py-3 [&>*]:min-w-0">
         <SideK as="div">Sound library</SideK>
         <Input type="search" placeholder="Find: name, family, tag" aria-label="Find a sound" value={query} className="h-8 bg-background"

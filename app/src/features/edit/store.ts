@@ -461,19 +461,55 @@ export async function loadAnalysis() {
   if (r?.analysis) set({ analysis: r.analysis });
 }
 /* sound files dragged in from the computer are copied into the library (never over an existing file) */
-export async function importFiles(list: FileList | File[]) {
-  const files = [...list].filter((f) => f.size > 0);
-  if (!files.length) return;
+/** A sound to add, and the folder it came in (from a dropped folder: "Pack/Impacts"), kept in the library. */
+export interface Incoming { file: File; folder: string }
+const SOUND_FILE = /\.(wav|aif|aiff|aifc|caf|mp3|m4a|aac|flac)$/i;
+
+/** What was dropped on the library: files, and folders walked for the sound files inside them (other files, such as
+ * a pack's licence or a .DS_Store, are skipped). A folder keeps its name and its subfolders in the library. */
+export async function droppedSounds(items: DataTransferItemList | null, files: FileList): Promise<{ sounds: Incoming[]; skipped: number }> {
+  const sounds: Incoming[] = []; let skipped = 0;
+  const entries = items ? [...items].map((it) => (it.kind === 'file' ? it.webkitGetAsEntry?.() : null)).filter(Boolean) as FileSystemEntry[] : [];
+  if (!entries.length) {
+    // no entries to walk (an older browser): the files as given
+    for (const f of [...files]) { if (SOUND_FILE.test(f.name) && f.size > 0) sounds.push({ file: f, folder: '' }); else skipped++; }
+    return { sounds, skipped };
+  }
+  const fileOf = (e: FileSystemFileEntry) => new Promise<File | null>((ok) => e.file(ok, () => ok(null)));
+  const readAll = async (d: FileSystemDirectoryEntry) => {
+    const r = d.createReader(), all: FileSystemEntry[] = [];
+    // a directory reader hands its entries over in batches, until an empty one
+    for (;;) { const batch = await new Promise<FileSystemEntry[]>((ok) => r.readEntries(ok, () => ok([]))); if (!batch.length) break; all.push(...batch); }
+    return all;
+  };
+  const walk = async (e: FileSystemEntry, folder: string): Promise<void> => {
+    if (e.name.startsWith('.')) { skipped++; return; }
+    if (e.isDirectory) { const into = folder ? `${folder}/${e.name}` : e.name; for (const c of await readAll(e as FileSystemDirectoryEntry)) await walk(c, into); return; }
+    if (!SOUND_FILE.test(e.name)) { skipped++; return; }
+    const f = await fileOf(e as FileSystemFileEntry);
+    if (f && f.size > 0) sounds.push({ file: f, folder }); else skipped++;
+  };
+  for (const e of entries) await walk(e, '');
+  return { sounds, skipped };
+}
+
+export async function importFiles(list: Incoming[], skipped = 0) {
+  if (!list.length) { say(skipped ? 'No sound files in what was dropped (WAV, AIFF, MP3, M4A, CAF or FLAC)' : ''); return; }
   const added: string[] = [], failed: string[] = [];
-  for (const f of files) {
-    const r = await fetch(`/api/sounds/import?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers: { 'x-promo-studio': '1', 'content-type': 'application/octet-stream' }, body: f })
+  const progress = list.length > 3 ? toast.loading(`Adding ${list.length} sounds…`) : null;
+  for (const [j, { file: f, folder }] of list.entries()) {
+    const q = `name=${encodeURIComponent(f.name)}${folder ? `&folder=${encodeURIComponent(folder)}` : ''}`;
+    const r = await fetch(`/api/sounds/import?${q}`, { method: 'POST', headers: { 'x-promo-studio': '1', 'content-type': 'application/octet-stream' }, body: f })
       .then(async (x) => ({ ok: x.ok, data: (await x.json().catch(() => ({}))) as { path?: string; error?: string } })).catch(() => ({ ok: false, data: {} as { path?: string; error?: string } }));
-    if (r.ok && r.data.path) added.push(r.data.path); else failed.push(`${f.name} (${r.data.error || 'could not be added'})`);
+    if (r.ok && r.data.path) added.push(r.data.path); else failed.push(`${folder ? `${folder}/` : ''}${f.name} (${r.data.error || 'could not be added'})`);
+    if (progress != null && (j % 10 === 9 || j === list.length - 1)) toast.loading(`Adding sounds: ${j + 1} of ${list.length}`, { id: progress });
   }
   const lib = await getJson<{ files: SoundFile[] }>('/api/sounds');
   set({ files: lib.files, query: '', fresh: new Set(added) });
   loadAnalysis();
-  if (failed.length) say(`Not added: ${failed.join(', ')}`);
+  const summary = `Added ${added.length} sound${added.length === 1 ? '' : 's'}${skipped ? ` (${skipped} other file${skipped === 1 ? '' : 's'} skipped)` : ''}`;
+  if (progress != null) toast.success(summary, { id: progress, duration: 4000 });
+  if (failed.length) say(`Not added: ${failed.slice(0, 5).join(', ')}${failed.length > 5 ? ` and ${failed.length - 5} more` : ''}`);
 }
 
 /* ── the sound editor: the whole file, its defaults set by dragging ── */

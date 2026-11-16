@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { importName, importTarget, listSounds, mixPlan, readSheet, saveLibraryEntry, saveSheet, soundFile } from './sound-lib.mjs';
+import { importFolder, importName, importTarget, listSounds, mixPlan, readSheet, saveLibraryEntry, saveSheet, soundFile } from './sound-lib.mjs';
 
 function promo() {
   const dir = mkdtempSync(join(tmpdir(), 'promo-sound-'));
@@ -78,4 +78,17 @@ test('files dropped from Finder keep their name, made safe, and never replace a 
   writeFileSync(join(dir, 'sounds', 'boom.wav'), 'x');
   assert.deepEqual(importTarget(dir, 'boom.wav'), { rel: 'boom 2.wav', file: join(dir, 'sounds', 'boom 2.wav') });
   assert.equal(importTarget(dir, 'fresh.wav').rel, 'fresh.wav');
+});
+
+test('a dropped folder keeps its name and subfolders in the library, cleaned, and never above it', () => {
+  assert.equal(importFolder(''), '');
+  assert.equal(importFolder('Impact Pack/Metal Hits'), 'Impact Pack/Metal Hits');
+  assert.equal(importFolder('Pack: Vol 1/Hits*'), 'Pack- Vol 1/Hits-');
+  assert.equal(importFolder('../../etc'), null);
+  assert.equal(importFolder('a/b/c/d/e/f/g'), null); // too deep
+  assert.equal(importFolder(42), null);
+  const dir = mkdtempSync(join(tmpdir(), 'promo-import-'));
+  assert.equal(importTarget(dir, 'boom.wav', 'Impact Pack/Metal').rel, 'Impact Pack/Metal/boom.wav');
+  assert.equal(importTarget(dir, 'boom.wav', '../outside'), null);
+  assert.equal(importTarget(dir, 'boom.wav', '.hidden').rel, 'hidden/boom.wav'); // a leading dot goes, as in file names
 });

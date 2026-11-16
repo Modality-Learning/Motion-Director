@@ -59,13 +59,24 @@ export function importName(name) {
   const base = name.split(/[\\/]/).pop().normalize('NFC').replace(/[^\p{L}\p{N} ._()+-]/gu, '-').replace(/^[.\s-]+/, '').trim().slice(-120);
   return base && AUDIO_EXT.test(base) && soundPathOk(base) ? base : null;
 }
-/** Where an imported sound goes: the library's top level, numbered rather than replacing a file. */
-export function importTarget(promoDir, name) {
-  const clean = importName(name);
-  if (!clean) return null;
+/** A dropped folder's path inside the library ("Pack/Impacts"), each part cleaned like a file name; '' for none,
+ * null for one that can't be kept (too deep, or nothing left once cleaned). Never above the library. */
+export function importFolder(folder) {
+  if (folder == null || folder === '') return '';
+  if (typeof folder !== 'string') return null;
+  const parts = folder.split(/[\\/]+/).filter(Boolean).map((x) => x.normalize('NFC').replace(/[^\p{L}\p{N} ._()+-]/gu, '-').replace(/^[.\s-]+/, '').trim().slice(0, 80));
+  if (!parts.length || parts.length > 6 || parts.some((x) => !x || x === '..')) return null;
+  return parts.join('/');
+}
+/** Where an imported sound goes: the library's top level, or the folder it came in (a pack's folders say what the
+ * sounds are), numbered rather than replacing a file. */
+export function importTarget(promoDir, name, folder = '') {
+  const clean = importName(name), dir = importFolder(folder);
+  if (!clean || dir === null) return null;
   const root = soundsDir(promoDir), dot = clean.lastIndexOf('.');
   for (let i = 1; i < 1000; i++) {
-    const rel = i === 1 ? clean : `${clean.slice(0, dot)} ${i}${clean.slice(dot)}`;
+    const rel = (dir ? `${dir}/` : '') + (i === 1 ? clean : `${clean.slice(0, dot)} ${i}${clean.slice(dot)}`);
+    if (!soundPathOk(rel)) return null;
     if (!existsSync(join(root, rel))) return { rel, file: join(root, rel) };
   }
   return null;

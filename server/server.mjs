@@ -18,7 +18,7 @@ import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, li
 import { saveValues } from '../render/params.mjs';
 import { formatComment, validateComment } from './comments.mjs';
 import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
-import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
+import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importFolder, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
 import { cleanEntry, cleanSettings, soundPathOk } from '../kit/sound.mjs';
 
 const PROMO = projectRoot();
@@ -242,10 +242,10 @@ async function api(req, res, url) {
   }
 
   if (req.method === 'POST' && pathname === '/api/sounds/import') {
-    // a sound file dropped from Finder, streamed into the library (never over an existing file)
-    const target = importTarget(PROMO, url.searchParams.get('name'));
-    if (!target) return json(res, 400, { error: 'Not a sound file (WAV, AIFF, MP3, M4A, CAF or FLAC)' });
-    mkdirSync(soundsDir(PROMO), { recursive: true });
+    // a sound file dropped from Finder, streamed into the library (never over an existing file), in its folder if it came in one
+    const target = importTarget(PROMO, url.searchParams.get('name'), url.searchParams.get('folder') || '');
+    if (!target) return json(res, 400, { error: importFolder(url.searchParams.get('folder') || '') === null ? 'Not a folder the library can keep' : 'Not a sound file (WAV, AIFF, MP3, M4A, CAF or FLAC)' });
+    mkdirSync(dirname(target.file), { recursive: true });
     const part = `${target.file}.part`, out = createWriteStream(part);
     let size = 0, tooBig = false;
     await new Promise((done) => {
