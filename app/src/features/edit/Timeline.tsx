@@ -17,6 +17,7 @@ import { FRAME, GUT, MINI, PAD, TRK, clamp, dB, dragModeAt, dragTo, freeze, gain
 import { bufOf, fileLen, loadSound } from './audio';
 import { drawWave } from './waveform';
 import { GraphRow } from './MotionGraph';
+import { ViewBar } from './ViewBar';
 import { Gut, Row, type Axis } from './rows';
 import {
   M, addCue, addTrack, changed, closeFocus, cueById, cueLen, cueStart, focusObject, hasSound, nudge, objectBy, openEditor, removeCue,
@@ -91,7 +92,8 @@ export function Timeline({ hidden }: { hidden: boolean }) {
     const wheel = (e: WheelEvent) => {
       // Chrome and Firefox send a trackpad pinch as a wheel with Ctrl held (and the page would zoom)
       if (e.ctrlKey) { e.preventDefault(); soon(Math.exp(-e.deltaY * 0.01), e.clientX); return; }
-      if (!e.altKey) return;
+      // ⌘-scroll (Ctrl elsewhere) zooms, as on the preview
+      if (!e.metaKey) return;
       e.preventDefault();
       soon(Math.exp(-(e.deltaY || e.deltaX) * 0.0025), e.clientX);
     };
@@ -106,8 +108,9 @@ export function Timeline({ hidden }: { hidden: boolean }) {
     return () => { sc.removeEventListener('wheel', wheel); sc.removeEventListener('gesturestart', gs); sc.removeEventListener('gesturechange', gc); sc.removeEventListener('gestureend', ge); };
   }, [film]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* the timeline's height: a grip on its top edge trades height with the preview. Layout only: it shows more
-   * or less of the timeline and never adds tracks (+ Add track does that). Remembered; double-click resets. */
+  /* the timeline's height: a grip on its top edge (above the preview's view bar, the timeline's top) trades
+   * height with the preview, the same kind of grip as the side columns'. Layout only: it shows more or less of
+   * the timeline and never adds tracks (+ Add track does that). Remembered; double-click resets. */
   const active = useStudio((s) => s.route.view === 'work' && s.route.tab === 'edit');
   useEffect(() => {
     if (!active || hidden) return;
@@ -124,6 +127,7 @@ export function Timeline({ hidden }: { hidden: boolean }) {
   return (
     <section aria-label="Timeline" hidden={hidden} className="relative grid min-h-0 min-w-0 border-t bg-card">
       <Grip scRef={scRef} gripRef={gripRef} />
+      <ViewBar />
       <div ref={scRef} className="max-h-[46vh] overflow-auto">
         <div ref={inRef} className="relative" style={{ width: W }}>
           <Ruler axis={axis} markRef={markRef} nowRef={nowRef} />
@@ -147,7 +151,7 @@ function setHeight(sc: HTMLElement | null, grip: HTMLElement | null, px: number 
     if (save) local.del(TL_H);
     return;
   }
-  const h = clamp(Math.round(px), 120, Math.max(120, main.clientHeight - 220 - 2)); // the preview keeps 220 px
+  const h = clamp(Math.round(px), 120, Math.max(120, main.clientHeight - 220 - 38)); // the preview keeps 220 px (the view bar is the other 36)
   Object.assign(sc.style, { height: `${h}px`, maxHeight: 'none' });
   grip?.setAttribute('aria-valuenow', String(h));
   if (save) local.set(TL_H, String(h));
@@ -174,13 +178,13 @@ function Grip({ scRef, gripRef }: { scRef: React.RefObject<HTMLDivElement | null
   };
   return (
     <div ref={gripRef} role="separator" aria-orientation="horizontal" aria-label="Timeline height" tabIndex={0} title="Drag to resize the timeline · double-click to reset"
-      className="group absolute inset-x-0 -top-[5px] z-[9] h-2.5 cursor-row-resize touch-none outline-none"
+      className="group absolute inset-x-0 -top-[5px] z-[9] flex h-2.5 cursor-row-resize touch-none items-center outline-none"
       onPointerDown={down} onDoubleClick={() => setHeight(scRef.current, gripRef.current, null)}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
         e.preventDefault(); const sc = scRef.current; if (sc) setHeight(sc, gripRef.current, heightOf(sc) + (e.key === 'ArrowUp' ? 24 : -24));
       }}>
-      <div className="mx-auto mt-[3px] h-1 w-10 rounded-sm bg-border group-hover:bg-primary group-focus-visible:bg-primary group-data-[dragging]:bg-primary" />
+      <div className="h-px w-full bg-transparent group-hover:bg-primary group-focus-visible:bg-primary group-data-[dragging]:bg-primary" />
     </div>
   );
 }
@@ -222,7 +226,7 @@ function Ruler({ axis, markRef, nowRef }: { axis: Axis; markRef: React.RefObject
 
 /* the keyboard shortcuts, from the ? in the timeline's corner */
 const KEYS: [string, string][] = [
-  ['Space', 'Play or pause'], ['C', 'Comment mode: click anything to comment on it'], ['⌘Z, ⇧⌘Z', 'Undo, redo'], ['Pinch, ⌥ scroll', 'Zoom the timeline'], ['Pinch, ⌘ scroll', 'Zoom the preview (scroll pans it)'], ['H', 'Hand tool: drag the preview to pan'],
+  ['Space', 'Play or pause'], ['C', 'Comment mode: click anything to comment on it'], ['⌘Z, ⇧⌘Z', 'Undo, redo'], ['Pinch, ⌘ scroll', 'Zoom the timeline or the preview (scroll pans the preview)'], ['H', 'Hand tool: drag the preview to pan'],
   ['Clip edges', 'Drag to trim; ⌥ drag to stretch'], ['Clip line', 'Drag for volume'], ['← →, Delete', 'Nudge a clip a frame, remove it'],
 ];
 function ShortcutsButton() {

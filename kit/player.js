@@ -199,8 +199,10 @@
     const view = { fit: true, scale: 1, x: 0, y: 0, hand: false };
     const STEPS = [0.125, 0.25, 0.33, 0.5, 0.66, 0.75, 1, 1.5, 2, 3, 4];
     let toldView = '';
+    let onView = () => {}; // set below: the hover outline follows the stage as it pans and zooms
     function applyView() {
       stage.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+      onView();
       const msg = JSON.stringify([Math.round(view.scale * 1000) / 1000, view.fit]);
       if (viewable && msg !== toldView) { toldView = msg; tell({ type: 'view', scale: view.scale, fit: view.fit }); }
     }
@@ -349,7 +351,9 @@
       return parts.join(' > ');
     }
     const textOf = (n) => (n.innerText || n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    let shownPick = null;
     function showPick(tg) {
+      shownPick = tg;
       if (!tg) { pick.hidden = true; return; }
       const box = tg.el ? tg.el.getBoundingClientRect() : stage.getBoundingClientRect();
       const scale = stage.getBoundingClientRect().width / W;
@@ -361,6 +365,8 @@
       pick.classList.toggle('frozen', frozen);
       pick.hidden = false;
     }
+    // the outline is drawn over the page, so a pan or zoom moves it with the element it outlines
+    onView = () => { if (shownPick && !pick.hidden) showPick(shownPick); };
     let pickNow = null;
     function setPicking(on) {
       picking = !!on && !board; frozen = false;

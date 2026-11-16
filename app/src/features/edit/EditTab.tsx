@@ -23,7 +23,6 @@ import { Library } from './Library';
 import { Timeline } from './Timeline';
 import { Inspector } from './Inspector';
 import { SoundEditor } from './SoundEditor';
-import { ViewBar } from './ViewBar';
 import { ColumnGrip, useColumnWidth } from '@/components/ColumnGrip';
 
 export function EditTab() {
@@ -42,9 +41,8 @@ export function EditTab() {
           <ColumnGrip label="Sound library width" width={libW} onWidth={setLibW} edge="right" {...libR} />
         </div>
       ) : null}
-      <div data-edit-main="" className={cn('grid min-h-0 min-w-0', editing ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[minmax(220px,1fr)_auto_auto]')}>
+      <div data-edit-main="" className={cn('grid min-h-0 min-w-0', editing ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[minmax(220px,1fr)_auto]')}>
         <div hidden={!!editing} className="flex min-h-0"><PreviewFrame tab="edit" title="Preview" className="h-full min-h-0" /></div>
-        {!editing ? <ViewBar /> : null}
         <Timeline hidden={!!editing} />
         {editing ? <SoundEditor path={editing} /> : null}
       </div>

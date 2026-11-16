@@ -37,7 +37,7 @@ export function ViewBar() {
   const value = view.fit ? 'fit' : String(view.scale);
 
   return (
-    <div role="toolbar" aria-label="Preview view" className="flex h-9 items-center gap-1 border-t bg-card px-2">
+    <div role="toolbar" aria-label="Preview view" className="flex h-9 items-center gap-1 border-b bg-card px-2">
       <Hint label="Hand tool: drag to pan (H)">
         <Toggle size="sm" aria-label="Hand tool" pressed={hand} onPressedChange={(on) => { setHand(on); ask({ hand: on }); }} className="h-7 min-w-7 px-1.5"><Hand /></Toggle>
       </Hint>
