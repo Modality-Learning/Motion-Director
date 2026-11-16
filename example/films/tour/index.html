@@ -220,7 +220,7 @@ const fade = (t, a, b, c, d) => P(t, a, b, E.out) * (1 - P(t, c, d, E.in)); // i
 
 /* ── named beats (film time): the animation and the sound moments both read these ── */
 const BEAT = {
-  open: { in: 0.3, out: 3.0 }, studioIn: 2.55, tabs: 3.55,
+  open: { in: 0.3, out: 2.9 }, studioIn: 3.45, tabs: 4.05,
   s1: { in: 5.4, out: 7.6 }, vibeTab: 8.0, pins: 8.5, pinGap: 0.38, fileIn: 11.2, grab: 11.6, carry: [11.6, 12.6], drop: 12.7, takeType: [13.0, 14.2],
   s2: { in: 15.3, out: 17.4 }, fly: [17.4, 18.1], treatTab: 17.45, lead: 18.3, rows: [18.8, 19.5, 20.2], hover: [21.5, 23.1], hover2: [23.1, 24.2],
   s3: { in: 24.5, out: 26.6 }, editTab: 27.0, build: 27.1, play1: [27.8, 32.3], famOpen: 32.0, grabRow: 32.9, drag: [33.0, 34.0], clipDrop: 34.1,
@@ -489,7 +489,8 @@ function typed(s, t, a, b) { return s.slice(0, Math.round(s.length * clamp((t - 
 function render(t) {
   /* the veil behind each step title, and the studio easing back under it */
   let veilO = 0, back = 0;
-  STEPS.forEach((s, i) => { if (i === 0 || i === 7) return; const a = s.b.in - .1, z = s.b.out + (s.fly ? .55 : .35); const p = fade(t, a, a + .35, z - .35, z); veilO = Math.max(veilO, .9 * p); back = Math.max(back, p); });
+  // the veil is fully up before a step title's words arrive, and lifts only once the last word has swished out
+  STEPS.forEach((s, i) => { if (i === 0 || i === 7) return; const a = s.b.in - .3, z = s.b.out + (s.fly ? .55 : .95); const p = fade(t, a, a + .35, z - .35, z); veilO = Math.max(veilO, .9 * p); back = Math.max(back, p); });
   const closing = P(t, BEAT.close.in - .3, BEAT.close.in + .2);
   op(veil, Math.max(veilO, .55 * closing));
 
@@ -538,7 +539,7 @@ function render(t) {
   }
 
   /* the step title on screen now */
-  let si = -1; STEPS.forEach((st, i) => { if (t >= st.b.in - .05 && t < st.b.out + (st.fly ? .75 : .5)) si = i; });
+  let si = -1; STEPS.forEach((st, i) => { if (t >= st.b.in - .05 && t < st.b.out + (st.fly ? .75 : .7)) si = i; });
   op(stepT, si >= 0 ? 1 : 0);
   if (si >= 0) {
     setStep(si);

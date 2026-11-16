@@ -13,25 +13,25 @@
       "keepPitch": false
     },
     {
-      "id": "studio-lands",
-      "sound": "soft-impact.wav",
-      "at": 2.757,
-      "track": 5,
-      "gain": -6
-    },
-    {
       "id": "title-0-out",
       "sound": "quick-swish.wav",
-      "at": 3.045,
+      "at": 2.945,
       "track": 2,
       "gain": -9,
       "rate": 0.92,
       "keepPitch": false
     },
     {
+      "id": "studio-lands",
+      "sound": "soft-impact.wav",
+      "at": 3.657,
+      "track": 5,
+      "gain": -6
+    },
+    {
       "id": "tab-1-in",
       "sound": "pop-high.wav",
-      "at": 3.588,
+      "at": 4.088,
       "track": 1,
       "gain": -14,
       "rate": 1,
@@ -40,7 +40,7 @@
     {
       "id": "tab-2-in",
       "sound": "pop-high.wav",
-      "at": 3.658,
+      "at": 4.158,
       "track": 6,
       "gain": -14,
       "rate": 1.08,
@@ -49,7 +49,7 @@
     {
       "id": "tab-3-in",
       "sound": "pop-high.wav",
-      "at": 3.728,
+      "at": 4.228,
       "track": 7,
       "gain": -14,
       "rate": 1.16,
@@ -58,7 +58,7 @@
     {
       "id": "tab-4-in",
       "sound": "pop-high.wav",
-      "at": 3.798,
+      "at": 4.298,
       "track": 1,
       "gain": -14,
       "rate": 1.24,
