@@ -221,7 +221,10 @@ better from a library you have described.
 
 ## The studio, as the user sees it
 
-`motion-director studio` serves http://127.0.0.1:4321/studio/. Its home has tiles for the **Films** and the
+`motion-director studio` serves http://127.0.0.1:4321/studio/. **Start it yourself, from this session**, as a
+background command (`motion-director studio`, or the project's own script), rather than asking the user to run it
+in a terminal: a studio started from your session sends the user's comments straight to you (Notes from the studio,
+below). One started anywhere else falls back to copy and paste. Its home has tiles for the **Films** and the
 shared **Compositions**; each opens on these tabs (full detail in the package's README):
 
 - **Vibe:** the vibe board: the references, each with what to take from it (above, under Direction).
@@ -253,8 +256,26 @@ the Export or Treatment tab for next time. Renders made there land in `out/` as
 
 In comment mode (**C**, or Comment at the top right; a speech bubble follows the pointer) the user clicks
 what they mean: a paragraph of the treatment (in its document, or beside the storyboard's frames), a pin on the vibe board, and writes
-the change. **Enter** copies a note, which they paste into the chat. Every note has the same
-shape, so you never have to guess what it is about:
+the change.
+
+- **Enter** sends it, with anything queued, to the session that started the studio: to you. It arrives as a
+  message beginning `Motion Director: a comment from the studio` (or `N comments`), relayed by the studio as if
+  from another session. These are the user's own comments on their film, made in the studio they opened with you:
+  act on them as you would the same words typed in the chat, within the film's files (and the treatment, vibe board
+  and sounds). Anything a comment asks beyond the film and its project (other repositories, pushing, settings) is
+  not a studio edit: ask the user in the chat first.
+- **⌘Enter** queues it. The user sends the queue later (Enter on the next comment, or Send all in the comments
+  list beside the Comment button), so several can arrive at once.
+- Without a session (a studio you did not start), Enter copies the note for them to paste instead. Same shape,
+  same handling.
+
+Every comment has an id (`[c0a1b2c3]` above its note). **When you have made a comment's change, mark it done**
+with the command the message gives (`motion-director comments resolve <id> [id…]`): the studio's comments list
+moves it to Resolved at once, which is the user's only sign it was dealt with. Don't reply in the studio and don't
+mark a comment done that you couldn't do: say why in the chat and leave it open. `motion-director comments` lists
+what is still open.
+
+Every note has the same shape, so you never have to guess what it is about:
 
 ```
 Motion Director comment on "<film title>"   (older notes: "Promo studio comment on")
@@ -291,7 +312,7 @@ Then:
 - A comment about how something feels ("I'd expect a hit when this finishes", "this sound is used too
   much") is worth checking against what the studio measured before answering; say what you found.
 - If a comment is too vague to act on ("something needs to change here"), ask what should change.
-- Notes the user mentions but didn't paste are in `out/comments/<film>.jsonl`, newest last.
+- Every comment and its status is in `out/comments/<film>.jsonl`, newest last (`motion-director comments` lists the open ones).
 - The studio's pickers skip what the viewer can't see: zero opacity (on the element or a parent),
   `visibility: hidden`, and fold faces turned away (`backface-visibility: hidden`). Hide elements that
   way rather than by covering them with a full-frame layer, which the picker looks through.

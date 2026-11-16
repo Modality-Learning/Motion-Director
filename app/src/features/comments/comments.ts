@@ -1,6 +1,7 @@
-// Comments: a comment is a message to an agent. C toggles comment mode; hovering outlines the element with
-// parameters under the cursor, or the whole frame. Click, type, Enter: the note is copied to paste into the
-// chat (and quietly logged in the project's out/comments). Nothing stays on the film.
+// Comments: a comment is a message to Claude. C toggles comment mode; hovering outlines the element with
+// parameters under the cursor, or the whole frame. Click, type, then Enter sends it (with anything queued) to the
+// Claude Code session that started the studio, or copies it to paste where there is none; ⌘Enter queues it.
+// Each is logged with its status in the project's out/comments (list.ts). Nothing stays on the film.
 // In the Edit tab the timeline's items (a clip, an object, a track, a beat) take comments too.
 import { useEffect } from 'react';
 import { create } from 'zustand';
@@ -9,6 +10,7 @@ import { frameFor, onFilmMessage, tell, type FrameTab } from '@/lib/frames';
 import { fmtT } from '@/lib/format';
 import { commentable, frameOf, useStudio } from '@/lib/store';
 import { refForScope } from '@/features/params/params';
+import { loadComments, setStatus, useCommentList } from './list';
 
 /** Something on the Edit tab's timeline a comment is about. */
 export interface TimelineItem { kind: 'clip' | 'object' | 'track' | 'beat' | 'timeline'; label: string; detail?: string; [k: string]: unknown }
@@ -24,16 +26,21 @@ interface CommentState {
   note: string | null;
   /** bumped each time the box opens, so its text starts empty */
   seq: number;
-  /** the note is on the clipboard: the box shows the next step (paste it into Claude) for a moment, then closes */
-  copied: boolean;
+  /** what became of the comment, shown for a moment before the box closes: sent to Claude, queued, or copied to paste */
+  done: null | 'sent' | 'queued' | 'copied';
+  /** how many went with it (the queue goes along with an Enter) */
+  count: number;
 }
-export const useComments = create<CommentState>(() => ({ open: false, title: '', at: { x: 0, y: 0 }, pending: null, hint: '', note: null, seq: 0, copied: false }));
-/** How long the copied state stays, so there is time to read it and switch to Claude. */
+export const useComments = create<CommentState>(() => ({ open: false, title: '', at: { x: 0, y: 0 }, pending: null, hint: '', note: null, seq: 0, done: null, count: 0 }));
+/** How long the outcome stays: copied lingers, so there is time to read it and switch to Claude. */
 export const COPIED_MS = 4500;
+export const DONE_MS = { sent: 2600, queued: 1800, copied: COPIED_MS } as const;
 
-const HINT = 'Enter copies it for the chat · Shift+Enter new line · Esc cancels';
+const hint = () => useCommentList.getState().session
+  ? 'Enter sends it to Claude · ⌘Enter queues it · Esc cancels'
+  : 'Enter copies it for Claude · ⌘Enter queues it · Esc cancels';
 function showBox(x: number, y: number, title: string, pending: Pending) {
-  useComments.setState((s) => ({ open: true, title, at: { x, y }, pending, hint: HINT, note: null, seq: s.seq + 1, copied: false }));
+  useComments.setState((s) => ({ open: true, title, at: { x, y }, pending, hint: hint(), note: null, seq: s.seq + 1, done: null, count: 0 }));
 }
 
 /** The box closes; the preview's outlines unfreeze. */
@@ -45,7 +52,7 @@ export function closeBox() {
   const { route } = useStudio.getState();
   const f = route.view === 'work' ? frameOf(route.tab) : null;
   if (f) tell(f, { type: 'commentDone' });
-  useComments.setState({ open: false, pending: null, note: null, copied: false });
+  useComments.setState({ open: false, pending: null, note: null, done: null, count: 0 });
 }
 
 interface CommentAt { t: number; key?: string; scope?: string | null; selector?: string | null; text?: string | null; client: { x: number; y: number } }
@@ -90,27 +97,34 @@ export function openItemBox(item: TimelineItem, t: number, x: number, y: number)
   showBox(x, y, title, { view: 'edit', frame: null, t, target: { item } });
 }
 
-/** Enter in the box: the server writes the note, and it goes to the clipboard. */
-export async function sendComment(text: string) {
+interface Posted { id: string; status?: 'queued'; queued?: number; sent?: number; via?: 'session' | 'clipboard'; note?: string; ids?: string[] }
+/** Enter (or ⌘Enter, queue) in the box. Enter sends the comment and anything queued: to the Claude Code session
+ * that started the studio, or, with none, to the clipboard to paste. The outcome shows for a moment, then the box closes. */
+export async function sendComment(text: string, queue = false) {
   const { pending } = useComments.getState(), { route } = useStudio.getState();
   if (!pending || route.view !== 'work') return;
   if (!text.trim()) { useComments.setState({ hint: 'Write a comment first, or Esc to cancel.' }); return; }
-  useComments.setState({ hint: 'Copying…' });
-  const r = await post<{ note: string }>('/api/comments', { film: route.name, ...pending, text: text.trim() });
+  useComments.setState({ hint: queue ? 'Queueing…' : 'Sending…' });
+  const r = await post<Posted>('/api/comments', { film: route.name, ...pending, text: text.trim(), mode: queue ? 'queue' : 'send' });
   if (!r.ok) { useComments.setState({ hint: r.data.error || 'Could not make the note' }); return; }
-  if (await copy(r.data.note)) {
-    // the journey: copied, then paste it into Claude. It stays long enough to read, unless a new comment starts
-    const { seq } = useComments.getState();
-    useComments.setState({ copied: true, hint: '' });
-    setTimeout(() => { if (useComments.getState().seq === seq && useComments.getState().copied) closeBox(); }, COPIED_MS);
-    return;
-  }
-  // where the browser won't copy, show the note ready to copy by hand
-  useComments.setState({ note: r.data.note, hint: 'Press ⌘C to copy the note, then Esc.' });
+  const d = r.data;
+  if (queue) return finish('queued', d.queued || 1);
+  if (d.via === 'session') return finish('sent', d.sent || 1);
+  // no session: the notes go to the clipboard, and are with Claude once copied
+  if (d.note && await copy(d.note)) { await setStatus(d.ids || [d.id], 'sent'); return finish('copied', d.ids?.length || 1); }
+  // where the browser won't copy, show the notes ready to copy by hand
+  useComments.setState({ note: d.note || null, hint: 'Press ⌘C to copy the note, then Esc.' });
+}
+function finish(done: 'sent' | 'queued' | 'copied', count: number) {
+  // the outcome stays long enough to read, unless a new comment starts
+  const { seq } = useComments.getState();
+  useComments.setState({ done, count, hint: '' });
+  loadComments();
+  setTimeout(() => { if (useComments.getState().seq === seq && useComments.getState().done) closeBox(); }, DONE_MS[done]);
 }
 
 // the clipboard API first; where a browser refuses it, the older copy command from a hidden text area
-async function copy(text: string) {
+export async function copy(text: string) {
   try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
   const ta = document.createElement('textarea');
   ta.setAttribute('aria-hidden', 'true'); ta.style.cssText = 'position:fixed;left:-9999px;top:0';

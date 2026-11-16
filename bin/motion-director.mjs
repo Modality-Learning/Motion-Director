@@ -10,6 +10,7 @@
 //   motion-director purity <film> [step]        does the film draw the same opened at a time as played to it?
 //   motion-director sound-check <film> [moments.json] [--hits id,id]
 //   motion-director organise [--n 150] | apply <batch.json>   sort the sound library with Claude (skill/LIBRARY.md)
+//   motion-director comments [film] | resolve <id…>   the studio's open comments, or mark some done
 //   motion-director init [folder]               a new project with a starter film
 //   motion-director skill                       where the Claude skill is, to link into a project's skills
 import { spawn } from 'node:child_process';
@@ -25,6 +26,7 @@ const USAGE = `usage: motion-director <command> [--root <project>]
   purity <film> [step]            check render(t) is a pure function of time
   sound-check <film> [moments] [--hits ids]
   organise [--n 150] | apply <file>  list sounds to organise, or apply Claude's batch
+  comments [film] | resolve <ids> list open comments, or mark them done
   init [folder]                   start a new project
   skill                           print where the Claude skill lives`;
 
@@ -61,7 +63,7 @@ function run(file, args) {
   for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => p.kill(s));
 }
 
-const SCRIPTS = { studio: 'server/server.mjs', board: 'render/board.mjs', bundle: 'render/bundle.mjs', purity: 'render/purity.mjs', 'sound-check': 'render/sound-check.mjs', organise: 'render/sound-organise.mjs' };
+const SCRIPTS = { studio: 'server/server.mjs', board: 'render/board.mjs', bundle: 'render/bundle.mjs', purity: 'render/purity.mjs', 'sound-check': 'render/sound-check.mjs', organise: 'render/sound-organise.mjs', comments: 'server/comments-cli.mjs' };
 if (cmd === 'render') run('bash', [join(PKG, 'render', 'render.sh'), ...rest]);
 else if (SCRIPTS[cmd]) node(SCRIPTS[cmd], rest);
 else { console.error(`Unknown command ${cmd}\n${USAGE}`); process.exit(2); }

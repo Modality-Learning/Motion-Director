@@ -1,10 +1,11 @@
-import { MessageSquare } from 'lucide-react';
+import { ChevronDown, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Hint } from '@/components/Hint';
 import { Kbd } from '@/components/Kbd';
 import { TABS, commentable, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { openCount, useCommentList } from '@/features/comments/list';
 
 const label = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' } as const;
 
@@ -19,6 +20,8 @@ export function TopBar() {
   const setCommentMode = useStudio((s) => s.setCommentMode);
   const work = route.view === 'work' && item ? route : null;
   const canComment = !!work && work.kind === 'film' && commentable(work.tab);
+  const { open: listOpen, comments } = useCommentList();
+  const waiting = openCount(comments);
   const crumb = 'text-muted-foreground no-underline hover:text-foreground hover:underline';
 
   return (
@@ -51,12 +54,24 @@ export function TopBar() {
         <span role="status" aria-live="polite" className={cn('truncate text-sm', save.state === 'error' ? 'text-destructive' : save.state === 'saved' ? 'text-success' : 'text-muted-foreground')}>
           {save.state === 'saving' ? 'Saving…' : save.state === 'saved' ? 'Saved ✓' : save.state === 'error' ? `Not saved: ${save.detail || 'try again'}` : ''}
         </span>
-        {canComment ? (
-          <Hint label="Comment mode (C)">
-            <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" onClick={() => setCommentMode(!commentMode)}>
-              <MessageSquare /> Comment <Kbd>C</Kbd>
-            </Button>
-          </Hint>
+        {work && work.kind === 'film' ? (
+          <div className="flex items-center gap-1">
+            {canComment ? (
+              <Hint label="Comment mode (C)">
+                <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" onClick={() => setCommentMode(!commentMode)}>
+                  <MessageSquare /> Comment <Kbd>C</Kbd>
+                </Button>
+              </Hint>
+            ) : null}
+            {/* the comments list: what is queued, with Claude, or resolved; the count is what is still open */}
+            <Hint label="Comments: queued, with Claude, resolved">
+              <Button size="sm" variant={listOpen ? 'default' : 'secondary'} aria-expanded={listOpen} aria-label={`Comments${waiting ? `, ${waiting} open` : ''}`}
+                onClick={() => useCommentList.setState({ open: !listOpen })} className="gap-1.5 px-2.5">
+                {waiting ? <span className="min-w-5 rounded-full bg-warning px-1.5 text-xs leading-5 font-semibold text-[#2a1600] tabular-nums">{waiting}</span> : null}
+                <ChevronDown className={cn('transition-transform', listOpen && 'rotate-180')} />
+              </Button>
+            </Hint>
+          </div>
         ) : null}
       </div>
     </header>

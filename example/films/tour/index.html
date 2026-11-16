@@ -22,7 +22,7 @@
 #stepT { position: absolute; left: 0; top: 0; width: 1920px; display: flex; flex-direction: column; align-items: center; font-family: var(--font-ui); color: #1C1F24; }
 #stepT .k { display: inline-block; font: 600 26px/1 var(--font-ui); letter-spacing: .02em; padding: 10px 18px; border-radius: 999px; background: #1C1F24; color: #F3F2EE; margin-bottom: 26px; }
 #stepT .m { transform-origin: 0 0; font-weight: 600; font-size: 96px; line-height: 1.04; letter-spacing: -.035em; white-space: nowrap; }
-#stepT .m span { display: inline-block; margin-right: .22em; }
+#stepT .m span { display: inline-block; }
 #stepT .m span:last-child { margin-right: 0; }
 
 /* ── the studio (app/src: TopBar, VibeTab, TreatmentTab, EditTab, ExportTab, CommentBox), native px ── */
@@ -510,7 +510,9 @@ function setStep(i) {
   if (shown === key) return; shown = key;
   stepK.textContent = s.k; stepK.style.display = s.k ? '' : 'none';
   stepM.style.fontSize = s.k ? '' : '84px';
-  stepM.replaceChildren(...text.split(/\s+/).filter(Boolean).map((w) => { const n = document.createElement('span'); n.textContent = w; return n; }));
+  // words as spans with real spaces between, so a comment on the title reads its words, not "Planitout"
+  const words = text.split(/\s+/).filter(Boolean);
+  stepM.replaceChildren(...words.flatMap((w, j) => { const n = document.createElement('span'); n.textContent = w; return j ? [document.createTextNode(' '), n] : [n]; }));
 }
 // what each title covers, so the studio lists the one on screen and finds its element
 STEPS.forEach((st) => Motion.scope(`param:${st.key}`, { ranges: [[st.b.in, st.last ? DUR : st.b.out + (st.fly ? .75 : .7)]], host: stepM }));
@@ -600,6 +602,7 @@ function draw(t) {
   op(stepT, si >= 0 ? 1 : 0);
   if (si >= 0) {
     setStep(si);
+    stepM.dataset.scope = `param:${STEPS[si].key}`; // every title shares this element: it names the one on screen now
     const st = STEPS[si], words = [...stepM.children], y0 = 540 - stepT.offsetHeight / 2;
     const kIn = spring(t - st.b.in); stepK.style.opacity = clamp(kIn * 2); stepK.style.transform = `translateY(${(1 - kIn) * 24}px) scale(${lerp(.8, 1, clamp(kIn))})`;
     words.forEach((w, j) => { const p = spring(t - st.b.in - .08 - j * .05); w.style.opacity = clamp(p * 2); w.style.transform = `translateY(${(1 - p) * 60}px)`; });

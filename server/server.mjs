@@ -16,7 +16,8 @@ import { TYPES, serveProject } from './static.mjs';
 import { imageName, validateVibe } from './vibe.mjs';
 import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, listComps, listFilms, planRender } from './lib.mjs';
 import { saveValues } from '../render/params.mjs';
-import { formatComment, logComment, validateComment } from './comments.mjs';
+import { formatComment, validateComment } from './comments.mjs';
+import { addComment, deliver, formatBatch, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
 import { cleanEntry, cleanSettings, soundPathOk } from '../kit/sound.mjs';
 
@@ -51,6 +52,21 @@ function announce(ev) {
     for (const res of listeners) res.write(`data: ${JSON.stringify(msg)}\n\n`);
   }, 150));
 }
+// the comment logs (out/comments): a status changed from the command line (Claude marking one resolved) shows at once
+try { mkdirSync(join(OUT, 'comments'), { recursive: true }); watch(join(OUT, 'comments'), (_, file) => { const f = file && String(file).match(/^([^/\\]+)\.jsonl$/); if (f) announce({ type: 'comments', film: f[1] }); }); } catch { /* no out/ */ }
+
+/* Comments go to the Claude Code session the studio was started from, when there is one (comment-queue.mjs) */
+const INBOX = sessionInbox();
+const RESOLVE_CMD = `node "${join(PKG, 'bin', 'motion-director.mjs')}" comments resolve --root "${PROMO}"`;
+async function sendQueued(film) {
+  const queued = readComments(OUT, film).filter((c) => c.status === 'queued');
+  if (!queued.length) return { sent: 0, via: INBOX ? 'session' : 'clipboard' };
+  const text = formatBatch(queued, RESOLVE_CMD);
+  if (INBOX && await deliver(INBOX, text)) { setStatus(OUT, film, queued.map((c) => c.id), 'sent'); return { sent: queued.length, via: 'session' }; }
+  // no session to send to (or it has gone): the notes go to the clipboard, and count as sent once copied
+  return { sent: 0, via: 'clipboard', note: text, ids: queued.map((c) => c.id) };
+}
+
 for (const [where, dir] of [['films', join(PROMO, 'films')], ['comps', join(PROMO, 'comps')], ['kit', join(PROMO, 'kit')], ['kit', join(PKG, 'kit')], ['sounds', soundsDir(PROMO)]]) {
   try { watch(dir, { recursive: true }, (_, file) => { const ev = file && changeOf(where, file.toString()); if (ev) announce(ev); }); } catch { /* not there yet */ }
 }
@@ -157,6 +173,12 @@ async function api(req, res, url) {
     const file = treatmentFile(piece.dir), text = file ? await readFile(join(piece.dir, file), 'utf8').catch(() => null) : null;
     return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text, file: file || 'TREATMENT.md' });
   }
+  if (req.method === 'GET' && pathname === '/api/comments') {
+    // a film's comments and their statuses, for the comments list; session says whether Enter reaches Claude directly
+    const film = url.searchParams.get('film');
+    const list = films.some((f) => f.name === film) ? readComments(OUT, film).map(({ id, at, status, changed, view, frame, t, text, about, target }) => ({ id, at, status, changed, view, frame, t, text, about, target })) : [];
+    return json(res, 200, { comments: list, session: !!INBOX });
+  }
   if (req.method === 'GET' && pathname === '/api/vibe') {
     const piece = pieceOf(url.searchParams);
     if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
@@ -215,13 +237,27 @@ async function api(req, res, url) {
     return r.error ? json(res, 400, r) : json(res, 200, r);
   }
   if (req.method === 'POST' && pathname === '/api/comments') {
-    // returns the note for the clipboard, and keeps a quiet log of it
+    // a new comment, queued; with mode 'send' everything queued for the film goes to Claude with it
     const v = validateComment(body, films);
     if (v.error) return json(res, 400, v);
     const film = films.find((f) => f.name === v.comment.film);
     const note = formatComment(v.comment, film, BASE, { treatment: treatmentFile(join(PROMO, 'films', film.name)) || 'TREATMENT.md', vibe: readVibe(join(PROMO, 'films', film.name)).vibe });
-    logComment(OUT, v.comment, note);
-    return json(res, 200, { note });
+    const c = addComment(OUT, v.comment, note);
+    if (body.mode === 'queue') return json(res, 200, { id: c.id, status: 'queued', queued: readComments(OUT, film.name).filter((x) => x.status === 'queued').length });
+    return json(res, 200, { id: c.id, ...(await sendQueued(film.name)) });
+  }
+  if (req.method === 'POST' && pathname === '/api/comments/send') {
+    // everything queued for a film, to Claude
+    if (!films.some((f) => f.name === body.film)) return json(res, 400, { error: 'Unknown film' });
+    return json(res, 200, await sendQueued(body.film));
+  }
+  if (req.method === 'POST' && pathname === '/api/comments/status') {
+    // the studio's own changes: notes it copied by hand are with Claude ('sent'); a queued one taken out ('removed')
+    if (!films.some((f) => f.name === body.film)) return json(res, 400, { error: 'Unknown film' });
+    const ids = Array.isArray(body.ids) ? body.ids.filter((x) => typeof x === 'string' && /^[a-z0-9]{1,20}$/.test(x)) : [];
+    if (!ids.length || !['sent', 'removed', 'queued'].includes(body.status)) return json(res, 400, { error: 'Bad request' });
+    setStatus(OUT, body.film, ids, body.status);
+    return json(res, 200, { ok: true });
   }
   if (req.method === 'POST' && pathname === '/api/treatment/rename') {
     // an older BRIEF.md becomes TREATMENT.md, the name the studio and the skill use now

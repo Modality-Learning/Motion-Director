@@ -5,8 +5,9 @@ for any moment in time. Motion Director gives it three things around that:
 
 - **The studio**, a local app where you review a film, comment on exactly the thing you mean, see how
   every element moves (measured, so it can be timed to sound), place sound effects by hand and tune the
-  film's parameters. A comment you write there becomes a structured note you paste into the chat, so the
-  agent knows the file, the element and the moment without guessing.
+  film's parameters. A comment you write there goes straight to the Claude Code session that started the
+  studio as a structured note, so the agent knows the file, the element and the moment without guessing, and the
+  change shows in the studio when it is made.
 - **The renderer**, which captures frames in headless Chromium and encodes them to MP4 or ProRes, with
   the film's sound mixed in.
 - **The kit**, a small set of files every film shares: the player, the motion helpers (eases, a spring,
@@ -152,10 +153,14 @@ Opening one gives these tabs:
   1440p or 4K) with progress and cancel, and the film's files with Show in Finder and Open.
 
 **Comments.** A comment is a message to the agent. In comment mode, click the thing you mean (a frame,
-an element, a clip, a beat, the timeline at a time), type, and press Enter. A short note is copied for you
-to paste into the chat: the film, what it is about with its current value, a selector or cue id, and your
-comment. Nothing stays on the film. A plain log of notes is kept in `out/comments/<film>.jsonl` in case
-one never got pasted. The note format is in [skill/SKILL.md](skill/SKILL.md).
+an element, a clip, a beat, a pin, the timeline at a time), type, and press **Enter**: the note goes, with any
+queued ones, to the Claude Code session that started the studio (its messaging socket, which the studio inherits;
+nothing to set up). **⌘Enter** queues it instead. The note says the film, what it is about with its current value,
+a selector or cue id, and your comment. A studio started any other way copies the note to paste into the chat.
+The chevron beside the Comment button opens the comments list: queued (Send all, or take one out), with Claude,
+and resolved. The agent marks each one done (`motion-director comments resolve <id>`), and the list follows live.
+Every comment and its status is kept in `out/comments/<film>.jsonl`. The note format is in
+[skill/SKILL.md](skill/SKILL.md).
 
 **Measured motion.** The studio measures how each element moves, grows, turns and shows, and marks its
 arrivals, fastest moments, landings and exits. These are the impacts a sound is timed to. It measures
@@ -223,7 +228,7 @@ and the studio's dependencies stay out of other apps.
 `skill/` is the guidance Claude follows to make films with a person, in this order of work: direction,
 a written treatment, keyframes and a storyboard, transitions, sound, final render. It is generic.
 
-- [SKILL.md](skill/SKILL.md): the method, how to read notes pasted from the studio, parameters and
+- [SKILL.md](skill/SKILL.md): the method, how to read and resolve comments from the studio, parameters and
   compositions.
 - [SOUND.md](skill/SOUND.md): placing sound effects on measured impacts, and checking the mix without
   ears.

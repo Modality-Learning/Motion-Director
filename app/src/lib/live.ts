@@ -7,8 +7,9 @@
 //   code     a page, script or style a preview runs   { film } | { comp } | { kit: true }
 //   library  the sound library's settings
 //   sounds   a sound file added, changed or removed
+//   comments a film's comment log (a comment sent, queued or resolved)   { film }
 
-export interface LiveEvent { type: 'sound' | 'treatment' | 'vibe' | 'piece' | 'code' | 'library' | 'sounds'; film?: string; comp?: string; kit?: boolean; version?: number }
+export interface LiveEvent { type: 'sound' | 'treatment' | 'vibe' | 'piece' | 'code' | 'library' | 'sounds' | 'comments'; film?: string; comp?: string; kit?: boolean; version?: number }
 
 const listeners = new Set<(ev: LiveEvent) => void>();
 let source: EventSource | null = null;
