@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync, watch } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { dirname, extname, join, relative, sep } from 'node:path';
 import { PKG, loadConfig, projectRoot } from './project.mjs';
 import { TYPES, serveProject } from './static.mjs';
 import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, listComps, listFilms, planRender } from './lib.mjs';
@@ -21,6 +21,13 @@ import { cleanEntry, cleanSettings, soundPathOk } from '../kit/sound.mjs';
 
 const PROMO = projectRoot();
 const CONFIG = await loadConfig(PROMO);
+// the project's folder from the top of its repository, for the paths in comment notes ('promo' for Modality's)
+const BASE = (() => {
+  for (let dir = PROMO; ; dir = dirname(dir)) {
+    if (existsSync(join(dir, '.git'))) return relative(dir, PROMO).split(sep).join('/');
+    if (dirname(dir) === dir) return '';
+  }
+})();
 const OUT = join(PROMO, 'out');
 const PORT = +(process.env.MD_PORT || process.env.PROMO_STUDIO_PORT || 4321);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
@@ -174,7 +181,7 @@ async function api(req, res, url) {
     // returns the note for the clipboard, and keeps a quiet log of it
     const v = validateComment(body, films);
     if (v.error) return json(res, 400, v);
-    const note = formatComment(v.comment, films.find((f) => f.name === v.comment.film));
+    const note = formatComment(v.comment, films.find((f) => f.name === v.comment.film), BASE);
     logComment(OUT, v.comment, note);
     return json(res, 200, { note });
   }

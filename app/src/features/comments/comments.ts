@@ -13,7 +13,7 @@ import { refForScope } from '@/features/params/params';
 /** Something on the Edit tab's timeline a comment is about. */
 export interface TimelineItem { kind: 'clip' | 'object' | 'track' | 'beat' | 'timeline'; label: string; detail?: string; [k: string]: unknown }
 
-interface Pending { view: 'storyboard' | 'edit'; frame: string | null; t: number; target: Record<string, unknown> | null }
+interface Pending { view: 'storyboard' | 'edit' | 'brief'; frame: string | null; t: number; target: Record<string, unknown> | null }
 interface CommentState {
   open: boolean;
   title: string;
@@ -58,6 +58,15 @@ export function openBox(m: CommentAt, tab: FrameTab) {
   } else {
     showBox(x, y, label ? `${label} · ${m.key}` : String(m.key), { view: 'storyboard', frame: m.key ?? null, t: m.t, target: label ? { scope: m.scope, label, value } : null });
   }
+}
+
+/** Text selected in the brief, in its document (a section) or beside the storyboard's frames (a beat). */
+export interface Quote { text: string; section?: string | null; beat?: { time: string; title: string | null } | null }
+export function openQuoteBox(quote: Quote, t: number, x: number, y: number) {
+  if (!useStudio.getState().commentMode) return;
+  const short = quote.text.length > 48 ? `${quote.text.slice(0, 48)}…` : quote.text;
+  const where = quote.beat ? quote.beat.time : quote.section || 'Brief';
+  showBox(x, y, `“${short}” · ${where}`, { view: 'brief', frame: null, t, target: { quote } });
 }
 
 /** A comment on something on the Edit tab's timeline. */
@@ -110,6 +119,11 @@ export function useCommentKeys() {
       const s = useStudio.getState();
       if (m.type === 'key') onKey(String(m.key));
       else if (m.type === 'commentAt' && s.commentMode && s.route.view === 'work' && frameOf(s.route.tab) === tab) openBox(m as unknown as CommentAt, tab);
+      else if (m.type === 'commentQuote' && s.commentMode && s.route.view === 'work' && frameOf(s.route.tab) === tab) {
+        // text selected beside the storyboard's frames: the box opens under it, in the studio's coordinates
+        const r = frameFor(tab)!.getBoundingClientRect(), c = m.client as { x: number; y: number };
+        openQuoteBox({ text: String(m.text), beat: m.beat as Quote['beat'] }, Number(m.t) || 0, r.left + c.x, r.top + c.y);
+      }
     });
     // comment mode belongs to one preview at a time: the one on screen hears it, the one it left is told it's off
     let was: FrameTab | null = null;

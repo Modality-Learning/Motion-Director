@@ -224,13 +224,15 @@ the Export or Brief tab for next time. Renders made there land in `out/` as
 
 ## Notes from the studio
 
-In comment mode (**C**, or Comment at the top right; a speech-bubble cursor) the user clicks what they mean
-and writes the change. **Enter** copies a note, which they paste into the chat. Every note has the same
+In comment mode (**C**, or Comment at the top right; a speech bubble follows the pointer) the user clicks
+what they mean, or selects text in the brief (in its document, or beside the storyboard's frames), and writes
+the change. **Enter** copies a note, which they paste into the chat. Every note has the same
 shape, so you never have to guess what it is about:
 
 ```
 Motion Director comment on "<film title>"   (older notes: "Promo studio comment on")
-Film: films/<film>/index.html              the file to change
+Brief: …/BRIEF.md                         only for text quoted from the brief
+Film: films/<film>/index.html              the file to change (paths are from the top of the repository)
 Sounds: …/sound.json (cue "flap-3")        only for the timeline: where the clip lives, and its id
 Beats: the KEYS list in …/index.html       only for a beat
 About: <what was clicked> at <m:ss.s>       the target and the moment, with its current value
@@ -248,6 +250,8 @@ Comment: <what the user wants>
 | A clip | `gate-latch-click on the sound timeline at 0:11.7 (Track 12)` | The cue in `sound.json` by its id; follow [the sound design guide](SOUND.md) |
 | An object, a track or the timeline | `Summary panel on the sound timeline at 0:12.5` | The object's sounds, the track's, or that moment's |
 | A beat | `the "Into the summary" beat at 0:11.0 (its note)` | That key in `KEYS`: its timing, held state or note |
+| Text in the brief | `the brief's "Visual direction": "one continuous canvas"` | The brief first (`BRIEF.md`): change the words, then whatever in the film they describe; say if the film already differs |
+| Text beside a storyboard frame | `the beat at 9.4–16.2 s ("Give precise edits."): "the picker hops…"` | That beat in the brief and in the film: its row in the beats table, and the motion in that time range |
 
 Then:
 

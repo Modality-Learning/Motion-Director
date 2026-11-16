@@ -15,7 +15,7 @@ const FRAME = { ...ELEMENT, target: null, text: 'This beat drags.' };
 test('a comment about an element names it, its frame and its current text', () => {
   const { comment } = validateComment(ELEMENT, FILMS);
 
-  assert.equal(formatComment(comment, FILMS[0]), [
+  assert.equal(formatComment(comment, FILMS[0], 'promo'), [
     'Motion Director comment on "Tall film"',
     'Film: promo/films/tall/index.html',
     'About: The question (param:title-2) in "Where to start" (storyboard, 0:08.2), currently "Don\'t spend it / figuring out where"',
@@ -24,7 +24,7 @@ test('a comment about an element names it, its frame and its current text', () =
 });
 
 test('a comment on the background is about the frame, named by its title', () => {
-  const note = formatComment(validateComment(FRAME, FILMS).comment, FILMS[0]);
+  const note = formatComment(validateComment(FRAME, FILMS).comment, FILMS[0], 'promo');
 
   assert.match(note, /^About: "Where to start" \(storyboard, 0:08\.2\)$/m);
   assert.doesNotMatch(note, /param:/);
@@ -52,9 +52,9 @@ test('logs each note as one line, newest last', () => {
 
 test('preview comments: the video at a moment, an element with parameters, or any other element', () => {
   const at = { film: 'tall', view: 'motion', frame: null, t: 18.6, text: 'Hold this longer.' };
-  const video = formatComment(validateComment({ ...at, target: null }, FILMS).comment, FILMS[0]);
-  const title = formatComment(validateComment({ ...at, target: { scope: 'param:title-4', label: 'The tutor line', value: 'A tutor that\nknows you' } }, FILMS).comment, FILMS[0]);
-  const other = formatComment(validateComment({ ...at, target: { selector: '#aPlan > li.p-row > div.p-area', text: 'Price elasticity 3/3' } }, FILMS).comment, FILMS[0]);
+  const video = formatComment(validateComment({ ...at, target: null }, FILMS).comment, FILMS[0], 'promo');
+  const title = formatComment(validateComment({ ...at, target: { scope: 'param:title-4', label: 'The tutor line', value: 'A tutor that\nknows you' } }, FILMS).comment, FILMS[0], 'promo');
+  const other = formatComment(validateComment({ ...at, target: { selector: '#aPlan > li.p-row > div.p-area', text: 'Price elasticity 3/3' } }, FILMS).comment, FILMS[0], 'promo');
 
   assert.match(video, /^About: the video at 0:18\.6$/m);
   assert.match(title, /^About: The tutor line \(param:title-4\) at 0:18\.6, currently "A tutor that \/ knows you"$/m);
@@ -67,7 +67,7 @@ const CLIP = { film: 'tall', view: 'edit', frame: null, t: 11.5, text: 'Too loud
   target: { item: { kind: 'clip', label: 'gate-latch-click', detail: 'Track 12', id: 'flap-2' } } };
 
 test('a comment on a timeline clip names the clip, its track and its cue in the sound sheet', () => {
-  const note = formatComment(validateComment(CLIP, FILMS).comment, FILMS[0]);
+  const note = formatComment(validateComment(CLIP, FILMS).comment, FILMS[0], 'promo');
 
   assert.equal(note, [
     'Motion Director comment on "Tall film"',
@@ -79,7 +79,7 @@ test('a comment on a timeline clip names the clip, its track and its cue in the 
 });
 
 test('a comment on a beat points at the film\'s list of key moments', () => {
-  const note = formatComment(validateComment({ ...CLIP, target: { item: { kind: 'beat', label: 'Where to start', detail: 'Course materials spawn' } } }, FILMS).comment, FILMS[0]);
+  const note = formatComment(validateComment({ ...CLIP, target: { item: { kind: 'beat', label: 'Where to start', detail: 'Course materials spawn' } } }, FILMS).comment, FILMS[0], 'promo');
 
   assert.match(note, /^Beats: the KEYS list in promo\/films\/tall\/index\.html$/m);
   assert.match(note, /^About: the "Where to start" beat at 0:11\.5 \(Course materials spawn\)$/m);
@@ -89,4 +89,25 @@ test('a timeline item must be a known kind with a name', () => {
   assert.equal(validateComment({ ...CLIP, target: { item: { kind: 'wobble', label: 'x' } } }, FILMS).error, 'Bad target');
   assert.equal(validateComment({ ...CLIP, target: { item: { kind: 'clip', label: '' } } }, FILMS).error, 'Bad target');
   assert.equal(validateComment({ ...CLIP, view: 'sound' }, FILMS).error, 'Unknown view');
+});
+
+test('text selected in the brief is quoted, with where it was: a section, or a beat beside the storyboard', () => {
+  const at = { film: 'tall', view: 'brief', frame: null, t: 9.4, text: 'Make this calmer.' };
+  const section = formatComment(validateComment({ ...at, target: { quote: { text: 'one   continuous canvas', section: 'Visual direction' } } }, FILMS).comment, FILMS[0], 'promo');
+  const beat = formatComment(validateComment({ ...at, target: { quote: { text: 'the picker hops', beat: { time: '9.4–16.2 s', title: 'Give *precise* edits.' } } } }, FILMS).comment, FILMS[0]);
+
+  assert.match(section, /^Brief: promo\/films\/tall\/BRIEF\.md$/m);
+  assert.match(section, /^About: the brief's "Visual direction": "one continuous canvas"$/m);
+  assert.match(beat, /^Brief: films\/tall\/BRIEF\.md$/m); // a project at the top of its repository
+  assert.match(beat, /^About: the beat at 9\.4–16\.2 s \("Give precise edits\."\): "the picker hops"$/m);
+  assert.match(beat, /^Comment: Make this calmer\.$/m);
+});
+
+test('a quote needs its text, and keeps to its limits', () => {
+  const at = { film: 'tall', view: 'brief', frame: null, t: 0, text: 'x' };
+
+  assert.ok(validateComment({ ...at, target: { quote: { text: '   ' } } }, FILMS).error);
+  assert.ok(validateComment({ ...at, target: { quote: { text: 'a'.repeat(601) } } }, FILMS).error);
+  assert.ok(validateComment({ ...at, target: { quote: { text: 'ok', beat: { title: 'no time' } } } }, FILMS).error);
+  assert.ok(!validateComment({ ...at, target: { quote: { text: 'ok' } } }, FILMS).error);
 });

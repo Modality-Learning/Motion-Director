@@ -1,6 +1,7 @@
 // Comments from the studio are messages to an agent: the studio copies each one as a note to paste into
-// the chat. A plain log of the notes is also kept in promo/out/comments/<film>.jsonl (not tracked, not
-// shown anywhere), so a note that never got pasted can still be found.
+// the chat. A plain log of the notes is also kept in the project's out/comments/<film>.jsonl (not tracked,
+// not shown anywhere), so a note that never got pasted can still be found. Paths in a note are from the top
+// of the repository the project is in (base: promo for Modality's), so the agent can open them as written.
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -13,8 +14,9 @@ export function validateComment(body, films) {
   if (!film) return { error: 'Unknown film' };
   const text = str(body.text, 2000);
   if (!text || !text.trim()) return { error: 'Write a comment first' };
-  // 'motion' is the old name of the Edit tab's preview, kept so older logs still read
-  const view = ['storyboard', 'motion', 'edit'].includes(body.view) ? body.view : null;
+  // 'motion' is the old name of the Edit tab's preview, kept so older logs still read; 'brief' is text quoted from
+  // the brief, in its document or beside the storyboard's frames
+  const view = ['storyboard', 'motion', 'edit', 'brief'].includes(body.view) ? body.view : null;
   if (!view) return { error: 'Unknown view' };
   const t = typeof body.t === 'number' && Number.isFinite(body.t) && body.t >= 0 && body.t <= (film.duration ?? 3600) ? body.t : null;
   if (t === null) return { error: 'Bad time' };
@@ -22,7 +24,12 @@ export function validateComment(body, films) {
   // the target is an element with parameters, any other element (preview), or nothing (the frame or video)
   const tg = body.target;
   let target = null;
-  if (tg != null && tg.item != null) {
+  if (tg != null && tg.quote != null) {
+    // text selected in the brief: what was selected, and where (a section of the document, or a beat)
+    const q = tg.quote;
+    target = { quote: { text: str(typeof q.text === 'string' ? q.text.replace(/\s+/g, ' ').trim() : null, 600), section: q.section == null ? null : str(q.section, 160), beat: q.beat == null ? null : { time: str(q.beat.time, 40), title: q.beat.title == null ? null : str(q.beat.title, 160) } } };
+    if (!target.quote.text || (q.section != null && target.quote.section === null) || (q.beat != null && (!target.quote.beat.time || (q.beat.title != null && target.quote.beat.title === null)))) return { error: 'Bad target' };
+  } else if (tg != null && tg.item != null) {
     // something on the Edit tab's timeline: a clip, an object, a track, a beat, or the timeline at a time
     const it = tg.item;
     target = { item: { kind: ITEM_KINDS.includes(it.kind) ? it.kind : null, label: str(it.label, 120), detail: it.detail == null ? null : str(it.detail, 240), id: it.id == null ? null : str(it.id, 60) } };
@@ -37,10 +44,17 @@ export function validateComment(body, films) {
   return { comment: { film: film.name, view, frame, t, target, text: text.trim() } };
 }
 
-/** The comment as a note to paste into a chat with an agent. */
-export function formatComment(c, film) {
+/** The comment as a note to paste into a chat with an agent. base is the project's folder from the top of its
+ * repository ('' when the project is the repository). */
+export function formatComment(c, film, base = '') {
   const time = `${Math.floor(c.t / 60)}:${(c.t % 60).toFixed(1).padStart(4, '0')}`;
   const tg = c.target, current = tg?.value ? `, currently "${tg.value.replace(/\n/g, ' / ')}"` : '';
+  const dir = `${base ? `${base}/` : ''}films/${film.name}`;
+  if (tg?.quote) {
+    const q = tg.quote, plain = (s) => s.replace(/\*\*|__|`|(?<![\w*])[*_]|[*_](?![\w*])/g, '');
+    const where = q.beat ? `the beat at ${q.beat.time}${q.beat.title ? ` ("${plain(q.beat.title)}")` : ''}` : q.section ? `the brief's "${plain(q.section)}"` : 'the brief';
+    return [`Motion Director comment on "${film.title}"`, `Brief: ${dir}/BRIEF.md`, `Film: ${dir}/index.html`, `About: ${where}: "${q.text}"`, `Comment: ${c.text}`].join('\n');
+  }
   let about;
   if (c.view === 'storyboard') {
     const frame = `"${c.frame}" (storyboard, ${time})`;
@@ -51,12 +65,12 @@ export function formatComment(c, film) {
     about = it.kind === 'beat' ? `the "${it.label}" beat at ${time}${detail}`
       : it.kind === 'timeline' ? `the sound timeline at ${time}`
       : `${it.label} on the sound timeline at ${time}${detail}`;
-    const where = it.kind === 'beat' ? `Beats: the KEYS list in promo/films/${film.name}/index.html` : `Sounds: promo/films/${film.name}/sound.json${it.id ? ` (${it.kind === 'clip' ? 'cue' : it.kind} "${it.id}")` : ''}`;
-    return [`Motion Director comment on "${film.title}"`, `Film: promo/films/${film.name}/index.html`, where, `About: ${about}`, `Comment: ${c.text}`].join('\n');
+    const where = it.kind === 'beat' ? `Beats: the KEYS list in ${dir}/index.html` : `Sounds: ${dir}/sound.json${it.id ? ` (${it.kind === 'clip' ? 'cue' : it.kind} "${it.id}")` : ''}`;
+    return [`Motion Director comment on "${film.title}"`, `Film: ${dir}/index.html`, where, `About: ${about}`, `Comment: ${c.text}`].join('\n');
   } else if (tg.scope) about = `${tg.label} (${tg.scope}) at ${time}${current}`;
   // an element without parameters: what it shows, and a selector to find it in the film's code
   else about = `${tg.text ? `"${tg.text}" ` : ''}(${tg.selector}) at ${time}`;
-  return [`Motion Director comment on "${film.title}"`, `Film: promo/films/${film.name}/index.html`, `About: ${about}`, `Comment: ${c.text}`].join('\n');
+  return [`Motion Director comment on "${film.title}"`, `Film: ${dir}/index.html`, `About: ${about}`, `Comment: ${c.text}`].join('\n');
 }
 
 /** Appends the note to the film's log, newest last. */

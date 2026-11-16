@@ -17,6 +17,7 @@ import { getJson } from '@/lib/api';
 import { onLive } from '@/lib/live';
 import { Markdown, parse } from '@/lib/markdown';
 import { useStudio } from '@/lib/store';
+import { openQuoteBox } from '@/features/comments/comments';
 
 export function BriefTab() {
   const doc = useBrief();
@@ -43,6 +44,21 @@ export function BriefTab() {
 }
 
 type Doc = { key: string; text: string | null } | null;
+
+/* In comment mode, text selected in the brief takes a comment: the box opens under the selection, quoting it with
+ * the section it is in (the nearest heading above it). */
+function quoteSelection(e: React.MouseEvent<HTMLElement>) {
+  if (!useStudio.getState().commentMode) return;
+  const sel = document.getSelection(), text = sel ? sel.toString().replace(/\s+/g, ' ').trim() : '';
+  const article = e.currentTarget;
+  if (!text || !sel?.anchorNode || !article.contains(sel.anchorNode)) return;
+  let block: Element | null = sel.anchorNode.nodeType === 1 ? (sel.anchorNode as Element) : sel.anchorNode.parentElement;
+  while (block && block.parentElement !== article) block = block.parentElement;
+  let section: string | null = null;
+  for (let n: Element | null = block; n; n = n.previousElementSibling) if (/^H[1-6]$/.test(n.tagName)) { section = n.textContent?.trim() || null; break; }
+  const r = sel.getRangeAt(0).getBoundingClientRect();
+  openQuoteBox({ text: text.slice(0, 600), section }, 0, r.left + r.width / 2, r.bottom);
+}
 /** The open piece's BRIEF.md, kept current as the file changes. */
 function useBrief(): Doc {
   const route = useStudio((s) => s.route);
@@ -70,7 +86,7 @@ function BriefDoc({ doc, blocks, beatsAt, beats }: { doc: Doc; blocks: Block[] |
 
   return (
     <ScrollArea className="min-h-0 [&_[data-slot=scroll-area-viewport]>div]:block!">
-      <article aria-label="Brief" className="grid gap-3 px-5 py-4 text-[14px]">
+      <article aria-label="Brief" onMouseUp={quoteSelection} className="grid gap-3 px-5 py-4 text-[14px]">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <FileText className="size-3.5" aria-hidden="true" />
           <span className="font-semibold tracking-wide uppercase">Brief</span>
