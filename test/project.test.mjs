@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PKG, findRoot, kitFile, loadConfig } from '../server/project.mjs';
 import { projectFile } from '../server/static.mjs';
@@ -54,4 +54,22 @@ test('only the served folders are reachable, and nothing outside the project', a
   assert.equal(await projectFile(root, '/motion-director.config.mjs'), null);
   assert.equal(await projectFile(root, '/films/../motion-director.config.mjs'), null);
   assert.equal(await projectFile(root, '/films/%2e%2e/motion-director.config.mjs'), null);
+});
+
+test("the config can put the sound library's audio elsewhere: ~ is home, a relative path is from the project", async () => {
+  const had = process.env.MD_SOUNDS;
+  try {
+    delete process.env.MD_SOUNDS;
+    const root = project("export default { sounds: '../shared-sfx' };\n");
+    const cfg = await loadConfig(root);
+
+    assert.equal(cfg.sounds, join(root, '..', 'shared-sfx'));
+    assert.equal(process.env.MD_SOUNDS, cfg.sounds); // what the studio and every command read
+
+    delete process.env.MD_SOUNDS;
+    assert.equal((await loadConfig(project("export default { sounds: '~/sfx' };\n"))).sounds, join(homedir(), 'sfx'));
+    assert.equal((await loadConfig(project("export default {};\n"))).sounds, null);
+  } finally {
+    if (had === undefined) delete process.env.MD_SOUNDS; else process.env.MD_SOUNDS = had;
+  }
 });

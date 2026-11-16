@@ -13,7 +13,8 @@ import { AUDIO_EXT, soundPathOk, validateLibrary, validateSheet } from '../kit/s
 import { NAME } from '../render/params.mjs';
 import { PKG } from './project.mjs';
 
-export const soundsDir = (promoDir) => resolve(process.env.PROMO_SOUNDS || join(promoDir, 'sounds'));
+// MD_SOUNDS comes from the project's config (sounds: '…', see project.mjs); PROMO_SOUNDS is the older name
+export const soundsDir = (promoDir) => resolve(process.env.MD_SOUNDS || process.env.PROMO_SOUNDS || join(promoDir, 'sounds'));
 const libraryFile = (promoDir) => join(promoDir, 'sounds', 'library.json');
 const sheetFile = (promoDir, film) => join(promoDir, 'films', film, 'sound.json');
 const cacheDir = (promoDir) => join(promoDir, 'out', '.sound-cache');
@@ -28,7 +29,7 @@ export function soundFile(promoDir, rel) {
 }
 
 /** Every audio file in the library (a few folders deep), as library-relative paths. */
-export function listSounds(promoDir, { maxDepth = 5, max = 3000 } = {}) {
+export function listSounds(promoDir, { maxDepth = 6, max = 20000 } = {}) {
   const root = soundsDir(promoDir), out = [];
   if (!existsSync(root)) return out;
   const walk = (dir, depth) => {
@@ -142,7 +143,19 @@ export async function browserCopy(promoDir, file) {
 
 /** Every library sound measured by the audio tool (render/audio.swift analyze), keyed by its library path.
  * Results are kept in out/.sound-cache/analysis.json until a file changes, so only new sounds are measured. */
-export async function analyseLibrary(promoDir) {
+let analysing = null, again = false;
+export function analyseLibrary(promoDir) {
+  // One pass at a time: a big library copied in sends many changes, and each asks for the analysis. A call
+  // while a pass runs waits for it and then one more pass (for files that arrived meanwhile), never a second
+  // pass over the same files at once.
+  if (analysing) { again = true; return analysing.then(() => analysing || analyseLibrary(promoDir)); }
+  analysing = analysePass(promoDir).finally(() => {
+    analysing = null;
+    if (again) { again = false; analyseLibrary(promoDir); }
+  });
+  return analysing;
+}
+async function analysePass(promoDir) {
   const store = join(cacheDir(promoDir), 'analysis.json');
   let cache = {}; try { cache = JSON.parse(readFileSync(store, 'utf8')); } catch { /* first run */ }
   const files = listSounds(promoDir), out = {}, todo = [];

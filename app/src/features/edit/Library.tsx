@@ -1,11 +1,9 @@
 // The library (left): your sound files (never tracked). Play one, drag it onto the timeline, + to add it at the
 // playhead, ✎ to edit it. Sound files dragged in from Finder are copied in.
-import { useRef, useState } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Pencil, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
 import { Hint } from '@/components/Hint';
 import { secs } from '@/lib/format';
@@ -18,19 +16,41 @@ import { MARKS } from './motion';
 import { addHere, importFiles, openEditor, soundDefaults, useEdit } from './store';
 import { PlayButton, SideK } from './controls';
 
+/* A library can hold thousands of sounds, so the list is virtual: it is one flat list of group headings and
+ * sounds at fixed heights, and only the rows in view (and a few either side) are built. The library also
+ * doesn't follow the timeline's changes (useEdit's rev): it changes only when the files, their settings or
+ * their analysis do. */
+const HEAD = 30, ROW = 32, OVERSCAN = 8;
+type Line = { kind: 'head'; id: string; label: string; special?: boolean; onClear?: () => void } | { kind: 'sound'; x: SoundInfo };
+
 export function Library() {
-  useEdit((s) => s.rev);
   const files = useEdit((s) => s.files), lib = useEdit((s) => s.lib), analysis = useEdit((s) => s.analysis);
   const query = useEdit((s) => s.query), traitFilter = useEdit((s) => s.traitFilter), suggest = useEdit((s) => s.suggest);
+  const closed = useEdit((s) => s.closed);
   const [dropping, setDropping] = useState(false);
   const colRef = useRef<HTMLElement>(null);
-  const info = soundsInfo(files, lib, analysis, fileLen), byPath = new Map(info.map((x) => [x.path, x]));
-  const shown = info.filter((x) => matches(x, query, traitFilter));
+  // a sound's length comes from its analysis, else from the file once decoded (read at the time, not followed)
+  const info = useMemo(() => soundsInfo(files, lib, analysis, fileLen), [files, lib, analysis]);
+  const byPath = useMemo(() => new Map(info.map((x) => [x.path, x])), [info]);
+  const shown = useMemo(() => info.filter((x) => matches(x, query, traitFilter)), [info, query, traitFilter]);
   const toggleTrait = (k: TraitKey) => { const next = new Set(traitFilter); if (next.has(k)) next.delete(k); else next.add(k); useEdit.setState({ traitFilter: next }); };
 
   // the whole library column takes the drop; only Finder files (not a sound dragged from the list)
   const fromFinder = (e: React.DragEvent) => e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('text/x-promo-sound');
-  const suggested = suggest ? suggestFor(suggest.kind === 'out' ? 'in' : suggest.kind, info).map((p) => byPath.get(p)!).filter(Boolean) : [];
+  const suggested = useMemo(() => (suggest ? suggestFor(suggest.kind === 'out' ? 'in' : suggest.kind, info).map((p) => byPath.get(p)!).filter(Boolean) : []), [suggest, info, byPath]);
+  const lines = useMemo(() => {
+    const out: Line[] = [];
+    const group = (id: string, label: string, items: SoundInfo[], extra: Partial<Extract<Line, { kind: 'head' }>> = {}) => {
+      if (!items.length) return;
+      out.push({ kind: 'head', id, label, ...extra });
+      if (!closed.has(id)) for (const x of items) out.push({ kind: 'sound', x });
+    };
+    if (suggest) group('suggest', `For ${MARKS[suggest.kind].suggest} at ${secs(suggest.t)}`, suggested, { special: true, onClear: () => useEdit.setState({ suggest: null }) });
+    const byFamily = new Map<string, SoundInfo[]>();
+    for (const x of shown) { const list = byFamily.get(x.family); if (list) list.push(x); else byFamily.set(x.family, [x]); }
+    for (const f of FAMILIES) group(f.id, f.label, byFamily.get(f.id) || []);
+    return out;
+  }, [shown, suggested, suggest, closed]);
   return (
     <aside ref={colRef} aria-label="Sound library"
       className={cn('min-h-0 min-w-0 overflow-hidden border-r bg-card', dropping && 'bg-primary/8 shadow-[inset_0_0_0_2px_var(--primary)]')}
@@ -52,14 +72,7 @@ export function Library() {
           ))}
         </div>
         {files.length ? (shown.length || suggest ? (
-          <ScrollArea className="min-h-0 [&_[data-slot=scroll-area-viewport]>div]:block!">
-            <div className="grid content-start gap-1.5 pr-2.5">
-            {suggest ? (
-              <Group id="suggest" special label={`For ${MARKS[suggest.kind].suggest} at ${secs(suggest.t)}`} items={suggested} onClear={() => useEdit.setState({ suggest: null })} />
-            ) : null}
-            {FAMILIES.map((f) => <Group key={f.id} id={f.id} label={f.label} items={shown.filter((x) => x.family === f.id)} />)}
-            </div>
-          </ScrollArea>
+          <VirtualList lines={lines} />
         ) : <p className="text-sm text-muted-foreground">No sound matches.</p>)
           : <p className="text-sm text-muted-foreground">No sounds yet. Drag sound files here from Finder.</p>}
         <p className={cn('rounded-lg border border-dashed px-2.5 py-2 text-center text-sm text-muted-foreground', dropping && 'border-primary text-foreground')}>Drop sound files from Finder here to add them.</p>
@@ -68,34 +81,53 @@ export function Library() {
   );
 }
 
-function Group({ id, label, items, special = false, onClear }: { id: string; label: string; items: SoundInfo[]; special?: boolean; onClear?: () => void }) {
-  const closed = useEdit((s) => s.closed.has(id));
-  if (!items.length) return null;
-  const setOpen = (open: boolean) => { const next = new Set(useEdit.getState().closed); if (open) next.delete(id); else next.add(id); useEdit.setState({ closed: next }); };
+function VirtualList({ lines }: { lines: Line[] }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState({ top: 0, height: 600 });
+  useLayoutEffect(() => {
+    const el = box.current; if (!el) return;
+    const measure = () => setView({ top: el.scrollTop, height: el.clientHeight });
+    const ro = new ResizeObserver(measure); ro.observe(el); measure();
+    return () => ro.disconnect();
+  }, []);
+  // each line's top, so a scroll position finds its first line without walking the list
+  const tops = useMemo(() => { const t = new Array<number>(lines.length + 1); t[0] = 0; lines.forEach((l, i) => { t[i + 1] = t[i] + (l.kind === 'head' ? HEAD : ROW); }); return t; }, [lines]);
+  const firstAt = (y: number) => { let lo = 0, hi = lines.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (tops[mid + 1] <= y) lo = mid + 1; else hi = mid; } return lo; };
+  const from = Math.max(0, firstAt(view.top) - OVERSCAN), to = Math.min(lines.length, firstAt(view.top + view.height) + OVERSCAN + 1);
   return (
-    <Collapsible open={!closed} onOpenChange={setOpen} className={cn(special && 'rounded-lg border border-primary/30 bg-primary/6 px-1.5 pt-0.5 pb-1.5')}>
-      <div className="flex items-center gap-1.5">
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="xs" className="group flex-1 justify-start tracking-wide text-muted-foreground uppercase">
-            <ChevronRight className="transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none" />{label}
-          </Button>
-        </CollapsibleTrigger>
-        {onClear ? <Hint label="Close"><Button variant="ghost" size="icon-xs" aria-label={`Close ${label}`} onClick={onClear} className="text-muted-foreground"><X /></Button></Hint> : null}
-      </div>
-      <CollapsibleContent>
-        <ul className="m-0 grid list-none content-start p-0">{items.map((x) => <LibRow key={x.path} x={x} />)}</ul>
-      </CollapsibleContent>
-    </Collapsible>
+    <div ref={box} onScroll={(e) => { const top = e.currentTarget.scrollTop; setView((v) => (v.top === top ? v : { ...v, top })); }} className="min-h-0 overflow-y-auto overscroll-contain pr-1.5 [scrollbar-width:thin]">
+      <ul aria-label="Sounds" className="relative m-0 list-none p-0" style={{ height: tops[lines.length] }}>
+        {lines.slice(from, to).map((l, i) => {
+          const at = tops[from + i];
+          return l.kind === 'head'
+            ? <GroupHead key={`h:${l.id}`} line={l} top={at} />
+            : <LibRow key={l.x.path} x={l.x} top={at} />;
+        })}
+      </ul>
+    </div>
   );
 }
 
-function LibRow({ x }: { x: SoundInfo }) {
+const GroupHead = memo(function GroupHead({ line, top }: { line: Extract<Line, { kind: 'head' }>; top: number }) {
+  const open = useEdit((s) => !s.closed.has(line.id));
+  const toggle = () => { const next = new Set(useEdit.getState().closed); if (open) next.add(line.id); else next.delete(line.id); useEdit.setState({ closed: next }); };
+  return (
+    <li style={{ top, height: HEAD }} className={cn('absolute inset-x-0 flex items-center gap-1.5', line.special && 'rounded-t-lg bg-primary/6')}>
+      <Button variant="ghost" size="xs" aria-expanded={open} onClick={toggle} className="group flex-1 justify-start tracking-wide text-muted-foreground uppercase">
+        <ChevronRight className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-90')} />{line.label}
+      </Button>
+      {line.onClear ? <Hint label="Close"><Button variant="ghost" size="icon-xs" aria-label={`Close ${line.label}`} onClick={line.onClear} className="text-muted-foreground"><X /></Button></Hint> : null}
+    </li>
+  );
+});
+
+const LibRow = memo(function LibRow({ x, top }: { x: SoundInfo; top: number }) {
   const f = x.path;
   const editing = useEdit((s) => s.editing === f), fresh = useEdit((s) => s.fresh.has(f)), own = useEdit((s) => !!s.lib.sounds[f]);
   return (
-    <li draggable data-path={f} title={tipOf(x)}
+    <li draggable data-path={f} title={tipOf(x)} style={{ top, height: ROW }}
       onDragStart={(e) => { e.dataTransfer.setData('text/x-promo-sound', f); e.dataTransfer.effectAllowed = 'copy'; loadSound(f); }}
-      className={cn('grid cursor-grab grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-1 rounded-lg px-1.5 py-1 hover:bg-primary/8', editing && 'bg-primary/8', fresh && 'bg-primary/14')}>
+      className={cn('absolute inset-x-0 grid cursor-grab grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-1 rounded-lg px-1.5 hover:bg-primary/8', editing && 'bg-primary/8', fresh && 'bg-primary/14')}>
       <PlayButton path={f} settings={() => soundDefaults(f)} icon />
       <span className="truncate text-sm" onDoubleClick={() => openEditor(f)}>
         {f.includes('/') ? <span className="text-muted-foreground">{f.slice(0, f.lastIndexOf('/') + 1)}</span> : null}{shortName(f)}
@@ -110,4 +142,4 @@ function LibRow({ x }: { x: SoundInfo }) {
       </Hint>
     </li>
   );
-}
+});

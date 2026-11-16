@@ -248,8 +248,10 @@ export function setDefaults(path: string, values: LibEntry) {
   history.commit();
   // a default equal to the built-in one says nothing, so it isn't kept (and the field doesn't read "Set")
   const clean = Object.fromEntries(Object.entries(values).filter(([k, v]) => v !== undefined && v !== SETTINGS[k as keyof Settings]?.def)) as LibEntry;
-  const { lib } = get();
-  if (Object.keys(clean).length) lib.sounds[path] = clean; else delete lib.sounds[path];
+  // a new library object, so what is worked out from it (the library list's families, tags and uses) follows
+  const sounds = { ...get().lib.sounds };
+  if (Object.keys(clean).length) sounds[path] = clean; else delete sounds[path];
+  set({ lib: { ...get().lib, sounds } });
   touch();
   pushVoices();
   // every sound changed in the last moment is saved, each with what it holds now
