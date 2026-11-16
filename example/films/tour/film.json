@@ -19,5 +19,48 @@
       "app/src/index.css"
     ]
   },
-  "params": {}
+  "params": {
+    "title-0": {
+      "label": "Opening line",
+      "type": "text",
+      "maxLength": 60,
+      "value": "Films about your product, made with Claude."
+    },
+    "title-1": {
+      "label": "Step 1 title",
+      "type": "text",
+      "maxLength": 60,
+      "value": "Set the vibe."
+    },
+    "title-2": {
+      "label": "Step 2 title (the treatment's heading)",
+      "type": "text",
+      "maxLength": 60,
+      "value": "Plan it out"
+    },
+    "title-3": {
+      "label": "Step 3 title",
+      "type": "text",
+      "maxLength": 60,
+      "value": "Edit the motion."
+    },
+    "title-4": {
+      "label": "Step 4 title",
+      "type": "text",
+      "maxLength": 60,
+      "value": "Sync sound to motion."
+    },
+    "title-5": {
+      "label": "Step 5 title",
+      "type": "text",
+      "maxLength": 60,
+      "value": "Export."
+    },
+    "title-6": {
+      "label": "Closing line",
+      "type": "text",
+      "maxLength": 60,
+      "value": "You direct. Claude edits."
+    }
+  }
 }

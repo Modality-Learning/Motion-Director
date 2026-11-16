@@ -492,6 +492,7 @@ function cursorAt(t) {
 const commenting = (t) => LOOPS.some((l) => t >= l.b.click - .8 && t < l.b.paste - .3);
 
 /* ── step titles: land in the middle, hold, swish out (Step 2 flies into the treatment instead) ── */
+// each title's words are a parameter (film.json: title-0 … title-6), so the studio can change them live
 const STEPS = [
   { b: B.open, k: '', m: 'Films about your product, made with Claude.' },
   { b: B.s1, k: 'Step 1', m: 'Set the vibe.' },
@@ -500,15 +501,20 @@ const STEPS = [
   { b: B.s4, k: 'Step 4', m: 'Sync sound to motion.' },
   { b: B.s5, k: 'Step 5', m: 'Export.' },
   { b: B.close, k: '', m: 'You direct. Claude edits.', last: true },
-];
+].map((st, i) => ({ ...st, key: `title-${i}` }));
+const titleText = (st) => String(Motion.param(st.key, st.m));
 const stepT = $('#stepT'), stepK = $('#stepK'), stepM = $('#stepM');
-let shownStep = -1;
+let shown = '';
 function setStep(i) {
-  if (shownStep === i) return; shownStep = i;
-  const s = STEPS[i]; stepK.textContent = s.k; stepK.style.display = s.k ? '' : 'none';
+  const s = STEPS[i], text = titleText(s), key = `${i}|${text}`;
+  if (shown === key) return; shown = key;
+  stepK.textContent = s.k; stepK.style.display = s.k ? '' : 'none';
   stepM.style.fontSize = s.k ? '' : '84px';
-  stepM.replaceChildren(...s.m.split(' ').map((w) => { const n = document.createElement('span'); n.textContent = w; return n; }));
+  stepM.replaceChildren(...text.split(/\s+/).filter(Boolean).map((w) => { const n = document.createElement('span'); n.textContent = w; return n; }));
 }
+// what each title covers, so the studio lists the one on screen and finds its element
+STEPS.forEach((st) => Motion.scope(`param:${st.key}`, { ranges: [[st.b.in, st.last ? DUR : st.b.out + (st.fly ? .75 : .7)]], host: stepM }));
+Motion.scope('param:title-2', { ranges: [[B.s2.in, B.fly[1]], [B.fly[1], B.s3.in]], host: [stepM, $('#tH1')] });
 const H1AT = W(52, 64 + 30);
 
 /* ── keyframes pass: the key moments, held. The transitions pass replaces the hold with draw(t). ── */
@@ -633,7 +639,8 @@ function drawStudio(t) {
   PINS.forEach((pin, j) => { const a = B.pins + j * B.pinGap, p = spring(t - a); op(pin.n, t >= a ? clamp(p * 2) : 0); pin.n.style.transform = `translateY(${(1 - p) * -60}px) rotate(${(1 - p) * (j % 2 ? 3 : -3)}deg)`; });
 
   /* treatment: the heading takes over from the flying title; the beats are there; the second gets rewritten */
-  op($('#tH1'), t >= B.fly[1] ? 1 : 0);
+  const h1 = $('#tH1'), h1t = titleText(STEPS[2]); if (h1.textContent !== h1t) h1.textContent = h1t; // Step 2's title is the treatment's heading
+  op(h1, t >= B.fly[1] ? 1 : 0);
   TROWS.forEach((r, j) => {
     const p = P(t, B.rows + j * .12, B.rows + j * .12 + .45, E.out); op(r.n, t >= B.rows + j * .12 ? 1 : 0);
     r.n.querySelector('.t').style.opacity = p; r.fr.style.opacity = p;
