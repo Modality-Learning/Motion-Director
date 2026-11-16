@@ -1,3 +1,6 @@
 *
 !.gitignore
 !library.json
+# the example ships the sounds it makes itself (make-sounds.mjs), so these are tracked
+!*.wav
+!make-sounds.mjs

@@ -1,3 +1,18 @@
 {
-  "sounds": {}
+  "sounds": {
+    "soft-whoosh.wav": { "family": "whooshes", "tags": ["airy", "soft", "sweep", "swish", "smooth"], "description": "An airy, smooth whoosh: filtered air that sweeps up and back down, peaking in the middle.", "uses": ["transition", "slide"], "organised": "2026-11-16", "hit": 0.29 },
+    "quick-swish.wav": { "family": "whooshes", "tags": ["swipe", "bright", "fast", "swish", "exit"], "description": "A fast, bright swipe that rushes upward and is gone, good for a title leaving the frame.", "uses": ["transition", "slide"], "organised": "2026-11-16", "hit": 0.12 },
+    "title-swell.wav": { "family": "whooshes", "tags": ["swell", "airy", "rise", "soft", "arrival"], "description": "A gentle airy swell that builds and settles into a soft two-note bloom at the end; the peak is near the end of the file.", "uses": ["reveal", "transition"], "organised": "2026-11-16", "hit": 0.49 },
+    "ball-bounce.wav": { "family": "impacts", "tags": ["rubber", "bounce", "thump", "floor", "round"], "description": "A rubber ball hitting a floor: a quick pitched thump with a small noise transient and a fast decay.", "uses": ["impact"], "organised": "2026-11-16", "hit": 0.005 },
+    "soft-impact.wav": { "family": "impacts", "tags": ["deep", "soft", "thud", "cinematic", "low"], "description": "A deep, soft cinematic thud with a short low tail, for something landing.", "uses": ["impact", "reveal"], "organised": "2026-11-16", "hit": 0.004 },
+    "pop.wav": { "family": "clicks", "tags": ["pop", "bubble", "round", "blip", "friendly"], "description": "A round, bubbly pop: a short pitched blip that drops quickly, for something appearing.", "uses": ["appear"], "organised": "2026-11-16", "hit": 0.002 },
+    "pop-high.wav": { "family": "clicks", "tags": ["pop", "bubble", "high", "blip", "light"], "description": "A higher, lighter version of the bubbly pop, for small things appearing.", "uses": ["appear"], "organised": "2026-11-16", "hit": 0.002 },
+    "click.wav": { "family": "clicks", "tags": ["click", "crisp", "mouse", "trackpad", "tick"], "description": "A crisp, dry UI click like a mouse or trackpad press.", "uses": ["ui-click"], "organised": "2026-11-16", "hit": 0.001 },
+    "latch.wav": { "family": "clicks", "tags": ["latch", "toggle", "switch", "double", "heavy"], "description": "A toggle latch: two tiny clicks close together, the second slightly heavier.", "uses": ["ui-click"], "organised": "2026-11-16", "hit": 0.04 },
+    "key-tap.wav": { "family": "typing", "tags": ["key", "keyboard", "tap", "soft", "single"], "description": "A single soft keyboard key press.", "uses": ["typing", "ui-click"], "organised": "2026-11-16", "hit": 0.002 },
+    "typing.wav": { "family": "typing", "tags": ["typing", "keyboard", "keys", "quick", "soft"], "description": "A quick run of about fourteen soft key taps with uneven timing, like fast typing.", "uses": ["typing"], "organised": "2026-11-16", "hit": 0.005 },
+    "success-chime.wav": { "family": "alerts", "tags": ["chime", "bell", "friendly", "soft", "fifth"], "description": "Two soft bell-like notes a fifth apart, friendly and short, for a confirmation such as copied.", "uses": ["success", "notification"], "organised": "2026-11-16", "hit": 0.005 },
+    "paper-slide.wav": { "family": "paper", "tags": ["paper", "card", "slide", "desk", "soft"], "description": "Soft filtered noise that rises and falls, like a card sliding across a desk.", "uses": ["paper", "slide"], "organised": "2026-11-16", "hit": 0.28 },
+    "shutter.wav": { "family": "clicks", "tags": ["shutter", "camera", "capture", "mechanical", "export"], "description": "A light camera shutter: two quick mechanical clicks with a short noise burst between them.", "uses": ["ui-click", "success"], "organised": "2026-11-16", "hit": 0.004 }
+  }
 }

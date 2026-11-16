@@ -1,0 +1,115 @@
+{
+  "pins": [
+    {
+      "id": "launch-cadence",
+      "kind": "video",
+      "group": "Motion",
+      "url": "https://www.youtube.com/watch?v=YewAJPawE7I",
+      "at": "0:06",
+      "title": "Introducing Claude Whiteboards, Sheets, and Data (Claude, 0:58)",
+      "take": "Motion like this: a new beat every second or two, quick ease-outs that land and settle, and the product's own UI filling the frame while the camera glides through it."
+    },
+    {
+      "id": "cursor-lead",
+      "kind": "video",
+      "group": "Motion",
+      "url": "https://www.youtube.com/watch?v=UAmKyyZ-b9E",
+      "at": "0:17",
+      "title": "Introducing Cowork (Anthropic, 1:09)",
+      "take": "The cursor leads: it hovers, presses, and the press is the beat. Ours points at things to comment on them."
+    },
+    {
+      "id": "selected-words",
+      "kind": "video",
+      "group": "Motion",
+      "url": "https://www.youtube.com/watch?v=en0GuyhieQk",
+      "at": "1:13",
+      "title": "Introducing Claude Dashboards and Claude Motion (Claude, 1:22)",
+      "take": "Words that get a selection box, as if being edited. A way to put a step title inside the UI."
+    },
+    {
+      "id": "ui-talks",
+      "kind": "note",
+      "group": "Motion",
+      "take": "Let the UI do the talking. Panels slide in from their edges, rows stagger in, chips pop, buttons press. Build each tab up in front of the viewer instead of cutting to it finished."
+    },
+    {
+      "id": "step-titles",
+      "kind": "note",
+      "group": "Type",
+      "take": "No title bar across the top. Step titles land in the middle of the frame (\"Step 1 · Set the vibe\"), hold a beat, then swish out sideways as the UI takes over."
+    },
+    {
+      "id": "titles-in-ui",
+      "kind": "note",
+      "group": "Type",
+      "take": "Some titles live inside the UI: the step name becomes the tab being clicked, a beat label on the timeline, or a line typed into the comment box."
+    },
+    {
+      "id": "host-grotesk",
+      "kind": "type",
+      "group": "Type",
+      "font": "Host Grotesk",
+      "sample": "Step 2 · Plan it out",
+      "take": "The studio's own face for everything, titles included: semibold, tight tracking, sentence case."
+    },
+    {
+      "id": "studio-neutrals",
+      "kind": "colour",
+      "group": "Colour",
+      "colours": ["#0E0E10", "#161618", "#232326", "#ECECEE", "#9D9DA6", "#FAFAF7"],
+      "take": "The studio is near-black and grey; it floats on a pale stage. Colour comes only from what means something."
+    },
+    {
+      "id": "meaning-colours",
+      "kind": "colour",
+      "group": "Colour",
+      "colours": ["#E8952E", "#4FC9BC", "#B99AF0", "#E6BF4E", "#78A9F5", "#3CCF7F"],
+      "take": "The colours that carry meaning: the hit point (amber), the objects and motion graph (teal, lilac, gold, blue), and copied (green). Use them where they mean that, nowhere else."
+    },
+    {
+      "id": "soft-shadows",
+      "kind": "note",
+      "group": "Look",
+      "take": "Soft shadows: the studio window lifted off the stage by a wide, faint shadow (about 0 30px 80px at 20% black), and every popover lifted the same way."
+    },
+    {
+      "id": "edit-tab",
+      "kind": "image",
+      "group": "Callouts",
+      "src": "vibe/studio-edit.png",
+      "title": "The Edit tab",
+      "take": "The heart of the film: sound library, preview, timeline and inspector. Rebuild it at its real size from the app's components."
+    },
+    {
+      "id": "vibe-tab",
+      "kind": "image",
+      "group": "Callouts",
+      "src": "vibe/studio-vibe.png",
+      "title": "The Vibe tab",
+      "take": "Pins dropping onto the board one by one: a video, a palette, a note with a take."
+    },
+    {
+      "id": "treatment-tab",
+      "kind": "image",
+      "group": "Callouts",
+      "src": "vibe/studio-treatment.png",
+      "title": "The Treatment tab",
+      "take": "Beats in the text beside the frames they describe. Clicking a paragraph comments on it."
+    },
+    {
+      "id": "export-tab",
+      "kind": "image",
+      "group": "Callouts",
+      "src": "vibe/studio-export.png",
+      "title": "The Export tab",
+      "take": "The drift check and the render. The ending lands here."
+    },
+    {
+      "id": "the-ball",
+      "kind": "note",
+      "group": "Sound",
+      "take": "The film being edited is Hello, motion: a few shapes and a ball that bounces three times. Its landings are where the bounce sounds lock on, on the beat."
+    }
+  ]
+}
