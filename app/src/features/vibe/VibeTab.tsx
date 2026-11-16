@@ -194,7 +194,8 @@ function PinBody({ pin, base }: { pin: Pin; base: string }) {
       </a>
     );
   }
-  if (pin.kind === 'colour') return <div className="flex h-24">{pin.colours?.map((c) => <div key={c} style={{ background: c }} className="flex flex-1 items-end p-1.5"><span className="rounded bg-background/80 px-1 font-mono text-[11px]">{c}</span></div>)}</div>;
+  // up to four swatches a row, so a long palette wraps instead of squeezing its labels
+  if (pin.kind === 'colour') return <div className="grid grid-cols-4">{pin.colours?.map((c) => <div key={c} style={{ background: c }} className="flex h-16 items-end p-1.5"><span className="rounded bg-background/80 px-1 font-mono text-[11px]">{c}</span></div>)}</div>;
   if (pin.kind === 'type') return <div className="grid gap-1 px-3 pt-3"><span className="text-xs text-muted-foreground">{pin.font}</span><span style={{ fontFamily: `"${pin.font}", serif` }} className="text-2xl leading-tight">{pin.sample || 'The quick brown fox'}</span></div>;
   if (pin.kind === 'music') {
     return (
