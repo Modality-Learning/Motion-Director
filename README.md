@@ -167,6 +167,9 @@ arrivals, fastest moments, landings and exits. These are the impacts a sound is 
 each sound in the library too (hit point, length, character) and sorts it into a family by name and by
 how it sounds.
 
+The link icon beside it shows whether comments reach Claude: click it to check again, or, once it has failed a
+few times, to copy a repair request for Claude. Starting the studio from a Claude session takes over one already
+running for the same project on that port, so a new session heals the link by starting it again.
 **Live updates.** The studio follows files changed outside it (by an agent, an editor or another
 window) without a reload. Sounds and library settings update in place, new sound files appear, and a
 change to a film's or composition's code reloads its preview at the playhead.

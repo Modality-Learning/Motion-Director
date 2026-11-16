@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, ChevronRight, Clock, Loader2, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { tell } from '@/lib/frames';
 import { go, useStudio, type Tab } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { copy } from './comments';
-import { sendAll, setStatus, useCommentList, type StudioComment } from './list';
+import { STALE_MS, sendAll, setStatus, useCommentList, type StudioComment } from './list';
 
 const TAB_OF: Record<StudioComment['view'], Tab> = { storyboard: 'treatment', treatment: 'treatment', edit: 'edit', motion: 'edit', vibe: 'vibe' };
 const WHERE: Record<Tab, string> = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' };
@@ -22,6 +22,9 @@ export const shortAbout = (about: string | null) => (about || '')
 export function CommentsPanel() {
   const { open, comments, session } = useCommentList();
   const [showDone, setShowDone] = useState(false);
+  // a clock for the "not picked up?" hint on comments that have sat with Claude a while
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { if (!open) return; const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, [open]);
   if (!open) return null;
   const by = (s: StudioComment['status']) => comments.filter((c) => c.status === s);
   const queued = by('queued'), sent = by('sent'), done = by('resolved').reverse();
@@ -47,7 +50,7 @@ export function CommentsPanel() {
             : <p className="text-sm text-muted-foreground">⌘Enter in a comment queues it here.</p>}
         </Group>
         <Group title="With Claude" count={sent.length}>
-          {sent.length ? sent.map((c) => <Item key={c.id} c={c} icon={<Loader2 className="text-muted-foreground motion-safe:animate-spin" />} />)
+          {sent.length ? sent.map((c) => <Item key={c.id} c={c} icon={<Loader2 className="text-muted-foreground motion-safe:animate-spin" />} stale={now - Date.parse(c.changed || c.at) > STALE_MS} />)
             : <p className="text-sm text-muted-foreground">Nothing in progress.</p>}
         </Group>
         <section className="grid gap-2">
@@ -77,7 +80,7 @@ function Group({ title, count, action, children }: { title: string; count: numbe
   );
 }
 
-function Item({ c, icon, onRemove }: { c: StudioComment; icon: React.ReactNode; onRemove?: () => void }) {
+function Item({ c, icon, onRemove, stale }: { c: StudioComment; icon: React.ReactNode; onRemove?: () => void; stale?: boolean }) {
   const tab = TAB_OF[c.view] ?? 'edit';
   // opens where the comment was made: its tab, and in Edit the moment it was about
   function open() {
@@ -96,6 +99,13 @@ function Item({ c, icon, onRemove }: { c: StudioComment; icon: React.ReactNode; 
         <span className="line-clamp-2 pl-6 text-xs text-muted-foreground">{WHERE[tab]}{c.view === 'vibe' ? '' : ` · ${fmtT(c.t)}`}{shortAbout(c.about) ? ` · ${shortAbout(c.about)}` : ''}</span>
         <span className="sr-only">{c.status === 'queued' ? 'Queued' : c.status === 'sent' ? 'With Claude' : 'Resolved'}. Open where it was made.</span>
       </button>
+      {/* sent a while ago and still open: Claude may never have had it (a held message, a session that ended) */}
+      {stale && c.note ? (
+        <button type="button" className="mt-1 ml-6 text-xs font-semibold text-warning underline-offset-2 hover:underline"
+          onClick={async () => { if (await copy(c.note!)) toast.success('Copied: paste it into Claude'); }}>
+          Not picked up? Copy it to paste
+        </button>
+      ) : null}
       {onRemove ? (
         <Button size="icon-sm" variant="ghost" aria-label={`Remove “${c.text.slice(0, 40)}” from the queue`} onClick={onRemove}
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"><X /></Button>

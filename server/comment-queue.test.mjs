@@ -4,7 +4,7 @@ import { appendFileSync, mkdirSync, mkdtempSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addComment, deliver, filmsOf, formatBatch, newId, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
+import { addComment, deliver, filmsOf, formatBatch, newId, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 
 const COMMENT = { film: 'tour', view: 'edit', frame: null, t: 3.5, target: { selector: '#ball', text: null }, text: 'Land the last bounce softer.' };
 const NOTE = 'Motion Director comment on "Tour"\nFilm: films/tour/index.html\nAbout: (#ball) at 0:03.5\nComment: Land the last bounce softer.';
@@ -81,4 +81,15 @@ test('delivery writes the auth line, then one user message, to the inbox', async
 
 test('delivery to a session that has gone fails cleanly, so the studio falls back to the clipboard', async () => {
   assert.equal(await deliver({ socket: join(tmpdir(), 'md-no-such.sock'), token: null }, 'x', 500), false);
+});
+
+test('the link check: true while something listens at the inbox, false once it has gone', async () => {
+  const socket = join(mkdtempSync(join(tmpdir(), 'md-probe-')), 'in.sock');
+  let wrote = '';
+  const server = net.createServer((s) => s.on('data', (d) => { wrote += d; }));
+  await new Promise((ok) => server.listen(socket, ok));
+  assert.equal(await probe({ socket }), true);
+  await new Promise((ok) => server.close(ok));
+  assert.equal(await probe({ socket }, 300), false);
+  assert.equal(wrote, ''); // it only connects: nothing reaches the session
 });

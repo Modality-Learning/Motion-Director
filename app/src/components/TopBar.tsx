@@ -6,6 +6,7 @@ import { Kbd } from '@/components/Kbd';
 import { TABS, commentable, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { openCount, useCommentList } from '@/features/comments/list';
+import { SessionLinkButton } from '@/features/comments/SessionLink';
 
 const label = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' } as const;
 
@@ -56,6 +57,7 @@ export function TopBar() {
         </span>
         {work && work.kind === 'film' ? (
           <div className="flex items-center gap-1">
+            <SessionLinkButton />
             {canComment ? (
               <Hint label="Comment mode (C)">
                 <Button size="sm" variant={commentMode ? 'default' : 'secondary'} aria-pressed={commentMode} aria-keyshortcuts="C" onClick={() => setCommentMode(!commentMode)}>

@@ -269,6 +269,18 @@ the change.
 - Without a session (a studio you did not start), Enter copies the note for them to paste instead. Same shape,
   same handling.
 
+**Keep the link whole.** The studio shows it as a link icon beside the Comment button (broken: comments are being
+copied instead). It breaks when the session that started the studio ends, or when the studio was started some other
+way (a terminal, an app's launcher). Heal it yourself:
+
+- When you start studio work in a session, and whenever the user says a comment didn't arrive (or pastes the
+  studio's repair request), check it: `curl -s http://127.0.0.1:<port>/api/session` should say `"connected": true`
+  and a `"sessionId"` equal to your `$CLAUDE_CODE_SESSION_ID`.
+- If it doesn't, start the studio again from this session, in the background, on the same port and project. It
+  asks the running one to stop and takes its place; the user's open page carries on. If it is already connected
+  to you, the command says so and exits.
+- Don't stop a studio for another project, or one on a port the user didn't ask for.
+
 Every comment has an id (`[c0a1b2c3]` above its note). **When you have made a comment's change, mark it done**
 with the command the message gives (`motion-director comments resolve <id> [id…]`): the studio's comments list
 moves it to Resolved at once, which is the user's only sign it was dealt with. Don't reply in the studio and don't

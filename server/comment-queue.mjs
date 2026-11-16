@@ -79,6 +79,17 @@ export function sessionInbox(env = process.env) {
   return env.CLAUDE_CODE_MESSAGING_SOCKET ? { socket: env.CLAUDE_CODE_MESSAGING_SOCKET, token: env.CLAUDE_CODE_MESSAGING_TOKEN || null } : null;
 }
 
+/** Is anything listening at the inbox? Connects and hangs up at once, without sending. */
+export function probe(inbox, timeoutMs = 1000) {
+  return new Promise((done) => {
+    const sock = net.createConnection(inbox.socket);
+    const finish = (ok) => { clearTimeout(timer); sock.destroy(); done(ok); };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    sock.on('connect', () => finish(true));
+    sock.on('error', () => finish(false));
+  });
+}
+
 /** Posts text into the session's inbox as a user message. Resolves true once it is written, false on any failure. */
 export function deliver(inbox, text, timeoutMs = 3000) {
   return new Promise((done) => {

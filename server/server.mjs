@@ -17,7 +17,7 @@ import { imageName, validateVibe } from './vibe.mjs';
 import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, listComps, listFilms, planRender } from './lib.mjs';
 import { saveValues } from '../render/params.mjs';
 import { formatComment, validateComment } from './comments.mjs';
-import { addComment, deliver, formatBatch, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
+import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
 import { cleanEntry, cleanSettings, soundPathOk } from '../kit/sound.mjs';
 
@@ -57,12 +57,30 @@ try { mkdirSync(join(OUT, 'comments'), { recursive: true }); watch(join(OUT, 'co
 
 /* Comments go to the Claude Code session the studio was started from, when there is one (comment-queue.mjs) */
 const INBOX = sessionInbox();
-const RESOLVE_CMD = `node "${join(PKG, 'bin', 'motion-director.mjs')}" comments resolve --root "${PROMO}"`;
+const SESSION_ID = process.env.CLAUDE_CODE_SESSION_ID || null;
+const BIN = join(PKG, 'bin', 'motion-director.mjs');
+const RESOLVE_CMD = `node "${BIN}" comments resolve --root "${PROMO}"`;
+// how to start this studio again from a Claude session (which then takes over this port): the repair request
+const RESTART_CMD = `${DEV ? 'MD_DEV=1 ' : ''}node "${BIN}" studio --root "${PROMO}" --port ${PORT}`;
+// the link to the session: checked at start, every 20 s, after a failed send, and when the studio asks
+const link = { ok: false, checkedAt: null, fails: 0 };
+async function checkLink() {
+  const was = link.ok;
+  link.ok = INBOX ? await probe(INBOX) : false;
+  link.checkedAt = new Date().toISOString();
+  link.fails = link.ok ? 0 : link.fails + 1;
+  if (link.ok !== was) announce({ type: 'session' });
+  return link;
+}
+const sessionState = () => ({ studio: true, project: PROMO, connected: link.ok, available: !!INBOX, sessionId: SESSION_ID, checkedAt: link.checkedAt, fails: link.fails, restart: RESTART_CMD });
+if (INBOX) { checkLink(); setInterval(checkLink, 20_000).unref(); }
+
 async function sendQueued(film) {
   const queued = readComments(OUT, film).filter((c) => c.status === 'queued');
-  if (!queued.length) return { sent: 0, via: INBOX ? 'session' : 'clipboard' };
+  if (!queued.length) return { sent: 0, via: link.ok ? 'session' : 'clipboard' };
   const text = formatBatch(queued, RESOLVE_CMD);
-  if (INBOX && await deliver(INBOX, text)) { setStatus(OUT, film, queued.map((c) => c.id), 'sent'); return { sent: queued.length, via: 'session' }; }
+  if (INBOX && await deliver(INBOX, text)) { setStatus(OUT, film, queued.map((c) => c.id), 'sent'); if (!link.ok) checkLink(); return { sent: queued.length, via: 'session' }; }
+  if (INBOX) checkLink(); // it was there and now isn't: the studio's link icon breaks
   // no session to send to (or it has gone): the notes go to the clipboard, and count as sent once copied
   return { sent: 0, via: 'clipboard', note: text, ids: queued.map((c) => c.id) };
 }
@@ -173,11 +191,26 @@ async function api(req, res, url) {
     const file = treatmentFile(piece.dir), text = file ? await readFile(join(piece.dir, file), 'utf8').catch(() => null) : null;
     return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text, file: file || 'TREATMENT.md' });
   }
+  if (req.method === 'GET' && pathname === '/api/session') {
+    // the link to Claude: whether comments reach it, and which session they go to (Claude compares it with its own)
+    return json(res, 200, sessionState());
+  }
+  if (req.method === 'POST' && pathname === '/api/session/check') {
+    // the studio's link icon, clicked: try again now
+    await checkLink();
+    return json(res, 200, sessionState());
+  }
+  if (req.method === 'POST' && pathname === '/api/shutdown') {
+    // a newer studio for this project, started from a Claude session, takes over this port (see takeOver below)
+    json(res, 200, { ok: true });
+    setTimeout(() => process.exit(0), 150);
+    return;
+  }
   if (req.method === 'GET' && pathname === '/api/comments') {
     // a film's comments and their statuses, for the comments list; session says whether Enter reaches Claude directly
     const film = url.searchParams.get('film');
-    const list = films.some((f) => f.name === film) ? readComments(OUT, film).map(({ id, at, status, changed, view, frame, t, text, about, target }) => ({ id, at, status, changed, view, frame, t, text, about, target })) : [];
-    return json(res, 200, { comments: list, session: !!INBOX });
+    const list = films.some((f) => f.name === film) ? readComments(OUT, film).map(({ id, at, status, changed, view, frame, t, text, about, target, note }) => ({ id, at, status, changed, view, frame, t, text, about, target, note })) : [];
+    return json(res, 200, { comments: list, session: link.ok });
   }
   if (req.method === 'GET' && pathname === '/api/vibe') {
     const piece = pieceOf(url.searchParams);
@@ -382,6 +415,24 @@ server.on('error', (e) => {
   else console.error(e);
   process.exit(1);
 });
+/* A studio for this project already on this port: if it is connected to this same session, it is the one to use;
+ * otherwise, started from a Claude session, this one takes over (it asks the old one to stop), so comments reach
+ * this session. That is how a broken link heals: start the studio again from the session. */
+async function running() {
+  try { const r = await fetch(`${ORIGIN}/api/session`, { signal: AbortSignal.timeout(800) }); return r.ok ? await r.json() : null; } catch { return null; }
+}
+const other = await running();
+if (other?.studio && other.project === PROMO) {
+  if (SESSION_ID && other.sessionId === SESSION_ID && other.connected) {
+    console.log(`Motion Director is already running at ${ORIGIN}/studio/, connected to this session.`);
+    process.exit(0);
+  }
+  if (INBOX) {
+    await fetch(`${ORIGIN}/api/shutdown`, { method: 'POST', headers: { 'x-promo-studio': '1' }, signal: AbortSignal.timeout(800) }).catch(() => null);
+    for (let i = 0; i < 30 && await running(); i++) await new Promise((ok) => setTimeout(ok, 100));
+    console.log(`Took over the studio on port ${PORT}${other.sessionId ? ' from another session' : ''}: comments now come to this session.`);
+  }
+}
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`Motion Director${CONFIG.name ? ` · ${CONFIG.name}` : ''}: ${ORIGIN}/studio/${DEV ? ' (development, hot reloading)' : ''}`);
   console.log(`project: ${PROMO}`);

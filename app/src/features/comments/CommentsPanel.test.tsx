@@ -2,12 +2,13 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CommentsPanel, shortAbout } from './CommentsPanel';
-import { openCount, useCommentList, type StudioComment } from './list';
+import { STALE_MS, openCount, useCommentList, type StudioComment } from './list';
+import { REPAIR_AFTER, SessionLinkButton, repairRequest } from './SessionLink';
 
 const c = (id: string, status: StudioComment['status'], text: string, extra: Partial<StudioComment> = {}): StudioComment =>
   ({ id, at: '2026-11-16T00:00:00Z', status, view: 'edit', frame: null, t: 3.5, text, about: '(#ball) at 0:03.5', target: null, ...extra });
 
-afterEach(() => { useCommentList.setState({ film: null, comments: [], session: false, open: false }); vi.restoreAllMocks(); });
+afterEach(() => { useCommentList.setState({ film: null, comments: [], session: false, open: false, link: null, checking: false }); vi.restoreAllMocks(); });
 
 const show = (comments: StudioComment[], session = true) => {
   useCommentList.setState({ film: 'tour', comments, session, open: true });
@@ -52,4 +53,38 @@ test('what a comment is about, without the scope id, time or current value', () 
   expect(shortAbout('(#ball) at 0:03.5')).toBe('(#ball)');
   expect(shortAbout('"Plan it out" (#stepM) in "Step 2" (storyboard, 0:20.9)')).toBe('"Plan it out" (#stepM) in "Step 2"');
   expect(shortAbout(null)).toBe('');
+});
+
+test('a comment with Claude for a while offers to copy it, in case it never arrived', () => {
+  const old = new Date(Date.now() - STALE_MS - 5000).toISOString(), fresh = new Date().toISOString();
+  show([c('a', 'sent', 'Old one.', { changed: old, note: 'the note' }), c('b', 'sent', 'New one.', { changed: fresh, note: 'n' })]);
+  expect(screen.getAllByRole('button', { name: /Not picked up\? Copy it/ })).toHaveLength(1);
+});
+
+const link = (over = {}) => ({ connected: true, available: true, fails: 0, checkedAt: null, restart: 'node bin studio --port 4332', ...over });
+const showLink = (l: ReturnType<typeof link>) => { useCommentList.setState({ link: l }); return render(<TooltipProvider><SessionLinkButton /></TooltipProvider>); };
+
+test('the link icon says whether comments reach Claude, and what a click does', () => {
+  showLink(link());
+  expect(screen.getByRole('button', { name: /^Connected to Claude.*Click to check/ })).toBeTruthy();
+});
+
+test('a broken link offers another try, then the repair once it has failed a few times', () => {
+  const { unmount } = showLink(link({ connected: false, fails: 1 }));
+  expect(screen.getByRole('button', { name: /Not connected.*Click to try again/ })).toBeTruthy();
+  unmount();
+  showLink(link({ connected: false, fails: REPAIR_AFTER }));
+  fireEvent.click(screen.getByRole('button', { name: /Not connected.*Click to repair/ }));
+  expect(screen.getByRole('button', { name: 'Copy repair request' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+});
+
+test('a studio never started from a session goes straight to the repair, with no retry', () => {
+  showLink(link({ connected: false, available: false }));
+  fireEvent.click(screen.getByRole('button', { name: /Click to repair/ }));
+  expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+});
+
+test('the repair request asks Claude to start the studio again from its session, with the command', () => {
+  expect(repairRequest('node bin studio --port 4332')).toMatch(/Start it again from this session[\s\S]*\nnode bin studio --port 4332$/);
 });

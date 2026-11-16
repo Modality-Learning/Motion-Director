@@ -11,6 +11,20 @@ export interface StudioComment {
   id: string; at: string; status: CommentStatus; changed?: string;
   view: 'storyboard' | 'edit' | 'motion' | 'treatment' | 'vibe'; frame: string | null; t: number;
   text: string; about: string | null; target: Record<string, unknown> | null;
+  /** the note as Claude gets it, to copy by hand if a sent one is never picked up */
+  note?: string;
+}
+/** The studio's link to the Claude session that started it (server.mjs /api/session). */
+export interface SessionLink {
+  /** comments reach Claude: the session's inbox answered the last check */
+  connected: boolean;
+  /** the studio was started from a Claude session at all */
+  available: boolean;
+  /** failed checks in a row */
+  fails: number;
+  checkedAt: string | null;
+  /** the command that starts this studio again from a Claude session, which takes over its port */
+  restart: string;
 }
 interface ListState {
   film: string | null;
@@ -19,8 +33,24 @@ interface ListState {
   session: boolean;
   /** the comments sidebar is open */
   open: boolean;
+  link: SessionLink | null;
+  checking: boolean;
 }
-export const useCommentList = create<ListState>(() => ({ film: null, comments: [], session: false, open: false }));
+export const useCommentList = create<ListState>(() => ({ film: null, comments: [], session: false, open: false, link: null, checking: false }));
+
+export async function loadLink() {
+  const r = await getJson<SessionLink>('/api/session').catch(() => null);
+  if (r) useCommentList.setState({ link: r, session: r.connected });
+}
+/** Try the link again now (the link icon, clicked). */
+export async function checkLink() {
+  useCommentList.setState({ checking: true });
+  const r = await post<SessionLink>('/api/session/check', {});
+  useCommentList.setState({ checking: false, ...(r.ok ? { link: r.data, session: r.data.connected } : {}) });
+  return r.ok ? r.data : null;
+}
+/** A comment sent this long ago and not yet resolved may not have reached Claude: the list offers to copy it. */
+export const STALE_MS = 90_000;
 
 export async function loadComments(film = useCommentList.getState().film) {
   if (!film) return;
@@ -55,5 +85,9 @@ export function useCommentListSync() {
     useCommentList.setState({ film, comments: [] });
     loadComments(film);
   }, [film]);
-  useEffect(() => onLive((ev) => { if (ev.type === 'comments' && ev.film === useCommentList.getState().film) loadComments(); }), []);
+  useEffect(() => { loadLink(); }, []);
+  useEffect(() => onLive((ev) => {
+    if (ev.type === 'comments' && ev.film === useCommentList.getState().film) loadComments();
+    if (ev.type === 'session') { loadLink(); loadComments(); }
+  }), []);
 }
