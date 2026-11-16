@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="../../kit/stage.css">
 <style>
 /* The tour: Motion Director's studio, rebuilt from app/src (1600 × 900 native px), and Claude's chat docked beside
- * it on a pale stage. Every step runs the comment loop: point at it, copy, paste into Claude, Claude edits.
+ * it on a pale stage. Every step runs the comment loop: point at it, Enter, Claude picks it up and edits.
  * Step titles land in the middle of the frame over a pale veil, then swish out as the UI takes over. */
 #stage { --font-ui: 'Host Grotesk', 'Helvetica Neue', Arial, sans-serif; --font-display: var(--font-ui); background: #F3F2EE; }
 #dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(28,31,36,.07) 1.4px, transparent 1.6px); background-size: 28px 28px; }
@@ -39,7 +39,12 @@
 .uline { top: 61px; height: 2px; background: var(--fg); border-radius: 1px; }
 .crumbs { left: 0; width: 1600px; top: 21px; text-align: center; color: var(--mu); font-size: 15px; }
 .crumbs b { color: var(--fg); font-weight: 600; }
-.cbtn { left: 1440px; top: 15px; height: 34px; width: 140px; border-radius: 8px; background: var(--sec); border: 1px solid var(--bd); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.slink { left: 1352px; top: 15px; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--mu); }
+.slink svg { width: 18px; height: 18px; }
+.chev { left: 1544px; top: 15px; height: 34px; min-width: 40px; border-radius: 8px; background: var(--sec); border: 1px solid var(--bd); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; }
+.chev svg { width: 15px; height: 15px; }
+.chev .n { min-width: 20px; height: 20px; border-radius: 10px; background: var(--warn); color: #2a1600; font: 600 12px/20px var(--font-ui); text-align: center; padding: 0 5px; }
+.cbtn { left: 1396px; top: 15px; height: 34px; width: 140px; border-radius: 8px; background: var(--sec); border: 1px solid var(--bd); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
 .cbtn.on { background: var(--fg); color: #111113; }
 .cbtn kbd { font: 600 11px/1 var(--font-ui); border: 1px solid var(--in); border-radius: 4px; padding: 2px 5px; color: inherit; opacity: .7; }
 .cbtn svg { width: 16px; height: 16px; }
@@ -168,6 +173,10 @@
 .ch-u { align-self: flex-end; max-width: 94%; background: #EDEBE4; border-radius: 14px; padding: 12px 16px; font-size: 17px; line-height: 1.45; }
 .ch-u p { margin: 0; }
 .ch-u b { font-weight: 600; }
+/* a note that arrived from the studio by itself, not typed here */
+.ch-n { background: #FFFFFF; border: 1px solid rgba(28,31,36,.14); box-shadow: 0 6px 18px -10px rgba(20,22,28,.35); }
+.from { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #8A8679; margin-bottom: 6px; }
+.from svg { width: 15px; height: 15px; }
 .ch-a { max-width: 96%; font-size: 20px; line-height: 1.4; }
 .ch-a .work, .work { color: #8A8679; font-size: 17px; display: flex; align-items: center; gap: 8px; }
 .ch-cmp { position: absolute; left: 16px; right: 16px; bottom: 16px; height: 64px; border-radius: 14px; border: 1px solid rgba(28,31,36,.2); background: #FFFFFF; display: flex; align-items: center; padding: 0 12px 0 16px; font-size: 18px; gap: 10px; }
@@ -219,21 +228,23 @@ const { clamp, lerp, E, P, el, op, tr, spring, impact, keyAt } = window.Motion;
 const fade = (t, a, b, c, d) => P(t, a, b, E.out) * (1 - P(t, c, d, E.in)); // in over a..b, out over c..d
 const r2 = (x) => Math.round(x * 100) / 100;
 
-/* ── the comment loop, the film's spine: point at it, copy, paste into Claude, Claude edits ──
+/* ── the comment loop, the film's spine: point at it, Enter, Claude picks it up by itself, and the change appears ──
  * L is when the camera has pushed in on the target; ty how long the comment takes to type; linger how long the
- * copied badges stay before the pointer heads for the chat (the first loop lingers so it reads). */
+ * sent badge holds before the camera pulls back to show the chat (the first loop lingers so it reads).
+ * send is when the note lands in Claude's chat; resolve when Claude marks it done and the count clears. */
 function loop(L, ty, linger = 0) {
   const o = { L, push: [L - .6, L], click: L + .3, type: [L + .6, L + .6 + ty] };
   o.enter = r2(o.type[1] + .2);
-  o.pull = [r2(o.enter + .8 + linger), r2(o.enter + 1.4 + linger)];
-  o.paste = r2(o.pull[1] + .3); o.send = r2(o.paste + .45); o.work = r2(o.send + .15); o.reply = r2(o.send + 1.05); o.apply = r2(o.reply + .2);
+  o.pull = [r2(o.enter + .35 + linger), r2(o.enter + .95 + linger)];
+  o.send = r2(o.enter + .55 + linger); o.work = r2(o.send + .25); o.reply = r2(o.send + 1.3); o.apply = r2(o.reply + .2); o.resolve = r2(o.apply + .6);
   return o;
 }
 
 /* ── named beats (film time): the animation and the sound moments both read these ── */
 const B = { open: { in: .3, out: 2.9 }, rise: 3.45, tabs: 4.05 };
-B.s1 = { in: 5.0, out: 7.0 }; B.vibeTab = 7.6; B.fileIn = 7.75; B.grab = 8.05; B.carry = [8.05, 9.0]; B.drop = 9.1;
-B.l1 = loop(10.4, 1.8, .6); B.pins = B.l1.apply; B.pinGap = .3;
+B.linked = B.tabs + .9; // Claude: the studio is open, and comments come straight to it; the link icon lights
+B.s1 = { in: 6.4, out: 8.4 }; B.vibeTab = 9.0; B.fileIn = 9.15; B.grab = 9.45; B.carry = [9.45, 10.4]; B.drop = 10.5;
+B.l1 = loop(11.8, 1.8, .5); B.pins = B.l1.apply; B.pinGap = .3;
 B.s2 = { in: r2(B.pins + 6 * B.pinGap + 1.1), fly: true }; B.s2.out = r2(B.s2.in + 2.1); B.fly = [B.s2.out, r2(B.s2.out + .7)]; B.treatTab = r2(B.s2.out + .05); B.rows = r2(B.fly[1] + .2);
 B.l2 = loop(r2(B.rows + 1.4), 1.5); B.rewrite = [B.l2.apply, r2(B.l2.apply + .9)];
 B.s3 = { in: r2(B.rewrite[1] + 2.0) }; B.s3.out = r2(B.s3.in + 2.1); B.editTab = r2(B.s3.out + .4); B.build = r2(B.editTab + .1); B.play1 = [r2(B.build + .6), r2(B.build + 5.1)];
@@ -297,7 +308,9 @@ const TABS = [['Vibe', 176, 62], ['Treatment', 246, 104], ['Edit', 358, 58], ['E
 studio.innerHTML = `<div class="a bar"></div><div class="a brand">Motion Director</div>
   ${TABS.map(([n, x, w]) => `<div class="a tab" style="left:${x}px;width:${w}px">${n}</div>`).join('')}<div class="a uline" id="uline"></div>
   <div class="a crumbs" id="crumbs">Example &nbsp;/&nbsp; Films &nbsp;/&nbsp; <b>Hello, motion.</b></div>
+  <div class="a slink" id="slink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg></div>
   <div class="a cbtn" id="cbtn">${svgC}Comment <kbd>C</kbd></div>
+  <div class="a chev" id="chev"><span class="n" id="chevN">1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
   <div class="a pane" id="pVibe"></div><div class="a pane" id="pTreat"></div><div class="a pane" id="pEdit"></div><div class="a pane" id="pExport"></div>`;
 const tabEls = [...studio.querySelectorAll('.tab')];
 const PANE = { vibe: $('#pVibe'), treat: $('#pTreat'), edit: $('#pEdit'), exp: $('#pExport') };
@@ -430,11 +443,13 @@ const LOOPS = [
 ];
 const ASK = 'The app has changed. Bring the screens in step.';
 const MSG = [];
-LOOPS.forEach((l) => { MSG.push({ k: 'u', at: l.b.send, html: note(l.note) }); MSG.push({ k: 'a', at: l.b.reply, work: l.b.work, wtxt: l.work, html: l.says }); });
+MSG.push({ k: 'a', at: B.linked, html: 'The studio is open. Comment on anything there and it comes straight to me.' });
+const FROM = '<div class="from"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>From the studio</div>';
+LOOPS.forEach((l) => { MSG.push({ k: 'n', at: l.b.send, html: FROM + note(l.note) }); MSG.push({ k: 'a', at: l.b.reply, work: l.b.work, wtxt: l.work, html: l.says }); });
 MSG.push({ k: 'u', at: B.l5.send, html: `<p>${ASK}</p>` });
 MSG.push({ k: 'a', at: B.l5.reply, work: B.l5.work, wtxt: 'Comparing the screens with the app…', html: 'Rebuilt the timeline and the comment box from the app, and marked the film synced.' });
 MSG.forEach((m) => {
-  m.n = el('div', m.k === 'u' ? 'ch-u' : 'ch-a', m.html, chMsgs);
+  m.n = el('div', m.k === 'u' ? 'ch-u' : m.k === 'n' ? 'ch-u ch-n' : 'ch-a', m.html, chMsgs);
   if (m.k === 'a') { m.w = el('div', 'work', '<svg class="spark" viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" fill="#D97757"/></svg><span></span>', chMsgs); m.w.querySelector('span').textContent = m.wtxt; chMsgs.insertBefore(m.w, m.n); }
 });
 
@@ -468,9 +483,10 @@ LOOPS.forEach((l, j) => {
   if (j === 1) CUR.push([B.treatTab, tabC(1).x, tabC(1).y], [B.treatTab + .4, tabC(1).x, tabC(1).y]);
   if (j === 2) CUR.push([B.editTab, tabC(2).x, tabC(2).y], [B.play1[0], W(700, 400).x, W(700, 400).y]);
   if (j === 3) CUR.push([B.clipDrop + .5, W(800, 760).x, W(800, 760).y]);
-  const cb = W(1510, 32); // the Comment button
-  CUR.push([b.click - .9, cb.x, cb.y], [b.click - .7, cb.x, cb.y], [b.click, p.x, p.y], [b.enter + .6, p.x, p.y], [b.paste - .15, COMPOSER.x, COMPOSER.y], [b.reply + .3, COMPOSER.x, COMPOSER.y]);
-  CLICKS.push(b.click - .8, b.click, b.send);
+  const cb = W(1466, 32); // the Comment button
+  // after Enter the pointer just eases aside: nothing to copy, nowhere to go
+  CUR.push([b.click - .9, cb.x, cb.y], [b.click - .7, cb.x, cb.y], [b.click, p.x, p.y], [b.enter + .3, p.x, p.y], [b.apply + .4, p.x + 70, p.y + 50]);
+  CLICKS.push(b.click - .8, b.click);
   if (j === 2) {
     const fam = W(110, 64 + 160 + 2 * 32 + 15), row = W(90, 64 + 160 + 96 + 14), drop = W(290 + TLX(2.1) + 30, 64 + 456 + 88 + 40 + 20);
     CUR.push([B.famOpen, fam.x, fam.y], [B.grabRow, row.x, row.y], [B.drag[1], drop.x, drop.y], [B.clipDrop + .4, drop.x + 20, drop.y + 30]);
@@ -489,7 +505,7 @@ function cursorAt(t) {
   return { x: lerp(a[1], b[1], p) - dy * arc, y: lerp(a[2], b[2], p) + dx * arc };
 }
 // comment mode is on from the Comment button's press until the note is sent
-const commenting = (t) => LOOPS.some((l) => t >= l.b.click - .8 && t < l.b.paste - .3);
+const commenting = (t) => LOOPS.some((l) => t >= l.b.click - .8 && t < l.b.enter + .9);
 
 /* ── step titles: land in the middle, hold, swish out (Step 2 flies into the treatment instead) ── */
 // each title's words are a parameter (film.json: title-0 … title-6), so the studio can change them live
@@ -523,21 +539,22 @@ const H1AT = W(52, 64 + 30);
 const HOLD = true;
 const KEYS = [
   { t: 1.6, name: 'Opening line', note: 'Films about your product, made with Claude.' },
-  { t: 6.0, name: 'Step 1', note: 'Set the vibe.' },
+  { t: B.linked + .7, name: 'Linked', note: 'Claude opens the studio: comments come straight to it.' },
+  { t: B.s1.in + 1.0, name: 'Step 1', note: 'Set the vibe.' },
   { t: B.drop + .5, name: 'The screenshot', note: 'Dragged onto the empty board by hand.' },
-  { t: B.l1.enter + .9, name: 'Comment copied', note: 'On the pin: copied, then paste it into Claude.' },
-  { t: B.l1.reply + .4, name: 'Claude replies', note: 'The note is in the chat; Claude says what it added.' },
+  { t: B.l1.enter + .3, name: 'Sent to Claude', note: 'On the pin: Enter, and it goes.' },
+  { t: B.l1.reply + .4, name: 'Claude picks it up', note: 'The note arrives in the chat by itself; Claude says what it added.' },
   { t: B.pins + 6 * B.pinGap + .6, name: 'The board filled', note: "Claude's edit: films, palette, type, a note." },
   { t: B.s2.in + 1.0, name: 'Step 2', note: 'Plan it out.' },
-  { t: B.l2.enter + .9, name: 'Comment on a beat', note: 'The second beat: copied.' },
+  { t: B.l2.enter + .9, name: 'Comment on a beat', note: 'The second beat: sent, and it lands in Claude\'s chat.' },
   { t: B.rewrite[1] + .6, name: 'Beat rewritten', note: 'Three bounces, and its frame updated.' },
   { t: B.s3.in + 1.0, name: 'Step 3', note: 'Edit the motion.' },
   { t: B.play1[0] + 3.0, name: 'The film plays', note: 'The Edit tab, silent so far.' },
-  { t: B.l3.enter + .9, name: 'Comment on the ball', note: 'At its last landing: copied.' },
+  { t: B.l3.enter + .9, name: 'Comment on the ball', note: 'At its last landing: sent, and it lands in Claude\'s chat.' },
   { t: B.replay[0] + 1.3, name: 'A softer bounce', note: "Claude's edit, replayed." },
   { t: B.clipDrop + .5, name: 'A sound, by hand', note: 'ball-bounce dragged from the library onto a track.' },
   { t: B.s4.in + 1.0, name: 'Step 4', note: 'Sync sound to motion.' },
-  { t: B.l4.enter + .9, name: 'Comment on the clip', note: 'Put this on every landing: copied.' },
+  { t: B.l4.enter + .9, name: 'Comment on the clip', note: 'Put this on every landing: sent, and it lands in Claude\'s chat.' },
   { t: B.snaps[2] + .3, name: 'On every landing', note: 'The motion graph, a bounce snapped to each landing.' },
   { t: B.s5.in + 1.0, name: 'Step 5', note: 'Export.' },
   { t: B.l5.type[1] - .1, name: 'Ask Claude', note: 'The app UI check says the app changed; the request is typed in the chat.' },
@@ -583,9 +600,7 @@ function draw(t) {
   curEl.style.transformOrigin = bub ? '3.6px 30.4px' : '5.5px 3px';
   curEl.style.transform = bub ? `translate(${cu.x - 3.6}px,${cu.y - 30.4}px) scale(${k * (1 - press * .14)})` : `translate(${cu.x - 5.5}px,${cu.y - 3}px) scale(${k * (1 - press * .14)})`;
   if (rip !== null && curO > 0) { op(ripple, .5 * (1 - rip)); tr(ripple, cu.x, cu.y, lerp(.3, 1.4, rip) * k); } else op(ripple, 0);
-  let kc = null; for (const l of LOOPS) if (t >= l.b.paste - .25 && t < l.b.paste + .45) kc = { p: t - (l.b.paste - .25) };
-  op(keycap, kc ? clamp(spring(kc.p) * 2) * (1 - P(kc.p, .55, .7)) : 0);
-  if (kc) tr(keycap, cu.x + 22, cu.y - 64 - spring(kc.p) * 10, lerp(.6, 1, clamp(spring(kc.p))) * k);
+  op(keycap, 0);
 
   /* the finished film grows out of the renders list to fill the frame */
   const g = P(t, B.grow[0], B.grow[1]);
@@ -634,6 +649,13 @@ function drawStudio(t) {
   const ul = $('#uline'); op(ul, ti >= 0 ? 1 : 0);
   if (ti >= 0) { const m = P(since, 0, .3), A = TABS[prev >= 0 ? prev : ti], Bt = TABS[ti]; ul.style.left = lerp(A[1], Bt[1], m) + 'px'; ul.style.width = lerp(A[2], Bt[2], m) + 'px'; }
   $('#cbtn').classList.toggle('on', commenting(t));
+  // the link to Claude lights when Claude opens the studio; the count is comments with Claude, cleared as each is done
+  const lk = $('#slink'), lp0 = spring(t - B.linked);
+  op(lk, P(t, B.tabs + .4, B.tabs + .8)); lk.style.color = t >= B.linked ? Motion.mix('#3ccf7f', '#ececee', P(t, B.linked + .8, B.linked + 1.6)) : '#5c5c63';
+  lk.style.transform = `scale(${t >= B.linked ? lerp(1.35, 1, clamp(lp0)) : 1})`;
+  op($('#chev'), P(t, B.tabs + .5, B.tabs + .9));
+  const withClaude = LOOPS.filter((l) => t >= l.b.send && t < l.b.resolve).length, chN = $("#chevN");
+  chN.style.display = withClaude ? "" : "none"; chN.textContent = withClaude;
   ['vibe', 'treat', 'edit', 'exp'].forEach((k, j) => { const p = j === ti ? P(since, 0, .3, E.out) : 0; op(PANE[k], p); PANE[k].style.transform = `translateY(${(1 - p) * 12}px)`; });
 
   /* vibe: the screenshot lands; after Claude's reply, the pins it added drop in */
@@ -651,7 +673,7 @@ function drawStudio(t) {
       const re = t >= B.rewrite[0];
       r.h3.textContent = re ? BEAT2.after[0] : BEAT2.before[0];
       r.pp.textContent = re ? typed(BEAT2.after[1], t, B.rewrite[0], B.rewrite[1]) : BEAT2.before[1];
-      const hl = fade(t, B.l2.click, B.l2.click + .15, B.l2.paste, B.l2.paste + .3) + fade(t, B.rewrite[0], B.rewrite[0] + .15, B.rewrite[1] + 1.2, B.rewrite[1] + 1.6);
+      const hl = fade(t, B.l2.click, B.l2.click + .15, B.l2.send, B.l2.send + .3) + fade(t, B.rewrite[0], B.rewrite[0] + .15, B.rewrite[1] + 1.2, B.rewrite[1] + 1.6);
       r.n.style.background = `rgba(255,255,255,${.06 * clamp(hl)})`;
       // before Claude's edit the frame shows the one landing; after, it plays the three
       r.film.render(re && t >= B.rewrite[1] ? 1.9 + ((t - B.rewrite[1]) % 2.2) : r.u, { ring: re });
@@ -703,14 +725,14 @@ function drawStudio(t) {
   const clk = insp.querySelector('.clk'); if (clk) clk.textContent = `0:${u.toFixed(1).padStart(4, '0')}`;
 
   /* comment mode: the picker frames what is pointed at; the box, then the copied badges */
-  let lp = null; LOOPS.forEach((l) => { if (t >= l.b.click - .3 && t < l.b.paste + .2) lp = l; });
+  let lp = null; LOOPS.forEach((l) => { if (t >= l.b.click - .3 && t < l.b.enter + .9) lp = l; });
   const frozen = lp && t >= lp.b.click;
   op(pick, lp && commenting(t) ? 1 : 0);
   if (lp) {
     const bx = lp.box || { x: lp.at.x - 36, y: lp.at.y - 36, w: 72, h: 72 };
     Object.assign(pick.style, { left: bx.x + 'px', top: bx.y + 'px', width: bx.w + 'px', height: bx.h + 'px', borderWidth: frozen ? '3px' : '2px' }); pickTag.textContent = lp.tag;
   }
-  let cl = null; LOOPS.forEach((l) => { if (t >= l.b.click + .05 && t < Math.min(l.b.enter + 4.5, l.b.paste + .2)) cl = l; });
+  let cl = null; LOOPS.forEach((l) => { if (t >= l.b.click + .05 && t < l.b.enter + 2.6) cl = l; });
   op(cbox, cl ? 1 : 0);
   if (cl) {
     const b = cl.b, cp = spring(t - b.click - .05), bx = cl.box || { x: cl.at.x - 36, y: cl.at.y - 36, w: 72, h: 72 };
@@ -724,17 +746,17 @@ function drawStudio(t) {
     const copied = t >= b.enter, key = (copied ? 'c' : 't') + LOOPS.indexOf(cl);
     if (cbBody.dataset.k !== key) {
       cbBody.dataset.k = key;
-      cbBody.innerHTML = copied ? `<div style="display:grid;gap:8px"><span class="badge ok"><svg viewBox="0 0 16 16" width="16" height="16"><path class="tick" d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16"/></svg>Copied to clipboard</span><span class="badge next">Now paste it into Claude <kbd>⌘V</kbd></span><div class="lbar"><i></i></div></div>`
-        : `<div class="ta"></div><div class="hint">Enter to copy the note · Esc to cancel</div>`;
+      cbBody.innerHTML = copied ? `<div style="display:grid;gap:8px"><span class="badge ok"><svg viewBox="0 0 16 16" width="16" height="16"><path class="tick" d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16"/></svg>Sent to Claude</span><span class="hint next">The change shows here once Claude has made it.</span><div class="lbar"><i></i></div></div>`
+        : `<div class="ta"></div><div class="hint">Enter sends it to Claude · ⌘Enter queues it · Esc cancels</div>`;
     }
     if (!copied) { const ta = cbBody.querySelector('.ta'); ta.textContent = typed(cl.text, t, b.type[0], b.type[1]); el('span', 'caret', null, ta).style.opacity = Math.floor(t * 2.6) % 2 ? 1 : .2; }
     else {
       const e = t - b.enter, b1 = cbBody.querySelector('.ok'), b2 = cbBody.querySelector('.next');
       const p1 = P(e, 0, .42, E.back); b1.style.opacity = clamp(p1 * 2); b1.style.transform = `scale(${lerp(.6, 1, p1)})`;
       cbBody.querySelector('.tick').style.strokeDashoffset = 16 * (1 - P(e, .18, .5, E.out));
-      const p2 = P(e, .55, .87, E.out), nudge = e > 1.1 && e < 2.1 ? Math.sin((e - 1.1) / .5 * Math.PI) * 3 : 0;
-      b2.style.opacity = p2; b2.style.transform = `translate(${nudge}px,${(1 - p2) * -6}px)`;
-      cbBody.querySelector('.lbar i').style.transform = `scaleX(${1 - clamp(e / 4.5)})`;
+      const p2 = P(e, .35, .65, E.out);
+      b2.style.opacity = p2; b2.style.transform = `translateY(${(1 - p2) * -6}px)`;
+      cbBody.querySelector('.lbar i').style.transform = `scaleX(${1 - clamp(e / 2.6)})`;
     }
   }
 
@@ -755,7 +777,6 @@ function drawChat(t) {
     const p = spring(t - m.at); m.n.style.opacity = clamp(p * 2); m.n.style.transform = `translateY(${(1 - p) * 24}px) scale(${lerp(.94, 1, clamp(p))})`; m.n.style.transformOrigin = m.k === 'u' ? '100% 100%' : '0 100%';
   });
   let txt = null;
-  LOOPS.forEach((l) => { if (t >= l.b.paste && t < l.b.send) txt = `${HEAD} · ${l.text}`; });
   if (t >= B.l5.type[0] && t < B.l5.send) txt = typed(ASK, t, B.l5.type[0], B.l5.type[1]);
   if (txt !== null) { chTx.textContent = txt; el('span', 'ccaret', null, chTx).style.opacity = Math.floor(t * 2.6) % 2 ? 1 : .2; }
   else chTx.innerHTML = '<span class="ph">Reply to Claude…</span>';
@@ -776,7 +797,7 @@ function drawChat(t) {
   LOOPS.forEach((l, j) => {
     M(`l${j + 1}-type`, { t: l.b.type[0], dur: l.b.type[1] - l.b.type[0], host: cbox, label: `Comment ${j + 1} typed` });
     M(`l${j + 1}-copied`, { t: l.b.enter, host: cbox, label: `Comment ${j + 1} copied` });
-    M(`l${j + 1}-paste`, { t: l.b.paste, host: chat, label: `Note ${j + 1} pasted` });
+    M(`l${j + 1}-arrives`, { t: l.b.send, host: chat, label: `Note ${j + 1} arrives in Claude's chat` });
     M(`l${j + 1}-reply`, { t: l.b.reply, host: chat, label: `Claude's reply ${j + 1}` });
   });
   M('ask-typed', { t: B.l5.type[0], dur: B.l5.type[1] - B.l5.type[0], host: chat, label: 'The request is typed' });
