@@ -133,6 +133,8 @@ export function useCommentKeys() {
       if (view && view !== was) tell(view, { type: 'commentMode', on: true });
       if (!view) closeBox();
       was = view;
+      // what takes comments in the studio itself shows comment mode's cursor (index.css)
+      document.documentElement.classList.toggle('commenting', !!view);
     };
     const unsub = useStudio.subscribe((s, p) => { if (s.commentMode !== p.commentMode || s.route !== p.route) sync(); });
     return () => { document.removeEventListener('keydown', down); off(); unsub(); };

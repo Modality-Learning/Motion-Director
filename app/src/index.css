@@ -36,6 +36,8 @@
   --data-4: #e6bf4e;
   --data-5: #78a9f5;
   --data-6: #ee86ac;
+  /* comment mode's cursor: a speech bubble whose pointed corner is the click point (as the previews draw it) */
+  --comment-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 25V14a11 11 0 1 1 11 11Z' fill='%23ececee' stroke='%23111113' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 3 25, crosshair;
   --font-sans: 'Host Grotesk', 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -94,7 +96,7 @@
     font: 600 11px/1.4 var(--font-sans); background: var(--ink); color: var(--foreground); padding: 0 5px; border-radius: 4px;
   }
   /* comment mode on the timeline: what a click would comment on is outlined; the ruler still scrubs */
-  .tl-commenting, .tl-commenting * { cursor: default !important; } /* comment mode's bubble follows the pointer (CommentBubble) */
+  .tl-commenting, .tl-commenting * { cursor: var(--comment-cursor) !important; }
   .tl-commenting .tl-ruler, .tl-commenting .tl-ruler * { cursor: col-resize !important; }
   .tl-commenting .tl-ruler button, .tl-commenting .tl-ruler button * { cursor: pointer !important; }
   .tl-commenting .c-hover { outline: 2px solid var(--warning) !important; outline-offset: -1px; }
@@ -104,4 +106,10 @@
   /* dragging a side column's grip: likewise */
   .col-resizing, .col-resizing * { cursor: col-resize !important; user-select: none; }
   .col-resizing iframe { pointer-events: none; }
+}
+
+/* comment mode in the brief's document: each paragraph, item, heading or table row is outlined as you point at it */
+@layer components {
+  .commenting article[aria-label=Brief] :is(p, li, h1, h2, h3, h4, tr, blockquote) { cursor: var(--comment-cursor); border-radius: 4px; }
+  .commenting article[aria-label=Brief] .quote-hover { outline: 2px solid var(--primary); outline-offset: 3px; background: color-mix(in oklab, var(--primary) 7%, transparent); }
 }

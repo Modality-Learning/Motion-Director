@@ -517,28 +517,23 @@
       if (board) {
         document.addEventListener('mousemove', (e) => { if (commenting) showCommentTarget(commentTargetAt(e.clientX, e.clientY)); });
         document.addEventListener('mouseleave', () => showCommentTarget(null));
-        /* text beside the frames (the brief's beats) takes comments too: select some in comment mode and the
-         * studio opens a comment on that text, quoting it, with the beat it belongs to */
-        document.addEventListener('mouseup', (e) => {
-          if (!commenting) return;
-          const sel = document.getSelection(), text = sel ? sel.toString().replace(/\s+/g, ' ').trim() : '';
-          const row = sel && sel.anchorNode ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)?.closest('.beat-row') : null;
-          if (!text || !row || !row.querySelector('.beat-text')?.contains(sel.anchorNode)) return;
-          const i = [...row.parentElement.children].indexOf(row), r = sel.getRangeAt(0).getBoundingClientRect();
-          const beat = row.__beat;
-          tell({ type: 'commentQuote', text: text.slice(0, 600), t: beat ? +beat.from : 0, beat: beat ? { time: beat.time || row.querySelector('.beat-time').textContent, title: beat.title || null } : { time: row.querySelector('.beat-time').textContent, title: null }, index: i, client: { x: r.left + r.width / 2, y: r.bottom } });
+        /* the brief's words beside the frames take comments too: in comment mode a paragraph (the beat's title, what
+         * happens, a voice-over line) is outlined as you point at it, and a click comments on it, quoting it with
+         * its beat */
+        const quoteAt = (e) => { const n = e.target?.closest?.('.beat-text h2, .beat-text p'); return n && n.closest('.beat-row') ? n : null; };
+        let quoted = null;
+        document.addEventListener('mouseover', (e) => {
+          const n = commenting ? quoteAt(e) : null;
+          if (n === quoted) return;
+          quoted?.classList.remove('quote-hover'); quoted = n; n?.classList.add('quote-hover');
+        });
+        document.addEventListener('click', (e) => {
+          const n = commenting ? quoteAt(e) : null; if (!n) return;
+          const row = n.closest('.beat-row'), beat = row.__beat, r = n.getBoundingClientRect();
+          tell({ type: 'commentQuote', text: (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 600), t: beat ? +beat.from : 0,
+            beat: { time: beat?.time || row.querySelector('.beat-time').textContent, title: beat?.title || null }, client: { x: e.clientX, y: e.clientY } });
         });
       }
-      /* comment mode's cursor: the pointer stays as it is (an arrow, or a text cursor over words you can
-       * select) and a small speech bubble follows it */
-      const bubble = el('div', 'comment-bubble', '<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H11l-6 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>', document.body);
-      bubble.hidden = true;
-      document.addEventListener('mousemove', (e) => {
-        const on = commenting || picking;
-        bubble.hidden = !on;
-        if (on) bubble.style.transform = `translate(${e.clientX + 14}px,${e.clientY + 14}px)`;
-      });
-      document.addEventListener('mouseleave', () => { bubble.hidden = true; });
       // the studio's shortcuts work while focus is in the preview: C toggles comment mode, Esc leaves it
       document.addEventListener('keydown', (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
@@ -553,7 +548,6 @@
           document.documentElement.classList.toggle('commenting', commenting);
           if (!commenting) showCommentTarget(null);
           if (!board) setPicking(m.on);
-          if (!m.on) bubble.hidden = true;
         } else if (m.type === 'commentDone') { frozen = false; showPick(null); }
         else if (m.type === 'labels') labels = m.labels || {};
         else if (m.type === 'params') {

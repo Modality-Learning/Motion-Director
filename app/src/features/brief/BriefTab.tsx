@@ -45,19 +45,27 @@ export function BriefTab() {
 
 type Doc = { key: string; text: string | null } | null;
 
-/* In comment mode, text selected in the brief takes a comment: the box opens under the selection, quoting it with
- * the section it is in (the nearest heading above it). */
-function quoteSelection(e: React.MouseEvent<HTMLElement>) {
-  if (!useStudio.getState().commentMode) return;
-  const sel = document.getSelection(), text = sel ? sel.toString().replace(/\s+/g, ' ').trim() : '';
-  const article = e.currentTarget;
-  if (!text || !sel?.anchorNode || !article.contains(sel.anchorNode)) return;
-  let block: Element | null = sel.anchorNode.nodeType === 1 ? (sel.anchorNode as Element) : sel.anchorNode.parentElement;
-  while (block && block.parentElement !== article) block = block.parentElement;
+/* In comment mode the brief takes comments a paragraph at a time: what you point at (a paragraph, a list item, a
+ * heading, a table row) is outlined, and a click comments on it, quoting it with the section it is in (the
+ * nearest heading above it). Enough for Claude to know where to look, without selecting words exactly. */
+const BLOCK = 'p, li, h1, h2, h3, h4, tr, blockquote';
+const blockAt = (e: React.MouseEvent<HTMLElement>) => (useStudio.getState().commentMode ? (e.target as HTMLElement).closest<HTMLElement>(BLOCK) : null);
+let hovered: HTMLElement | null = null;
+function hoverBlock(e: React.MouseEvent<HTMLElement>) {
+  const n = blockAt(e);
+  if (n === hovered) return;
+  hovered?.classList.remove('quote-hover'); hovered = n; n?.classList.add('quote-hover');
+}
+function quoteBlock(e: React.MouseEvent<HTMLElement>) {
+  const n = blockAt(e), article = e.currentTarget;
+  if (!n || !article.contains(n)) return;
+  e.preventDefault();
+  let top: Element | null = n;
+  while (top && top.parentElement !== article) top = top.parentElement;
   let section: string | null = null;
-  for (let n: Element | null = block; n; n = n.previousElementSibling) if (/^H[1-6]$/.test(n.tagName)) { section = n.textContent?.trim() || null; break; }
-  const r = sel.getRangeAt(0).getBoundingClientRect();
-  openQuoteBox({ text: text.slice(0, 600), section }, 0, r.left + r.width / 2, r.bottom);
+  for (let h: Element | null = /^H[1-6]$/.test(n.tagName) ? null : top; h; h = h.previousElementSibling) if (/^H[1-6]$/.test(h.tagName)) { section = h.textContent?.trim() || null; break; }
+  const text = (n.tagName === 'TR' ? [...n.children].map((c) => c.textContent?.trim()).filter(Boolean).join(' · ') : n.textContent || '').replace(/\s+/g, ' ').trim();
+  if (text) openQuoteBox({ text: text.slice(0, 600), section }, 0, e.clientX, e.clientY);
 }
 /** The open piece's BRIEF.md, kept current as the file changes. */
 function useBrief(): Doc {
@@ -86,7 +94,7 @@ function BriefDoc({ doc, blocks, beatsAt, beats }: { doc: Doc; blocks: Block[] |
 
   return (
     <ScrollArea className="min-h-0 [&_[data-slot=scroll-area-viewport]>div]:block!">
-      <article aria-label="Brief" onMouseUp={quoteSelection} className="grid gap-3 px-5 py-4 text-[14px]">
+      <article aria-label="Brief" onMouseOver={hoverBlock} onMouseLeave={() => { hovered?.classList.remove('quote-hover'); hovered = null; }} onClick={quoteBlock} className="grid gap-3 px-5 py-4 text-[14px]">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <FileText className="size-3.5" aria-hidden="true" />
           <span className="font-semibold tracking-wide uppercase">Brief</span>
