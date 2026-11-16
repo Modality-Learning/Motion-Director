@@ -259,7 +259,9 @@ function loop(L, ty, linger = 0) {
 /* ── named beats (film time): the animation and the sound moments both read these ── */
 const B = { open: { in: .3, out: 2.9 }, rise: 3.45, tabs: 4.05 };
 B.linked = B.tabs + .9; // Claude: the studio is open, and comments come straight to it; the link icon lights
-B.s1 = { in: 6.4, out: 8.4 }; B.vibeTab = 9.0; B.fileIn = 9.15; B.grab = 9.45; B.carry = [9.45, 10.4]; B.drop = 10.5;
+// Claude opens the studio on the film's Vibe tab, its board still empty, so there is never a blank window
+B.vibeTab = r2(B.tabs + .45);
+B.s1 = { in: 6.4, out: 8.4 }; B.fileIn = 9.15; B.grab = 9.45; B.carry = [9.45, 10.4]; B.drop = 10.5;
 B.l1 = loop(11.8, 1.8, .5); B.pins = B.l1.apply; B.pinGap = .3;
 B.s2 = { in: r2(B.pins + 6 * B.pinGap + 1.1), fly: true }; B.s2.out = r2(B.s2.in + 2.1); B.fly = [B.s2.out, r2(B.s2.out + .7)]; B.treatTab = r2(B.s2.out + .05); B.rows = r2(B.fly[1] + .2);
 B.l2 = loop(r2(B.rows + 1.4), 1.5); B.rewrite = [B.l2.apply, r2(B.l2.apply + .9)];
@@ -280,7 +282,8 @@ B.s5 = { in: r2(B.play2[1] + .6) }; B.s5.out = r2(B.s5.in + 2.1); B.exportTab = 
 // Export has no comment mode: the request is typed into the chat, as the app UI check asks
 B.l5 = { type: [r2(B.exBuild + 1.6), r2(B.exBuild + 2.8)] }; B.l5.send = r2(B.l5.type[1] + .2); B.l5.work = r2(B.l5.send + .15); B.l5.reply = r2(B.l5.send + 1.05); B.l5.apply = r2(B.l5.reply + .2);
 B.render = r2(B.l5.apply + 1.0); B.progress = [r2(B.render + .1), r2(B.render + 1.9)]; B.shutter = r2(B.progress[1] + .05); B.openBtn = r2(B.shutter + .55);
-B.grow = [r2(B.openBtn + .1), r2(B.openBtn + .9)]; B.play3 = [B.grow[1], r2(B.grow[1] + 4.5)];
+// the finished film starts playing as it grows out of the renders list, so it never arrives as a blank card
+B.grow = [r2(B.openBtn + .1), r2(B.openBtn + .9)]; B.play3 = [B.grow[0], r2(B.grow[0] + 4.5)];
 B.close = { in: r2(B.play3[1] + .4), out: 999 };
 const DUR = Math.ceil(B.close.in + 4.6);
 // what Claude reports as it makes the film (Claude does its thing), a line at a time
@@ -521,9 +524,9 @@ function camAt(t) {
 /* ── the pointer (world px) ── */
 const tabC = (i) => W(TABS[i][1] + TABS[i][2] / 2, 34);
 const COMPOSER = { x: CH.x + 200, y: CH.y + CH.h - 48 };
-const CUR = [[7.2, 760, 640], [B.vibeTab - .05, tabC(0).x, tabC(0).y], [B.vibeTab + .1, tabC(0).x, tabC(0).y], [B.fileIn, 1300, 900], [B.grab, 1300, 900],
+const CUR = [[7.2, 760, 640], [B.fileIn, 1300, 900], [B.grab, 1300, 900],
   [B.carry[1], W(SLOT.x + 186, 64 + SLOT.y + 150).x, W(SLOT.x + 186, 64 + SLOT.y + 150).y]];
-const CLICKS = [B.vibeTab, B.grab, B.drop];
+const CLICKS = [B.grab, B.drop];
 LOOPS.forEach((l, j) => {
   const p = W(l.at.x, l.at.y), b = l.b;
   if (j === 1) CUR.push([B.treatTab, tabC(1).x, tabC(1).y], [B.treatTab + .4, tabC(1).x, tabC(1).y]);
@@ -583,7 +586,7 @@ Motion.scope('param:title-2', { ranges: [[B.s2.in, B.fly[1]], [B.fly[1], B.s3.in
 const H1AT = W(52, 64 + 30);
 
 /* ── keyframes pass: the key moments, held. The transitions pass replaces the hold with draw(t). ── */
-const HOLD = true;
+const HOLD = false;
 const KEYS = [
   { t: 1.6, name: 'Opening line', note: 'Films about your product, made with Claude.' },
   { t: B.linked + .7, name: 'Linked', note: 'Claude opens the studio: comments come straight to it.' },
