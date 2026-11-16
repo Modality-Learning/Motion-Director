@@ -24,12 +24,16 @@ interface CommentState {
   note: string | null;
   /** bumped each time the box opens, so its text starts empty */
   seq: number;
+  /** the note is on the clipboard: the box shows the next step (paste it into Claude) for a moment, then closes */
+  copied: boolean;
 }
-export const useComments = create<CommentState>(() => ({ open: false, title: '', at: { x: 0, y: 0 }, pending: null, hint: '', note: null, seq: 0 }));
+export const useComments = create<CommentState>(() => ({ open: false, title: '', at: { x: 0, y: 0 }, pending: null, hint: '', note: null, seq: 0, copied: false }));
+/** How long the copied state stays, so there is time to read it and switch to Claude. */
+export const COPIED_MS = 4500;
 
 const HINT = 'Enter copies it for the chat · Shift+Enter new line · Esc cancels';
 function showBox(x: number, y: number, title: string, pending: Pending) {
-  useComments.setState((s) => ({ open: true, title, at: { x, y }, pending, hint: HINT, note: null, seq: s.seq + 1 }));
+  useComments.setState((s) => ({ open: true, title, at: { x, y }, pending, hint: HINT, note: null, seq: s.seq + 1, copied: false }));
 }
 
 /** The box closes; the preview's outlines unfreeze. */
@@ -41,7 +45,7 @@ export function closeBox() {
   const { route } = useStudio.getState();
   const f = route.view === 'work' ? frameOf(route.tab) : null;
   if (f) tell(f, { type: 'commentDone' });
-  useComments.setState({ open: false, pending: null, note: null });
+  useComments.setState({ open: false, pending: null, note: null, copied: false });
 }
 
 interface CommentAt { t: number; key?: string; scope?: string | null; selector?: string | null; text?: string | null; client: { x: number; y: number } }
@@ -94,7 +98,13 @@ export async function sendComment(text: string) {
   useComments.setState({ hint: 'Copying…' });
   const r = await post<{ note: string }>('/api/comments', { film: route.name, ...pending, text: text.trim() });
   if (!r.ok) { useComments.setState({ hint: r.data.error || 'Could not make the note' }); return; }
-  if (await copy(r.data.note)) { useComments.setState({ hint: 'Copied. Paste it into the chat.' }); setTimeout(closeBox, 900); return; }
+  if (await copy(r.data.note)) {
+    // the journey: copied, then paste it into Claude. It stays long enough to read, unless a new comment starts
+    const { seq } = useComments.getState();
+    useComments.setState({ copied: true, hint: '' });
+    setTimeout(() => { if (useComments.getState().seq === seq && useComments.getState().copied) closeBox(); }, COPIED_MS);
+    return;
+  }
   // where the browser won't copy, show the note ready to copy by hand
   useComments.setState({ note: r.data.note, hint: 'Press ⌘C to copy the note, then Esc.' });
 }

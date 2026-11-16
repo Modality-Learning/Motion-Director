@@ -119,3 +119,18 @@
   .commenting [data-pin], .commenting [data-pin] * { cursor: var(--comment-cursor) !important; }
   .commenting [data-pin]:hover { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
+
+/* a comment copied: the green badge pops and its tick draws itself, the amber next step slides in after it, and a
+ * bar runs down while the box lingers (CommentBox) */
+@keyframes copied-pop { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes copied-tick { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
+@keyframes copied-next { 0% { opacity: 0; transform: translateY(-6px); } 100% { opacity: 1; transform: none; } }
+@keyframes copied-nudge { 0%, 100% { transform: none; } 50% { transform: translateX(3px); } }
+@keyframes copied-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.copied-tick { stroke-dasharray: 16; }
+.copied-bar { transform-origin: left; animation: copied-bar linear forwards; }
+@media (prefers-reduced-motion: no-preference) {
+  .copied-pop { animation: copied-pop .42s cubic-bezier(.2, .9, .3, 1.3) both; }
+  .copied-tick { animation: copied-tick .32s ease-out .18s both; }
+  .copied-next { animation: copied-next .32s ease-out .55s both, copied-nudge .5s ease-in-out 1.1s 2; }
+}

@@ -5,7 +5,8 @@
 // images, paste a link, write a note. Grouped (Look, Motion, Type, Sound…) when the pins say so, laid out as a
 // masonry wall. It follows the file live, and every pin takes comments.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, ImagePlus, Link2, Music, Play, StickyNote, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Link2, Music, Play, StickyNote, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ export function VibeTab() {
   const key = `${kind}/${name}`, base = `/${kind === 'comp' ? 'comps' : 'films'}/${encodeURIComponent(name || '')}`;
   const [board, setBoard] = useState<Board | null>(null);
   const [dropping, setDropping] = useState(false);
+  const [viewing, setViewing] = useState<string | null>(null); // the image pin open large
   const boardRef = useRef(board); boardRef.current = board;
 
   const load = useCallback(async () => {
@@ -103,11 +105,12 @@ export function VibeTab() {
           <section key={g.name || 'all'} aria-label={g.name || 'Vibe board'} className="grid gap-3">
             {g.name ? <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{g.name} <span className="font-normal">{g.pins.length}</span></h2> : null}
             <div className="columns-[260px] gap-4">
-              {g.pins.map((p) => <PinCard key={p.id} pin={p} base={base} onChange={(c) => update(p.id, c)} onRemove={() => remove(p.id)} />)}
+              {g.pins.map((p) => <PinCard key={p.id} pin={p} base={base} onOpen={() => setViewing(p.id)} onChange={(c) => update(p.id, c)} onRemove={() => remove(p.id)} />)}
             </div>
           </section>
         ))}
       </div>
+      <Viewer pins={groups.flatMap((g) => g.pins).filter((p) => p.kind === 'image')} base={base} id={viewing} onId={setViewing} />
       {dropping ? <div className="pointer-events-none absolute inset-3 grid place-items-center rounded-2xl border-2 border-dashed border-primary bg-primary/5 text-sm text-foreground">Drop images to pin them</div> : null}
     </div>
   );
@@ -140,7 +143,7 @@ function Empty() {
   );
 }
 
-function PinCard({ pin, base, onChange, onRemove }: { pin: Pin; base: string; onChange: (c: Partial<Pin>) => void; onRemove: () => void }) {
+function PinCard({ pin, base, onOpen, onChange, onRemove }: { pin: Pin; base: string; onOpen: () => void; onChange: (c: Partial<Pin>) => void; onRemove: () => void }) {
   const label = pin.title || pin.font || pin.take || pin.url || pin.src || pin.sound || pin.kind;
   return (
     <figure data-pin={pin.id} className="group relative mb-4 break-inside-avoid overflow-hidden rounded-xl border bg-card"
@@ -150,7 +153,7 @@ function PinCard({ pin, base, onChange, onRemove }: { pin: Pin; base: string; on
         e.preventDefault(); e.stopPropagation();
         openPinBox({ id: pin.id, kind: pin.kind, label }, e.clientX, e.clientY);
       }}>
-      <PinBody pin={pin} base={base} />
+      <PinBody pin={pin} base={base} onOpen={onOpen} />
       <figcaption className="grid gap-1.5 px-3 pt-2 pb-3">
         <Take pin={pin} onChange={onChange} />
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -182,8 +185,16 @@ function Take({ pin, onChange }: { pin: Pin; onChange: (c: Partial<Pin>) => void
   );
 }
 
-function PinBody({ pin, base }: { pin: Pin; base: string }) {
-  if (pin.kind === 'image') return <img src={pin.src ? `${base}/${pin.src.split('/').map(encodeURIComponent).join('/')}` : pin.url} alt={pin.title || pin.take || 'A reference image'} loading="lazy" className="block w-full bg-muted" />;
+const imageUrl = (pin: Pin, base: string) => (pin.src ? `${base}/${pin.src.split('/').map(encodeURIComponent).join('/')}` : pin.url);
+
+function PinBody({ pin, base, onOpen }: { pin: Pin; base: string; onOpen: () => void }) {
+  if (pin.kind === 'image') {
+    return (
+      <button type="button" onClick={onOpen} aria-label={`View ${pin.title || 'the image'} larger`} className="block w-full cursor-zoom-in">
+        <img src={imageUrl(pin, base)} alt={pin.title || pin.take || 'A reference image'} loading="lazy" className="block w-full bg-muted" />
+      </button>
+    );
+  }
   if (pin.kind === 'video') {
     const v = pin.url ? videoOf(pin.url) : null;
     return (
@@ -212,3 +223,35 @@ function PinBody({ pin, base }: { pin: Pin; base: string }) {
 const hostOf = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 const fmtAt = (t: string) => { const s = parseInt(t, 10); return Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : t; };
 const clean = (p: Pin): Pin => Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined && v !== '')) as Pin;
+
+/* An image pin, large: the image as big as the window allows, what to take from it beneath, and the board's other
+ * images a click (or ← →) away. */
+function Viewer({ pins, base, id, onId }: { pins: Pin[]; base: string; id: string | null; onId: (id: string | null) => void }) {
+  const i = pins.findIndex((p) => p.id === id), pin = i >= 0 ? pins[i] : null;
+  const step = (d: number) => { if (pins.length) onId(pins[(i + d + pins.length) % pins.length].id); };
+  return (
+    <Dialog open={!!pin} onOpenChange={(o) => { if (!o) onId(null); }}>
+      <DialogContent className="grid w-[min(1400px,94vw)] max-w-none gap-3 border-0 bg-card p-3 sm:max-w-none"
+        onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); step(1); } if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); } }}>
+        {pin ? (
+          <>
+            <img src={imageUrl(pin, base)} alt={pin.title || pin.take || 'A reference image'} className="mx-auto block h-auto max-h-[78vh] w-full rounded-lg object-contain" />
+            <div className="flex items-start gap-3 px-1 pb-1">
+              <div className="grid min-w-0 flex-1 gap-1">
+                <DialogTitle className="text-sm font-semibold">{pin.title || pin.group || 'Image'}</DialogTitle>
+                <DialogDescription className="text-sm text-foreground">{pin.take || 'No take yet: what should the film take from it?'}</DialogDescription>
+              </div>
+              {pins.length > 1 ? (
+                <div className="flex flex-none items-center gap-1 pr-8 text-xs text-muted-foreground tabular-nums">
+                  <Button variant="ghost" size="icon-sm" aria-label="Previous image" onClick={() => step(-1)}><ChevronLeft /></Button>
+                  {i + 1} of {pins.length}
+                  <Button variant="ghost" size="icon-sm" aria-label="Next image" onClick={() => step(1)}><ChevronRight /></Button>
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
