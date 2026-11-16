@@ -379,7 +379,9 @@ const TROWS = [
   const n = el('div', 'a trow', `<div class="t"><span class="chip">${r.time}</span><h3></h3><p></p></div><div class="frame"></div>`, tp);
   n.style.top = r.y + 'px'; n.querySelector('h3').textContent = r.h; n.querySelector('p').textContent = r.p;
   const fr = n.querySelector('.frame'); const film = makeFilm(fr); film.node.style.transform = 'scale(.4)';
-  return { ...r, n, fr, film, h3: n.querySelector('h3'), pp: n.querySelector('p') };
+  // the second beat's frame also holds the still it becomes when Claude rewrites the beat, to dissolve into
+  const after = r.u === 2.13 ? makeFilm(fr) : null; if (after) after.node.style.transform = 'scale(.4)';
+  return { ...r, n, fr, film, after, h3: n.querySelector('h3'), pp: n.querySelector('p') };
 });
 
 /* edit: the sound library, the preview (with the film), the timeline and the inspector */
@@ -737,12 +739,16 @@ function drawStudio(t) {
     r.n.querySelector('.t').style.opacity = p; r.fr.style.opacity = p;
     if (j === 1) {
       const re = t >= B.rewrite[0];
+      // the heading dips out and back as it changes, rather than swapping in a frame
       r.h3.textContent = re ? BEAT2.after[0] : BEAT2.before[0];
+      r.h3.style.opacity = 1 - fade(t, B.rewrite[0] - .18, B.rewrite[0] - .02, B.rewrite[0], B.rewrite[0] + .2);
       r.pp.textContent = re ? typed(BEAT2.after[1], t, B.rewrite[0], B.rewrite[1]) : BEAT2.before[1];
       const hl = fade(t, B.l2.click, B.l2.click + .15, B.l2.send, B.l2.send + .3) + fade(t, B.rewrite[0], B.rewrite[0] + .15, B.rewrite[1] + 1.2, B.rewrite[1] + 1.6);
       r.n.style.background = `rgba(255,255,255,${.06 * clamp(hl)})`;
       // a storyboard frame is a still: before Claude's edit it holds the one landing, after it the third, lower one
-      r.film.render(re ? 3.5 : r.u, { ring: re });
+      // the old still dissolves into the new one (the third, lower landing): no cut, and no motion in the frame
+      const dis = P(t, B.rewrite[0], B.rewrite[0] + .6);
+      r.film.render(r.u); r.after.render(3.5, { ring: true }); op(r.after.node, dis); r.film.node.style.opacity = dis < 1 ? 1 : 0; // the new over the old, so the frame never dims
       r.fr.style.boxShadow = re ? `0 0 0 ${2 * fade(t, B.rewrite[0], B.rewrite[0] + .2, B.rewrite[1] + 1.2, B.rewrite[1] + 1.6)}px #3ccf7f` : '';
     } else { r.film.render(r.u); r.n.style.background = ''; }
   });
