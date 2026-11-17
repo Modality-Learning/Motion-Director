@@ -4,3 +4,6 @@ films/*/vibe/
 comps/*/vibe/
 # our own studio screenshots, made for the tour film, are ours to ship
 !films/tour/vibe/
+
+# your own sound sheets for films cued on a pack that is not shipped (sound.json ships on the starter sounds)
+films/*/sound.pack.json

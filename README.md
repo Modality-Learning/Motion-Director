@@ -33,7 +33,7 @@ be open sourced later.
 From the folder where you want the project:
 
 ```bash
-npm install /path/to/motion-director       # or the git tag, once there is one
+npm install github:Modality-Learning/Motion-Director
 npx motion-director init                   # a new project here
 npx motion-director studio                 # http://127.0.0.1:4321/studio/
 ```
