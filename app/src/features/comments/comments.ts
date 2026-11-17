@@ -10,7 +10,7 @@ import { frameFor, onFilmMessage, tell, type FrameTab } from '@/lib/frames';
 import { fmtT } from '@/lib/format';
 import { commentable, frameOf, useStudio } from '@/lib/store';
 import { refForScope } from '@/features/params/params';
-import { loadComments, setStatus, useCommentList } from './list';
+import { agentOf, loadComments, setStatus, useCommentList } from './list';
 
 /** Something on the Edit tab's timeline a comment is about. */
 export interface TimelineItem { kind: 'clip' | 'object' | 'track' | 'beat' | 'timeline'; label: string; detail?: string; [k: string]: unknown }
@@ -36,9 +36,10 @@ export const useComments = create<CommentState>(() => ({ open: false, title: '',
 export const COPIED_MS = 4500;
 export const DONE_MS = { sent: 2600, queued: 1800, copied: COPIED_MS } as const;
 
-const hint = () => useCommentList.getState().session
-  ? 'Enter sends it to Claude · ⌘Enter queues it · Esc cancels'
-  : 'Enter copies it for Claude · ⌘Enter queues it · Esc cancels';
+const hint = () => {
+  const { session, link } = useCommentList.getState();
+  return session ? 'Enter sends it to Claude · ⌘Enter queues it · Esc cancels' : `Enter copies it for ${agentOf(link)} · ⌘Enter queues it · Esc cancels`;
+};
 function showBox(x: number, y: number, title: string, pending: Pending) {
   useComments.setState((s) => ({ open: true, title, at: { x, y }, pending, hint: hint(), note: null, seq: s.seq + 1, done: null, count: 0 }));
 }

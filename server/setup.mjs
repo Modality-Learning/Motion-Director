@@ -1,7 +1,9 @@
 // Setting up a project for someone new: the starter sounds, and NOTES.md for what's particular to the project.
-// `motion-director init` runs both. The skill itself comes from the Claude Code plugin (see the README).
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+// `motion-director init` runs both. The skill itself comes from the Claude Code plugin (see the README), or for
+// Codex and other agents that read .agents/skills, `motion-director codex` links it (linkAgentSkill).
+import { spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { PKG } from './project.mjs';
 
 /** The starter sounds (generated, so they're ours to give: templates/sounds/make-sounds.mjs) and their
@@ -48,3 +50,27 @@ Anything else Claude should always or never do in this project's films.
 `);
   return { file, written: true };
 }
+
+/** The repository a project sits in (where an agent is started), else the project itself. */
+export function repoRoot(projectDir) {
+  const r = spawnSync('git', ['-C', projectDir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
+  return r.status === 0 && r.stdout.trim() ? resolve(r.stdout.trim()) : resolve(projectDir);
+}
+
+/** The skill for agents that read the shared Agent Skills folder (Codex, and others): <repo>/.agents/skills/
+ * motion-director, a link to the package's skill/ folder, so it updates with the package. A relative link when
+ * the package is inside the repository (commit it; it works for anyone after npm install), else an absolute one
+ * (this machine only). Anything already there is left alone. */
+export function linkAgentSkill(projectDir) {
+  const repo = repoRoot(projectDir), at = join(repo, '.agents', 'skills', 'motion-director'), target = join(PKG, 'skill');
+  let there = false; try { lstatSync(at); there = true; } catch { /* not there */ }
+  if (there) return { at, written: false, shared: null };
+  const inside = !relative(repo, target).startsWith('..');
+  mkdirSync(dirname(at), { recursive: true });
+  symlinkSync(inside ? relative(dirname(at), target) : target, at, 'dir');
+  return { at, written: true, shared: inside };
+}
+
+/** The command that adds Motion Director's MCP server to Codex for this project, with this machine's paths. */
+export const codexMcpCommand = (projectDir) =>
+  `codex mcp add motion-director -- ${JSON.stringify(process.execPath)} ${JSON.stringify(join(PKG, 'bin', 'motion-director.mjs'))} mcp --root ${JSON.stringify(resolve(projectDir))}`;

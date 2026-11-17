@@ -25,6 +25,8 @@ export interface SessionLink {
   checkedAt: string | null;
   /** the command that starts this studio again from a Claude session, which takes over its port */
   restart: string;
+  /** the agent that last read comments over MCP (Codex, Claude…), or null */
+  agent?: string | null;
 }
 interface ListState {
   film: string | null;
@@ -42,6 +44,13 @@ export async function loadLink() {
   const r = await getJson<SessionLink>('/api/session').catch(() => null);
   if (r) useCommentList.setState({ link: r, session: r.connected });
 }
+/** Who the comments are for: Claude when the studio is linked to its session, else the agent that reads them over
+ * MCP, else Claude (the studio's usual partner). */
+export const agentOf = (link: SessionLink | null) => (link?.connected ? 'Claude' : link?.agent || 'Claude');
+export const useAgentName = () => useCommentList((s) => agentOf(s.link));
+/** An agent other than a linked Claude session reads comments over MCP: no repair to offer, just ask it. */
+export const readsOverMcp = (link: SessionLink | null) => !!link && !link.connected && !!link.agent;
+
 /** Try the link again now (the link icon, clicked). */
 export async function checkLink() {
   useCommentList.setState({ checking: true });

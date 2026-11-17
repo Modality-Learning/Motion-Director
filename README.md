@@ -56,6 +56,35 @@ npx motion-director studio                 # http://127.0.0.1:4321/studio/
 house rules. Claude reads it before starting. The starter sounds are Motion Director's own (generated, no
 licences), so they're tracked in git; your own sounds stay out of it.
 
+### With Codex, or another agent
+
+The tool works the same under any coding agent; the skill and the comments need a little setup outside Claude
+Code. In the project folder, after `init`:
+
+```bash
+npx motion-director codex
+```
+
+It links the skill into the repository's `.agents/skills/` (where Codex and other agents look for skills; commit
+the link) and prints the one command that adds Motion Director's MCP server to Codex, with this machine's paths.
+The MCP server gives the agent the studio's comments (`read_comments`, `resolve_comments`): comment in the
+studio, then tell the agent "check the studio comments". Only Claude Code gets comments pushed into the session as
+you make them; elsewhere the agent reads them when asked, and the studio names the agent that does.
+
+Two things differ in Codex, both from its sandbox, which stops commands opening a local port or starting a
+browser:
+
+- Start the studio in your own terminal (`npx motion-director studio`), not through Codex.
+- Storyboards, stills and renders need the same: approve them when Codex asks to run them outside the sandbox.
+  If one is blocked, the command says so, and the skill tells the agent to pass that on rather than draw a
+  stand-in.
+
+To let Codex use the comment tools without asking each time, add `default_tools_approval_mode = "approve"`
+under `[mcp_servers.motion-director]` in `~/.codex/config.toml`. A trial run in Codex (the starter film, three
+comments, a storyboard request) made every change correctly and resolved every comment; it read them through
+the MCP tools once those were allowed, and, once the sandbox message existed, reported the blocked storyboard
+instead of improvising one.
+
 ## Requirements
 
 - Node 22 or newer.
@@ -223,7 +252,9 @@ Every command works on a project (see above for how it is found).
 | `motion-director sound-check <film> [moments.json] [--hits id,id]` | Reports how often each sound is heard and at how many pitches, overlapping clips, and the mix's peak, loudest moments and quiet stretches. `--hits` says where each clip peaks against where it should land. |
 | `motion-director sound-search "<words>" [--like <sound>] [--n 8] [--json]` | Experimental. Ranks the library's sounds by how well they match a description, or by how much they sound like one of them. Several descriptions can be given at once. |
 | `motion-director init [folder]` | Makes a new project with a starter film. |
-| `motion-director skill` | Prints where the Claude skill is. |
+| `motion-director skill` | Prints where the skill is (Claude Code installs it as a plugin). |
+| `motion-director codex` | Sets up Codex: links the skill into `.agents/skills/` and prints the command that adds the MCP server. |
+| `motion-director mcp` | The MCP server agents use for studio comments (`project`, `read_comments`, `resolve_comments`). The agent starts it. |
 
 `--root <project>` goes before or after any command. For one frame, or a short run of frames, call the
 capture script directly with the project in `MD_ROOT`:

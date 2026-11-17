@@ -32,7 +32,9 @@ const USAGE = `usage: motion-director <command> [--root <project>]
   organise [--n 150] | apply <file>  list sounds to organise, or apply Claude's batch
   comments [film] | resolve <ids> list open comments, or mark them done
   init [folder]                   start a new project
-  skill                           print where the Claude skill lives`;
+  skill                           print where the skill lives (Claude Code: install the plugin)
+  codex                           set up Codex: link the skill into .agents/skills, print its MCP command
+  mcp                             the MCP server agents use for studio comments (the agent starts it)`;
 
 const argv = process.argv.slice(2);
 const take = (flag) => { const i = argv.indexOf(flag); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v ?? null; };
@@ -62,6 +64,14 @@ if (cmd === 'init') {
   process.exit(0);
 }
 
+if (cmd === 'mcp') {
+  // the agent starts this wherever it runs, often the repository's top with the project below it: mcp.mjs finds it
+  if (rootArg) process.env.MD_ROOT = resolve(rootArg);
+  const { serve } = await import('../server/mcp.mjs');
+  serve();
+  await new Promise(() => {}); // serves until the agent closes stdin
+}
+
 const root = resolve(rootArg || process.env.MD_ROOT || findRoot() || process.cwd());
 if (!existsSync(join(root, 'films'))) { console.error(`No project at ${root} (no films/ folder). Pass --root, or run motion-director init.`); process.exit(2); }
 const config = await loadConfig(root);
@@ -72,6 +82,22 @@ function run(file, args) {
   const p = spawn(file, args, { env, stdio: 'inherit', cwd: root });
   p.on('exit', (code, signal) => process.exit(signal ? 1 : code ?? 1));
   for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => p.kill(s));
+}
+
+if (cmd === 'codex') {
+  // Codex (and other agents that read .agents/skills): the skill linked into the repository, and the MCP server's
+  // command for reading studio comments. Claude Code gets the skill as a plugin instead (see the README).
+  const { codexMcpCommand, linkAgentSkill } = await import('../server/setup.mjs');
+  const r = linkAgentSkill(root);
+  console.log(r.written
+    ? `Linked the skill: ${r.at}${r.shared ? ' (commit it: it works for anyone after npm install)' : ' (this machine only: the package is outside the repository)'}`
+    : `Kept what's already at ${r.at}`);
+  console.log(`\nTo let Codex read the studio's comments, add the MCP server once on this machine:\n\n  ${codexMcpCommand(root)}\n`);
+  console.log('So Codex uses its comment tools without asking each time, add this to ~/.codex/config.toml:\n\n  [mcp_servers.motion-director]\n  default_tools_approval_mode = "approve"\n');
+  console.log("Codex's sandbox blocks the browser and local port that the studio, storyboards and renders need: start the studio in");
+  console.log('your own terminal (npx motion-director studio), and approve storyboards and renders when Codex asks to run them');
+  console.log('outside the sandbox. Then ask Codex for a film, and say "check the studio comments" after commenting in the studio.');
+  process.exit(0);
 }
 
 const SCRIPTS = { studio: 'server/server.mjs', board: 'render/board.mjs', bundle: 'render/bundle.mjs', purity: 'render/purity.mjs', 'sound-check': 'render/sound-check.mjs', organise: 'render/sound-organise.mjs', 'sound-search': 'render/sound-embed.mjs', comments: 'server/comments-cli.mjs' };

@@ -18,6 +18,7 @@ import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, li
 import { saveValues } from '../render/params.mjs';
 import { buildFilmModule, buildPlayer, writeWebFilm } from '../render/web.mjs';
 import { videoSupportCached } from '../render/can-render.mjs';
+import { explainBlocked } from '../render/blocked.mjs';
 import { formatComment, validateComment } from './comments.mjs';
 import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importFolder, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
@@ -74,7 +75,9 @@ async function checkLink() {
   if (link.ok !== was) announce({ type: 'session' });
   return link;
 }
-const sessionState = () => ({ studio: true, project: PROMO, connected: link.ok, available: !!INBOX, sessionId: SESSION_ID, checkedAt: link.checkedAt, fails: link.fails, restart: RESTART_CMD });
+// the agent that last read comments over MCP (server/mcp.mjs writes out/.agent.json), for the studio to name it
+const mcpAgent = () => { try { return JSON.parse(readFileSync(join(OUT, '.agent.json'), 'utf8')).name || null; } catch { return null; } };
+const sessionState = () => ({ studio: true, project: PROMO, connected: link.ok, available: !!INBOX, sessionId: SESSION_ID, checkedAt: link.checkedAt, fails: link.fails, restart: RESTART_CMD, agent: mcpAgent() });
 if (INBOX) { checkLink(); setInterval(checkLink, 20_000).unref(); }
 
 async function sendQueued(film) {
@@ -435,7 +438,7 @@ if (DEV) {
 server.on('error', (e) => {
   // most often a studio is already open on this port: say so, rather than a stack trace
   if (e.code === 'EADDRINUSE') console.error(`Port ${PORT} is in use, probably by a studio that is already running: open ${ORIGIN}/studio/, or start this one on another port with --port <n>.`);
-  else console.error(e);
+  else console.error(explainBlocked(e, 'npx motion-director studio') || e); // a sandbox blocking the port says so
   process.exit(1);
 });
 /* A studio for this project already on this port: if it is connected to this same session, it is the one to use;

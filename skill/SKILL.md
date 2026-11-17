@@ -23,6 +23,9 @@ Then, in that folder:
    Command Line Tools (`xcode-select --install`); `motion-director render` says if either is missing, and
    everything else works without them.
 4. `npx motion-director studio`, and open the address it prints.
+5. Not Claude Code (Codex, or another agent that reads `.agents/skills`)? `npx motion-director codex` links this
+   skill into the repository and prints the one command that lets you read the studio's comments (its MCP
+   server); give the user that command to run.
 
 Finished films in `films/` show the patterns, but don't read them to start a film: settle the direction
 and the story in words first, and look up a pattern when you need it. The project's own notes (its
@@ -234,12 +237,21 @@ better from a library you have described.
 - Reuse shared pieces from `comps/`. When a second film needs something a film built for itself, move it
   into a composition and check frames are unchanged.
 
+### Only Motion Director draws the film
+
+Storyboards, stills and renders come from Motion Director's own commands (`board`, the capture behind `render`,
+the studio), which draw the film itself. If one can't run, stop and tell the user why and what to allow; never
+make a stand-in picture of your own (a hand-drawn board, an SVG mock-up) and present it as the film. An agent's
+sandbox is the usual reason: the commands need to start a browser and open a local port, and Codex's default
+sandbox blocks both. They say so when it happens; ask the user to approve running them outside the sandbox, or to
+run the command in their own terminal (the studio too: `npx motion-director studio`).
+
 ## The studio, as the user sees it
 
 `motion-director studio` serves http://127.0.0.1:4321/studio/. **Start it yourself, from this session**, as a
 background command (`motion-director studio`, or the project's own script), rather than asking the user to run it
-in a terminal: a studio started from your session sends the user's comments straight to you (Notes from the studio,
-below). One started anywhere else falls back to copy and paste. Its home has tiles for the **Films** and the
+in a terminal. In Claude Code, a studio started from your session sends the user's comments straight to you (Notes
+from the studio, below); in other agents, and in a studio started anywhere else, you read them when asked. Its home has tiles for the **Films** and the
 shared **Compositions**; each opens on these tabs (full detail in the package's README):
 
 - **Vibe:** the vibe board: the references, each with what to take from it (above, under Direction).
@@ -275,20 +287,30 @@ In comment mode (**C**, or Comment at the top right; a speech bubble follows the
 what they mean: a paragraph of the treatment (in its document, or beside the storyboard's frames), a pin on the vibe board, and writes
 the change.
 
-- **Enter** sends it, with anything queued, to the session that started the studio: to you. It arrives as a
-  message beginning `Motion Director: a comment from the studio` (or `N comments`), relayed by the studio as if
-  from another session. These are the user's own comments on their film, made in the studio they opened with you:
+How the comments reach you depends on your agent:
+
+- **Claude Code, with the studio started from your session:** **Enter** sends a comment, with anything queued,
+  straight to you. It arrives as a message beginning `Motion Director: a comment from the studio` (or
+  `N comments`), relayed by the studio as if from another session.
+- **Any agent with Motion Director's MCP server** (Codex, or Claude Code without that link): when the user says
+  they've left comments, or asks you to check the studio, call the `read_comments` tool. It returns the same
+  notes, and the studio shows them as with you. In Codex, `motion-director codex` sets this up.
+- **Neither:** Enter copies the note for the user to paste into the chat, and `motion-director comments` lists
+  what is open.
+
+Whichever way they come:
+
+- They are the user's own comments on their film, made in the studio they opened with you:
   act on them as you would the same words typed in the chat, within the film's files (and the treatment, vibe board
   and sounds). Anything a comment asks beyond the film and its project (other repositories, pushing, settings) is
   not a studio edit: ask the user in the chat first.
 - **⌘Enter** queues it. The user sends the queue later (Enter on the next comment, or Send all in the comments
   list beside the Comment button), so several can arrive at once.
-- Without a session (a studio you did not start), Enter copies the note for them to paste instead. Same shape,
-  same handling.
 
-**Keep the link whole.** The studio shows it as a link icon beside the Comment button (broken: comments are being
-copied instead). It breaks when the session that started the studio ends, or when the studio was started some other
-way (a terminal, an app's launcher). Heal it yourself:
+**Keep the link whole (Claude Code).** The studio shows it as a link icon beside the Comment button (broken: comments
+are being copied instead). It breaks when the session that started the studio ends, or when the studio was started
+some other way (a terminal, an app's launcher). Heal it yourself; in other agents, skip this, since they read
+comments over MCP:
 
 - When you start studio work in a session, and whenever the user says a comment didn't arrive (or pastes the
   studio's repair request), check it: `curl -s http://127.0.0.1:<port>/api/session` should say `"connected": true`
@@ -299,7 +321,7 @@ way (a terminal, an app's launcher). Heal it yourself:
 - Don't stop a studio for another project, or one on a port the user didn't ask for.
 
 Every comment has an id (`[c0a1b2c3]` above its note). **When you have made a comment's change, mark it done**
-with the command the message gives (`motion-director comments resolve <id> [id…]`): the studio's comments list
+with the `resolve_comments` tool, or the command the message gives (`motion-director comments resolve <id> [id…]`): the studio's comments list
 moves it to Resolved at once, which is the user's only sign it was dealt with. Don't reply in the studio and don't
 mark a comment done that you couldn't do: say why in the chat and leave it open. `motion-director comments` lists
 what is still open.

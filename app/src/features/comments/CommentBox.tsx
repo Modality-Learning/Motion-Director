@@ -3,6 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Check, ClipboardPaste, Clock } from 'lucide-react';
 import { Kbd } from '@/components/Kbd';
 import { COPIED_MS, DONE_MS, closeBox, sendComment, useComments } from './comments';
+import { useAgentName } from './list';
 
 /** The comment box, placed where you clicked: the storyboard, the preview or the timeline. */
 export function CommentBox() {
@@ -47,6 +48,7 @@ export function CommentBox() {
  * Esc closes it sooner. Motion is skipped for anyone who has asked for less of it. */
 function Copied({ onDone }: { onDone: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const agent = useAgentName();
   useEffect(() => { ref.current?.focus(); }, []);
   return (
     <div ref={ref} tabIndex={-1} role="status" aria-live="polite" className="grid gap-2 outline-none" onClick={onDone}
@@ -57,9 +59,9 @@ function Copied({ onDone }: { onDone: () => void }) {
       </span>
       <span className="copied-next flex w-fit items-center gap-2 rounded-full bg-warning px-3 py-1.5 text-sm font-semibold text-[#2a1600]">
         <ClipboardPaste className="size-4" aria-hidden="true" />
-        Now paste it into Claude <Kbd className="border-[#2a1600]/40">⌘V</Kbd>
+        Now paste it into {agent} <Kbd className="border-[#2a1600]/40">⌘V</Kbd>
       </span>
-      <span className="sr-only"><Check /> Copied. Paste it into Claude.</span>
+      <span className="sr-only"><Check /> Copied. Paste it into {agent}.</span>
       <span aria-hidden="true" className="h-0.5 overflow-hidden rounded-full bg-border"><span className="copied-bar block h-full bg-foreground/50" style={{ animationDuration: `${COPIED_MS}ms` }} /></span>
     </div>
   );

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,4 +37,19 @@ test('starter sounds keep a project\'s own notes about them, and notes already t
   assert.equal(JSON.parse(readFileSync(libFile, 'utf8')).sounds['pop.wav'].description, 'my own words');
   assert.equal(writeNotes(dir).written, false);
   assert.equal(readFileSync(join(dir, 'NOTES.md'), 'utf8'), 'mine');
+});
+
+test('motion-director codex links the skill into the repository\'s .agents/skills and prints the MCP command', () => {
+  const top = mkdtempSync(join(tmpdir(), 'md-codex-'));
+  spawnSync('git', ['init', '-q', top]);
+  const project = join(top, 'promo');
+  assert.equal(spawnSync(process.execPath, [BIN, 'init', project]).status, 0);
+  const r = spawnSync(process.execPath, [BIN, 'codex'], { cwd: project, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const link = join(top, '.agents', 'skills', 'motion-director');
+  assert.ok(lstatSync(link).isSymbolicLink());
+  assert.ok(existsSync(join(link, 'SKILL.md')), 'the link reaches the skill');
+  assert.match(r.stdout, /codex mcp add motion-director -- ".*node.*" ".*bin\/motion-director\.mjs" mcp --root ".*promo"/);
+  // run again: what's there is kept
+  assert.match(spawnSync(process.execPath, [BIN, 'codex'], { cwd: project, encoding: 'utf8' }).stdout, /Kept what's already at/);
 });

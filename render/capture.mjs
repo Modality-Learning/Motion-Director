@@ -7,11 +7,13 @@
 //        DSF = device scale factor: 1.3333333333 (default) = 2560×1440 (or 1440×2560), 1 = native, 2 = 4K
 import { renameSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
+import { explainOnCrash } from './blocked.mjs';
 import { paramsQuery } from './params.mjs';
 import { projectRoot } from '../server/project.mjs';
 import { pageUrl, startProjectServer } from '../server/static.mjs';
 
 const [, , film, outDir, fpsArg, fromArg, toArg, stepArg] = process.argv;
+explainOnCrash(`npx motion-director render ${film}`); // a sandbox blocking the browser or a port says so
 if (!film || !outDir) { console.error('usage: node capture.mjs <film> <outDir> <fps> [from] [to] [step]'); process.exit(2); }
 const FPS = +fpsArg || 25;
 const DSF = +(process.env.DSF || 1.3333333333);

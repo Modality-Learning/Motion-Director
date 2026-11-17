@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { copy } from './comments';
-import { checkLink, useCommentList } from './list';
+import { checkLink, readsOverMcp, useCommentList } from './list';
 
 /** After this many failed checks in a row, clicking the broken link offers the repair instead of another try. */
 export const REPAIR_AFTER = 3;
@@ -22,6 +22,25 @@ export function SessionLinkButton() {
   const [open, setOpen] = useState(false);
   if (!link) return null;
   const ok = link.connected;
+  // another agent (Codex…) reads comments over MCP when asked: nothing to repair, and nothing wrong
+  if (readsOverMcp(link)) {
+    const agent = link.agent!;
+    const label = `Comments are for ${agent}: Enter copies one to paste, or ask ${agent} to read the studio's comments.`;
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button size="icon-sm" variant="ghost" aria-label={label} title={label} className="text-muted-foreground hover:text-foreground"><Link2 /></Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="grid w-80 gap-2">
+          <p className="text-sm font-semibold">Comments are for {agent}</p>
+          <p className="text-sm text-muted-foreground">
+            {agent} reads them through Motion Director's MCP tools when you ask: say "check the studio comments". Enter also
+            copies a comment for you to paste. Once {agent} has made a change, it marks the comment resolved here.
+          </p>
+        </PopoverContent>
+      </Popover>
+    );
+  }
   const needsRepair = !ok && (!link.available || link.fails >= REPAIR_AFTER);
   const label = ok ? 'Connected to Claude: comments go straight to your session. Click to check.'
     : needsRepair ? 'Not connected to Claude: comments are copied to paste. Click to repair.'

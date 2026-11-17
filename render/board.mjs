@@ -2,6 +2,7 @@
 // This is the cheap review step: one image per pass instead of a render.
 // usage: motion-director board <film>
 import { chromium } from 'playwright';
+import { explainOnCrash } from './blocked.mjs';
 import { resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { paramsQuery } from './params.mjs';
@@ -10,6 +11,8 @@ import { pageUrl, startProjectServer } from '../server/static.mjs';
 
 const root = projectRoot();
 const name = process.argv[2];
+// a sandbox that blocks the browser or the page's local port says so, rather than a bare "browser closed"
+explainOnCrash(`npx motion-director board ${name}`);
 if (!name) { console.error('usage: motion-director board <film>'); process.exit(2); }
 const site = await startProjectServer(root);
 const url = pageUrl(site.origin, 'film', name, `board&${paramsQuery(root, 'film', name, process.env.BG ? { background: process.env.BG } : {})}`);

@@ -88,3 +88,21 @@ test('a studio never started from a session goes straight to the repair, with no
 test('the repair request asks Claude to start the studio again from its session, with the command', () => {
   expect(repairRequest('node bin studio --port 4332')).toMatch(/Start it again from this session[\s\S]*\nnode bin studio --port 4332$/);
 });
+
+const mcpLink = { connected: false, available: false, fails: 0, checkedAt: null, restart: '', agent: 'Codex' };
+
+test('when Codex reads comments over MCP, the list and the footer name Codex, and say it can be asked', () => {
+  useCommentList.setState({ link: mcpLink });
+  show([c('b', 'sent', 'Tile sooner.')], false);
+  expect(screen.getByRole('heading', { name: 'With Codex (1)' })).toBeTruthy();
+  expect(screen.getByText(/paste into Codex; ⌘Enter queues it\. Or ask Codex to read the studio's comments\./)).toBeTruthy();
+});
+
+test('the link icon offers no repair for an agent on MCP: it says to ask that agent', () => {
+  useCommentList.setState({ link: mcpLink });
+  render(<SessionLinkButton />);
+  const button = screen.getByRole('button', { name: /Comments are for Codex/ });
+  fireEvent.click(button);
+  expect(screen.getByText(/say "check the studio comments"/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Copy repair request' })).toBeNull();
+});

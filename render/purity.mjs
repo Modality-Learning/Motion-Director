@@ -4,6 +4,7 @@
 // usage: motion-director purity <film> [step seconds, default 1]
 // Exit codes: 0 every sampled moment matches, 1 something differs (listed), 2 usage.
 import { chromium } from 'playwright';
+import { explainOnCrash } from './blocked.mjs';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { paramsQuery } from './params.mjs';
@@ -13,6 +14,7 @@ import { pageUrl, startProjectServer } from '../server/static.mjs';
 
 const ROOT = projectRoot();
 const [, , film, stepArg] = process.argv;
+explainOnCrash(`npx motion-director purity ${film}`); // a sandbox blocking the browser or a port says so
 if (!film || !existsSync(join(ROOT, 'films', film, 'index.html'))) { console.error('usage: motion-director purity <film> [step seconds]'); process.exit(2); }
 const STEP = +stepArg || 1, FPS = 25;
 
