@@ -10,6 +10,23 @@ Films live in a **project**: a folder with a `motion-director.config.mjs`, and `
 Paths below are relative to the project unless they say "the package". Commands are `motion-director <cmd>`
 (`npx motion-director <cmd>` in the project); a project may wrap them in its own scripts, and its notes say so.
 
+### Keeping up to date
+
+This is the Motion Director skill 0.2.0. When you start working in a project, run `npx motion-director --version`:
+it names the installed package, the skill it carries, and whether a newer release is out.
+
+- **The package is older than this skill:** this skill may name commands, tabs or options it doesn't have yet.
+  Offer to update it (`npx motion-director update`).
+- **The package is newer than this skill:** you are reading an older copy of the skill (the Claude Code plugin
+  hasn't updated). Run `claude plugin update motion-director@motion-director`, and ask the user to run
+  `/reload-plugins`. In Codex and other agents the skill is linked to the package, so this can't happen.
+- **A newer release is out:** say so once, with what's new (`--version --json` lists it), and offer to update.
+  Don't update unasked: in the middle of a film a kit change can change how it looks, so ask first.
+
+When the user asks you to update, or pastes the studio's update request: run `npx motion-director update` in the
+project, restart the studio (start it again from this session, in the background, on the same port), then update
+the plugin as above.
+
 ### When there is no project yet
 
 Find the project by its `motion-director.config.mjs` (`git ls-files '*motion-director.config.mjs'`). If the

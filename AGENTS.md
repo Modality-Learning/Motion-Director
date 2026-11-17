@@ -28,5 +28,8 @@ This repo is the tool, not a set of films. Films live in the projects that use i
 - **The skill is part of the product.** When behaviour a film-maker depends on changes (the note format,
   a command, a studio tab, a parameter rule), update `skill/` and the README in the same change. Keep the
   skill free of any one project's brand or paths.
+- **Releases.** Anything a film-maker would notice goes under `## Unreleased` in `CHANGELOG.md`, in the same
+  change: projects show those notes when they update. `node scripts/release.mjs <x.y.z>` makes a release (see the
+  README); `npm test` fails if the package, plugin and skill versions disagree.
 - **Commits.** Don't commit or push unless asked. Never commit renders, stills or `out/`.
 - Style for docs: short plain sentences, British spelling, no em dashes, say why.

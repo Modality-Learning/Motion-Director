@@ -42,7 +42,8 @@ export async function loadConfig(root = projectRoot()) {
   // read it from MD_SOUNDS, which is set here (the CLI loads the config before it starts anything), unless set already.
   const sounds = typeof cfg.sounds === 'string' && cfg.sounds.trim() ? resolve(root, cfg.sounds.trim().replace(/^~(?=$|\/)/, homedir())) : null;
   if (sounds && !process.env.MD_SOUNDS) process.env.MD_SOUNDS = sounds;
-  return { root, name: typeof cfg.name === 'string' ? cfg.name : '', sounds, checks: { drift: drift && existsSync(drift) ? drift : null } };
+  // updates: false stops the studio and --version asking GitHub for newer releases (server/updates.mjs)
+  return { root, name: typeof cfg.name === 'string' ? cfg.name : '', sounds, updates: cfg.updates !== false, checks: { drift: drift && existsSync(drift) ? drift : null } };
 }
 
 /** Where a kit file comes from: the project's own kit/ first (its brand, its additions), then the package's. */

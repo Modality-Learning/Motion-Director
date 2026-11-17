@@ -15,7 +15,9 @@
 //   motion-director comments [film] | resolve <id…>   the studio's open comments, or mark some done
 //   motion-director init [folder]             a new project with a starter film
 //   motion-director skill                       where the Claude skill is, to link into a project's skills
-import { spawn } from 'node:child_process';
+//   motion-director --version [--json]          this version, the skill's, and whether a newer release is out
+//   motion-director update [--check] [x.y.z]    update this project's Motion Director to the latest release
+import { spawn, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { CONFIG, PKG, findRoot, loadConfig } from '../server/project.mjs';
@@ -35,7 +37,9 @@ const USAGE = `usage: motion-director <command> [--root <project>]
   init [folder]                   start a new project
   skill                           print where the skill lives (Claude Code: install the plugin)
   codex                           set up Codex: link the skill into .agents/skills, print its MCP command
-  mcp                             the MCP server agents use for studio comments (the agent starts it)`;
+  mcp                             the MCP server agents use for studio comments (the agent starts it)
+  --version [--json]              this version, the skill's, and whether a newer one is out
+  update [--check] [x.y.z]        update this project's Motion Director to the latest release`;
 
 const argv = process.argv.slice(2);
 const take = (flag) => { const i = argv.indexOf(flag); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v ?? null; };
@@ -43,6 +47,16 @@ const rootArg = take('--root'), port = take('--port');
 const [cmd, ...rest] = argv;
 
 if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { console.log(USAGE); process.exit(cmd ? 0 : 2); }
+
+if (cmd === '--version' || cmd === '-v' || cmd === 'version') {
+  // what's installed, the skill it carries, and (checked at most daily) whether a newer release is out
+  const u = await import('../server/updates.mjs');
+  const info = u.checksOff() ? { current: u.installedVersion(), skill: u.skillVersion(), latest: null, available: false, notes: [], error: 'update checks are off' } : await u.updateInfo();
+  if (rest.includes('--json')) { console.log(JSON.stringify(info, null, 2)); process.exit(0); }
+  console.log(`Motion Director ${info.current} (skill ${info.skill ?? 'unknown'})`);
+  console.log(info.error ? `Couldn't check for a newer release: ${info.error}` : info.available ? `${info.latest} is out: update with npx motion-director update` : `Up to date (latest release ${info.latest}).`);
+  process.exit(0);
+}
 
 if (cmd === 'skill') { console.log(join(PKG, 'skill')); process.exit(0); }
 
@@ -98,6 +112,27 @@ if (cmd === 'codex') {
   console.log("Codex's sandbox blocks the browser and local port that the studio, storyboards and renders need: start the studio in");
   console.log('your own terminal (npx motion-director studio), and approve storyboards and renders when Codex asks to run them');
   console.log('outside the sandbox. Then ask Codex for a film, and say "check the studio comments" after commenting in the studio.');
+  process.exit(0);
+}
+
+if (cmd === 'update') {
+  // to the latest release (or a given one), by npm with fixed options: this repository at a release tag
+  const u = await import('../server/updates.mjs');
+  const info = await u.updateInfo({ force: true });
+  if (info.error) { console.error(`Couldn't reach GitHub to look for a newer release: ${info.error}`); process.exit(1); }
+  const asked = rest.find((a) => /^\d+\.\d+\.\d+$/.test(a)), target = asked || info.latest;
+  if (rest.includes('--check')) { console.log(info.available ? `${info.latest} is out (this project has ${info.current}).` : `Up to date: ${info.current}.`); process.exit(0); }
+  if (!asked && !info.available) { console.log(`Motion Director ${info.current} is the latest release.`); process.exit(0); }
+  const plan = u.installPlan(u.dependencyOf(root), target);
+  if (plan.problem) { console.error(plan.problem); process.exit(1); }
+  console.log(`Updating Motion Director from ${info.current} to ${target}…`);
+  const r = spawnSync('npm', plan.args, { cwd: plan.dir, stdio: 'inherit' });
+  if (r.status !== 0) { console.error('npm could not install it; nothing else was changed.'); process.exit(r.status || 1); }
+  const news = u.notesBetween((await u.latestRelease()).changelog, info.current, target);
+  if (news.length) console.log(`\nWhat's new:\n\n${news.map((n) => `${n.version}\n${n.notes}`).join('\n\n')}`);
+  console.log(`\nNext:\n- Restart the studio if it's running, so it uses ${target}.`);
+  console.log(`- Claude Code: update the skill too, with claude plugin update ${u.PLUGIN}, then /reload-plugins.`);
+  console.log('- Codex and other agents: the skill is linked to the package, so it is already up to date.');
   process.exit(0);
 }
 

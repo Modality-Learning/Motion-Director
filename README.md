@@ -85,6 +85,26 @@ comments, a storyboard request) made every change correctly and resolved every c
 the MCP tools once those were allowed, and, once the sandbox message existed, reported the blocked storyboard
 instead of improvising one.
 
+### Staying up to date
+
+Motion Director comes in two parts that update separately: the package in your project (the studio, renderer,
+kit and commands) and, in Claude Code, the skill from the plugin. Each release gives both the same version.
+
+- `npx motion-director --version` says what you have, the skill it carries, and whether a newer release is out
+  (it asks GitHub at most once a day).
+- The studio shows **Update to x.y.z** in its top bar when one is out, with what's new. **Ask Claude to update**
+  sends the update request straight to the session that started the studio; with other agents it copies it to
+  paste. After an update, it says when it needs a restart to finish.
+- `npx motion-director update` installs the latest release (a release tag, so `npm install` keeps you on it),
+  says what's new, and what to do next: restart the studio, and in Claude Code update the skill too with
+  `claude plugin update motion-director@motion-director`, then `/reload-plugins`. In Codex the skill is linked
+  to the package, so it updates with it.
+- The skill checks the versions itself when it starts, and offers the update it needs.
+
+Updates don't change your films, which are your own files. They can change the shared kit films load, so in the
+middle of a film it's worth updating between drafts rather than just before a final render. To stop the checks,
+set `updates: false` in `motion-director.config.mjs`, or `MD_NO_UPDATE_CHECK=1`.
+
 ## Requirements
 
 - Node 22 or newer.
@@ -254,7 +274,9 @@ Every command works on a project (see above for how it is found).
 | `motion-director init [folder]` | Makes a new project with a starter film. |
 | `motion-director skill` | Prints where the skill is (Claude Code installs it as a plugin). |
 | `motion-director codex` | Sets up Codex: links the skill into `.agents/skills/` and prints the command that adds the MCP server. |
-| `motion-director mcp` | The MCP server agents use for studio comments (`project`, `read_comments`, `resolve_comments`). The agent starts it. |
+| `motion-director --version [--json]` | This version, the skill's, and whether a newer release is out. |
+| `motion-director update [--check] [x.y.z]` | Installs the latest release (or the one given) in this project, and says what's new and what to do next. |
+| `motion-director mcp` | The MCP server agents use for studio comments (`project`, `read_comments`, `set_status`, `resolve_comments`). The agent starts it. |
 
 `--root <project>` goes before or after any command. For one frame, or a short run of frames, call the
 capture script directly with the project in `MD_ROOT`:
@@ -262,6 +284,18 @@ capture script directly with the project in `MD_ROOT`:
 25 fps, so the frame at 12 s).
 
 ## Developing Motion Director
+
+### Releasing
+
+Projects see a release once its tag is on GitHub, so make one whenever a change is worth having:
+
+1. Write what changed under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md) as you go, for the person using it.
+2. `node scripts/release.mjs <x.y.z>` gives the package, the plugin and the skill that version, and turns the
+   Unreleased notes into the release. It changes only those lines.
+3. `npm test` (one test fails if the versions disagree), commit, tag `v<x.y.z>`, and push `main` and the tag.
+
+Bump the minor version for new features and the patch version for fixes. The plugin's version follows the
+releases, so Claude Code users get skill changes with the release, not with every commit.
 
 The studio's UI is React, Tailwind 4 and shadcn/ui, built with Vite, in `app/`. The server, kit and
 render scripts are plain Node and browser JavaScript, in `server/`, `kit/` and `render/`.

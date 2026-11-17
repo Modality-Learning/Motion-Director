@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { CONFIG, PKG, findRoot } from './project.mjs';
 import { filmsOf, formatBatch, readComments, setStatus } from './comment-queue.mjs';
 import { clearAgentStatus, setAgentStatus } from './agent-status.mjs';
+import { installedVersion, skillVersion } from './updates.mjs';
 
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const VERSION = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8')).version;
@@ -82,6 +83,7 @@ export function callTool(root, name, args = {}, state = null) {
     const films = filmsIn(root);
     return { text: [
       `Project: ${root}`,
+      `Motion Director ${installedVersion()} (skill ${skillVersion() ?? 'unknown'}). \`npx motion-director --version\` says whether a newer release is out.`,
       films.length ? `Films:\n${films.map((f) => `- ${f.name}: ${f.title}${f.duration ? ` (${f.duration} s)` : ''}`).join('\n')}` : 'No films yet: copy films/_template to films/<name> to start one.',
       `Studio: run \`npx motion-director studio\` in ${root} (it prints its address, http://127.0.0.1:4321/studio/ by default).`,
       'Comments the user makes there: read_comments, then resolve_comments once each change is made.',

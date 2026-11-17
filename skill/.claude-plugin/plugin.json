@@ -9,5 +9,6 @@
   "license": "MIT",
   "skills": [
     "./"
-  ]
+  ],
+  "version": "0.2.0"
 }

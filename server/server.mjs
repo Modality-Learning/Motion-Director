@@ -20,6 +20,7 @@ import { buildFilmModule, buildPlayer, writeWebFilm } from '../render/web.mjs';
 import { videoSupportCached } from '../render/can-render.mjs';
 import { explainBlocked } from '../render/blocked.mjs';
 import { readAgentStatus } from './agent-status.mjs';
+import { checksOff, compareVersions, installedVersion, updateInfo, updateRequest } from './updates.mjs';
 import { formatComment, validateComment } from './comments.mjs';
 import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importFolder, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
@@ -58,6 +59,25 @@ function announce(ev) {
 }
 // the comment logs (out/comments): a status changed from the command line (Claude marking one resolved) shows at once
 try { mkdirSync(join(OUT, 'comments'), { recursive: true }); watch(join(OUT, 'comments'), (_, file) => { const f = file && String(file).match(/^([^/\\]+)\.jsonl$/); if (f) announce({ type: 'comments', film: f[1] }); else if (String(file) === 'status.json') announce({ type: 'status' }); }); } catch { /* no out/ */ }
+
+/* Updates (server/updates.mjs): the release this studio runs, the latest on GitHub (asked at most daily), and
+ * whether the package on disk has moved on since the studio started, which means it needs a restart. */
+const LOADED_VERSION = installedVersion();
+let update = null, installedNow = LOADED_VERSION;
+async function checkUpdate() {
+  if (checksOff(CONFIG)) return;
+  const was = update?.latest;
+  update = await updateInfo().catch((err) => ({ error: err.message }));
+  if (update?.latest !== was) announce({ type: 'update' });
+}
+checkUpdate();
+setInterval(checkUpdate, 6 * 60 * 60_000).unref();
+setInterval(() => { try { const v = installedVersion(); if (v !== installedNow) { installedNow = v; announce({ type: 'update' }); } } catch { /* mid-install */ } }, 30_000).unref();
+const updateState = () => ({
+  ...(update || {}), loaded: LOADED_VERSION, installed: installedNow, off: checksOff(CONFIG),
+  restartNeeded: installedNow !== LOADED_VERSION,
+  available: !!update?.latest && compareVersions(update.latest, installedNow) > 0,
+});
 
 /* Comments go to the Claude Code session the studio was started from, when there is one (comment-queue.mjs) */
 const INBOX = sessionInbox();
@@ -207,6 +227,10 @@ async function api(req, res, url) {
     if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
     const file = treatmentFile(piece.dir), text = file ? await readFile(join(piece.dir, file), 'utf8').catch(() => null) : null;
     return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text, file: file || 'TREATMENT.md' });
+  }
+  if (req.method === 'GET' && pathname === '/api/update') {
+    // the update notice: the version running, the one installed, the latest release and what's new in it
+    return json(res, 200, updateState());
   }
   if (req.method === 'GET' && pathname === '/api/agent-status') {
     // what the agent says it's doing (server/agent-status.mjs), for the status beside the link icon
@@ -366,6 +390,14 @@ async function api(req, res, url) {
     plan.options = { preset: body.preset, size: body.size };
     const { pid, ...job } = startRender(plan);
     return json(res, 202, job);
+  }
+  if (req.method === 'POST' && pathname === '/api/update/send') {
+    // the update request, to the session that started the studio when there is one; else back to copy and paste
+    const s = updateState();
+    if (!s.available) return json(res, 409, { error: 'No newer release' });
+    const text = updateRequest({ current: s.installed, latest: s.latest, notes: s.notes });
+    if (INBOX && await deliver(INBOX, text)) return json(res, 200, { via: 'session' });
+    return json(res, 200, { via: 'clipboard', text });
   }
   if (req.method === 'POST' && pathname === '/api/web/export') {
     const film = films.find((f) => f.name === body.film);

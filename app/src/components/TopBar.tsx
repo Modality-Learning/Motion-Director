@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { openCount, useCommentList } from '@/features/comments/list';
 import { SessionLinkButton } from '@/features/comments/SessionLink';
 import { AgentStatus } from '@/features/comments/AgentStatus';
+import { UpdateNotice } from '@/features/updates/UpdateNotice';
 
 const label = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' } as const;
 
@@ -53,6 +54,7 @@ export function TopBar() {
         ) : null}
       </nav>
       <div className="flex min-w-0 items-center justify-end gap-4">
+        <UpdateNotice />
         <span role="status" aria-live="polite" className={cn('truncate text-sm', save.state === 'error' ? 'text-destructive' : save.state === 'saved' ? 'text-success' : 'text-muted-foreground')}>
           {save.state === 'saving' ? 'Saving…' : save.state === 'saved' ? 'Saved ✓' : save.state === 'error' ? `Not saved: ${save.detail || 'try again'}` : ''}
         </span>
