@@ -7,6 +7,7 @@ import { FPS, beatPhase, biggestLift, fitPlan, onsets, tempoNear, tempoOverall, 
 import { readWav } from '../kit/sound-check.mjs';
 import { NAME } from '../render/params.mjs';
 import { readSheet, run, saveSheet, soundFile } from './sound-lib.mjs';
+import { readManifest } from '../render/params.mjs';
 
 export const briefFile = (root, film) => join(root, 'films', film, 'music.json');
 
@@ -48,10 +49,15 @@ export async function fitMusic(root, film, cueId = null, { dry = false } = {}) {
   const file = soundFile(root, cue.sound);
   if (!file || !existsSync(file)) return { error: `${cue.sound} isn't in the sound library on this machine` };
   const track = await measureTrack(file, b.brief.bpm, b.brief.beatsPerBar);
-  const plan = fitPlan(b.brief, track, { at: cue.at, from: cue.from ?? 0 });
+  // the film's length: the brief's (written from the film page, which is the truth), else film.json's
+  const manifest = readManifest(root, 'film', film)?.data?.duration;
+  const duration = b.brief.length ?? (typeof manifest === 'number' ? manifest : undefined);
+  const plan = fitPlan(b.brief, track, { at: cue.at, from: cue.from ?? 0 }, { duration });
   if (!dry) {
     Object.assign(cue, { at: plan.at, rate: plan.rate, keepPitch: true }, plan.from ? { from: plan.from } : {});
     if (plan.rate === 1) delete cue.rate;
+    // the end: cut and faded at the film's end when the track runs past it; else the whole track plays
+    if (plan.to != null) Object.assign(cue, { to: plan.to, fadeOut: plan.fadeOut }); else delete cue.to;
     const saved = saveSheet(root, film, sheet);
     if (saved.error) return saved;
   }

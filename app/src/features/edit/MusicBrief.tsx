@@ -8,8 +8,9 @@ import { copy } from '@/features/comments/comments';
 import { lineUpMusic, useEdit } from './store';
 import type { Brief } from './types';
 
-/** The prompt as one block to paste into a music generator: the style line, then the structure. */
-export const promptText = (brief: Brief) => [brief.prompt?.style, brief.prompt?.structure].filter(Boolean).join('\n\n');
+import { clockOf, promptText } from './kit';
+
+export { promptText };
 
 /** The music lane's Brief button: the tempo, the sections at their times, the prompt to copy into Suno or
  * another generator, and Line up, which fits the music clip to the brief (server/music-lib.mjs). */
@@ -44,7 +45,7 @@ export function MusicBrief() {
             <div className="grid gap-0.5">
               <p className="text-sm font-semibold">The music brief</p>
               <p className="text-sm text-muted-foreground">
-                {brief.bpm} BPM in {brief.beatsPerBar}/4{brief.offset ? `, first downbeat at ${secs(brief.offset)}` : ''}{brief.ending ? `, a ${brief.ending} ending` : ''}{brief.length ? `, ${secs(brief.length)} long` : ''}
+                {brief.bpm} BPM in {brief.beatsPerBar}/4{brief.offset ? `, first downbeat at ${secs(brief.offset)}` : ''}{brief.ending ? `, a ${brief.ending} ending` : ''}{brief.length ? `, ${clockOf(brief.length)} long` : ''}
               </p>
             </div>
             {brief.sections.length ? (
@@ -84,6 +85,7 @@ function PromptBlock({ brief }: { brief: Brief }) {
         <Button size="xs" variant="ghost" onClick={copyIt} aria-label="Copy the prompt">{done ? <Check /> : <Copy />}{done ? 'Copied' : 'Copy'}</Button>
       </div>
       <pre className="max-h-56 overflow-auto rounded-md bg-background p-2 text-xs leading-relaxed whitespace-pre-wrap">{text}</pre>
+      {brief.length ? <p className="text-xs text-muted-foreground">Ask for {clockOf(brief.length)}: the prompt says so. Generators often make more; Line up ends the music with the film, faded.</p> : null}
       {brief.prompt?.notes ? <p className="text-xs text-muted-foreground">{brief.prompt.notes}</p> : null}
     </div>
   );

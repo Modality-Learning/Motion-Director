@@ -42,6 +42,32 @@ export function validateBrief(doc) {
   return { brief: { bpm, beatsPerBar, offset, sections: clean, ...(doc.ending ? { ending: doc.ending } : {}), ...(doc.length ? { length: doc.length } : {}), ...(Object.keys(prompt).length ? { prompt } : {}) } };
 }
 
+/** A length as people write it: 95 → "1:35". */
+export const clockOf = (seconds) => { const s = Math.round(seconds); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+/** The structure lines for a brief's sections: each section's length in bars (to the next section, the last to
+ * the music's end), so the bars add up to the length asked for. `what` gives each one's description. */
+export function structureLines(brief, length, what = (s) => s.note) {
+  const bar = barLen(brief), end = length ?? brief.length;
+  return brief.sections.map((s, i) => {
+    const next = brief.sections[i + 1]?.at ?? end ?? s.at + bar;
+    const bars = Math.max(1, Math.round((next - s.at) / bar));
+    return `[${s.name}: ${bars} bar${bars === 1 ? '' : 's'}${what(s) ? `, ${what(s)}` : ''}]`;
+  });
+}
+
+/** The prompt to paste into a music generator: the style line, sure to say how long the track should be, then the
+ * structure, sure to end on [End]. Generators only know what the prompt says; without the length they make a
+ * whole song (two to four minutes). */
+export function promptText(brief) {
+  const length = brief.length, p = brief.prompt ?? {};
+  let style = (p.style || '').trim();
+  if (length && style && !/\b\d+:\d\d\b/.test(style)) style = `${style.replace(/[,.\s]+$/, '')}, ${clockOf(length)} long, ending at ${clockOf(length)}`;
+  let structure = (p.structure || '').trim();
+  if (structure && !/\[End\]\s*$/i.test(structure)) structure = `${structure}\n[End]`;
+  return [style, structure].filter(Boolean).join('\n\n');
+}
+
 /** Seconds per beat and per bar. */
 export const beatLen = (bpm) => 60 / bpm;
 export const barLen = (brief) => beatLen(brief.bpm) * (brief.beatsPerBar ?? 4);
@@ -162,9 +188,11 @@ export function biggestLift(energy, bpm, phase, beatsPerBar = 4) {
 
 /** Where to put a music clip and how fast to play it so the track keeps the brief's time:
  * { at, rate, shift, note }. `track`: what was measured, in the file's own seconds ({ bpm, phase, lift });
- * `clip`: the cue now ({ at, from }); `from` comes back trimmed when the line-up would start it before the film. The rate only corrects a near miss (within 12%); a track in another tempo
+ * `clip`: the cue now ({ at, from }); `from` comes back trimmed when the line-up would start it before the film.
+ * `film`: { duration } of the film. A track longer than the film (generators rarely keep to a length) ends at the
+ * film's end with a fade sized to the brief's ending: `to` and `fadeOut` come back set; else `to` comes back null. The rate only corrects a near miss (within 12%); a track in another tempo
  * plays as it is and the note says so. */
-export function fitPlan(brief, track, clip) {
+export function fitPlan(brief, track, clip, film = {}) {
   const ratio = brief.bpm / track.bpm;
   // a track that runs at another tempo altogether (track.overall, clearly stronger) isn't sped up to the brief's
   const elsewhere = track.overall && Math.abs(track.overall - track.bpm) / track.bpm > 0.03 && track.overallStrength > track.strength * 1.15;
@@ -190,5 +218,20 @@ export function fitPlan(brief, track, clip) {
     : rate !== 1 ? `Played at ${rate}× (pitch kept) so its ${track.bpm} BPM matches the brief's ${brief.bpm}.` : `It already keeps the brief's ${brief.bpm} BPM.`;
   // matched: the track keeps the brief's time from here on (its beats won't drift away from the film's)
   const matched = !elsewhere && Math.abs(ratio - 1) <= 0.12;
-  return { at, from: trimFrom, rate, matched, shift: Math.round((at - (clip.at ?? 0)) * 1000) / 1000, note, drop: drop && track.lift != null ? drop.name : null, bar };
+  // the end: a track that runs past the film stops at its end, faded (a button ending can't be kept when the
+  // track's own ending is elsewhere, so it gets a short fade; a ring or a fade a longer one)
+  let to = null, fadeOut = null, endNote = '';
+  const duration = film.duration ?? brief.length;
+  if (duration && track.seconds) {
+    const endsAt = at + (track.seconds - trimFrom) / rate;
+    if (endsAt > duration + 0.05) {
+      to = Math.round((trimFrom + (duration - at) * rate) * 1000) / 1000;
+      fadeOut = brief.ending === 'button' ? Math.min(1.5, bar / 2) : brief.ending === 'fade' ? Math.min(6, bar * 2) : Math.min(3, bar);
+      fadeOut = Math.round(fadeOut * 100) / 100;
+      endNote = ` The track runs to ${clockOf(track.seconds)}: it ends with the film at ${clockOf(duration)}, fading out over ${fadeOut} s.`;
+    } else if (endsAt < duration - 0.5) {
+      endNote = ` The track ends at ${endsAt.toFixed(1)} s, before the film does (${duration} s).`;
+    }
+  }
+  return { at, from: trimFrom, to, fadeOut, rate, matched, shift: Math.round((at - (clip.at ?? 0)) * 1000) / 1000, note: note + endNote, drop: drop && track.lift != null ? drop.name : null, bar };
 }

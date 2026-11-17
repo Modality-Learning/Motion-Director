@@ -17,6 +17,10 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
 - **Line up the music.** Drop the generated track on the lane and press Line up (or `motion-director music fit
   <film>`): its biggest lift lands on the brief's drop, and its speed is corrected so it keeps the brief's time.
   A track that ignored the tempo is left as it is, and you're told.
+- **Music the right length.** The brief's length (the film's) now goes into the prompt you copy ("0:35 long,
+  ending at 0:35", and an [End] tag), and `motion-director music` prints a structure whose bars add up to the
+  film. Generators still overshoot, so lining up now ends a longer track with the film, faded out to suit the
+  ending, and says when a track is too short.
 
 ## 0.2.0 (2026-11-17)
 

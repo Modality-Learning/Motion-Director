@@ -29,4 +29,7 @@ export const suggestFor = library.suggestFor as (kind: string, sounds: { path: s
 export const useId = library.useId as (text: string) => string;
 export const useLabel = library.useLabel as (id: string) => string;
 /** The bar lines of a music brief across the film (kit/music.mjs). */
+/** The prompt to paste into a music generator, saying how long the track should be (kit/music.mjs). */
+export const promptText = music.promptText as (brief: { length?: number; prompt?: { style?: string; structure?: string } }) => string;
+export const clockOf = music.clockOf as (seconds: number) => string;
 export const barTimes = music.barTimes as (brief: { bpm: number; beatsPerBar?: number; offset?: number }, duration: number) => number[];

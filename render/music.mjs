@@ -7,7 +7,7 @@
 //                                                     track, then set its start, trim and speed
 import { chromium } from 'playwright';
 import { explainOnCrash } from './blocked.mjs';
-import { tempoCandidates } from '../kit/music.mjs';
+import { clockOf, structureLines, tempoCandidates } from '../kit/music.mjs';
 import { projectRoot } from '../server/project.mjs';
 import { pageUrl, startProjectServer } from '../server/static.mjs';
 import { fitMusic, readBrief } from '../server/music-lib.mjs';
@@ -61,6 +61,10 @@ for (const c of tempos) console.log(`  ${String(c.bpm).padStart(3)} BPM, first d
 if (best) {
   console.log(`\nAt ${best.bpm} BPM, ${what} against their nearest bar line (moving one onto it is a change to the film):`);
   for (const m of nearest) console.log(`  ${fmt(m.t).padStart(8)}  ${m.name.padEnd(28)} bar ${String(m.bar).padStart(3)} at ${fmt(m.line)}  ${Math.abs(m.off) < 0.04 ? 'on it' : `${Math.abs(m.off).toFixed(2)} s ${m.off > 0 ? 'late' : 'early'}`}`);
+  // the skeleton of the brief at that tempo: sections on their bar lines, bars that add up to the film's length
+  const sections = nearest.map((m) => ({ name: m.name, at: Math.max(0, m.line) }));
+  console.log(`\nFor the brief at ${best.bpm} BPM: "length": ${duration} (ask for ${clockOf(duration)}), "offset": ${best.offset}, sections on those bar lines, and a structure whose bars add up to the film:`);
+  for (const line of structureLines({ bpm: best.bpm, beatsPerBar: 4, sections }, duration, () => '')) console.log(`  ${line}`);
 }
 console.log(b.brief ? `\nThe brief: ${b.brief.bpm} BPM, ${b.brief.sections.length} sections${b.brief.prompt?.style ? `, prompt: "${b.brief.prompt.style.slice(0, 80)}${b.brief.prompt.style.length > 80 ? '…' : ''}"` : ''}.`
   : b.error ? `\nThe brief doesn't check out: ${b.error}` : `\nNo brief yet: write films/${film}/music.json with the user (skill/MUSIC.md).`);

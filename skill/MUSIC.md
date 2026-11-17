@@ -32,6 +32,8 @@ lines, best first, with how far each section is from its nearest bar line at the
   choice: move that moment of the film onto the bar line (a change to the film, so ask), or let the music's break
   fall slightly apart from it.
 - `--keys` uses every key moment instead (rarely all on bars), `--at 0,8.5,16` times you choose.
+- It ends with the brief's skeleton at the best tempo: the length to ask for, the offset, and a structure line
+  per section with its bars counted so they add up to the film. Start from that rather than counting bars.
 
 Write `films/<film>/music.json` (kit/music.mjs checks it; the studio shows it):
 
@@ -46,6 +48,8 @@ Write `films/<film>/music.json` (kit/music.mjs checks it; the studio shows it):
 }
 ```
 
+- `length` is the film's length in seconds. Always set it: it goes into the prompt, and without it a generator
+  makes a whole song (two to four minutes).
 - `offset` is the film time of the first downbeat; section times sit on bar lines (offset plus whole bars).
 - Mark the one section where the music lifts hardest with `"drop": true`: lining up puts the track's biggest lift
   there.
@@ -56,13 +60,15 @@ Write `films/<film>/music.json` (kit/music.mjs checks it; the studio shows it):
 Write it for the generator the user names; for Suno:
 
 - **style**: one line of comma-separated descriptions, under 200 characters ideally: genre, tempo
-  (`124 BPM`), metre, the main instruments, the mood, the mix, and `no vocals` for an instrumental.
+  (`124 BPM`), metre, the main instruments, the mood, the mix, and `no vocals` for an instrumental. The
+  studio's Copy adds the length (`0:35 long, ending at 0:35`) from `length` when the style doesn't name one.
 - **structure**: Suno's section tags, one per line, in order, each with its length in bars and what happens:
   `[Intro: 3 bars, pad and soft pluck]`, then `[Verse]`, `[Pre-Chorus]`, `[Chorus]`, `[Break]`, `[Build]`,
   `[Outro]`, and `[Instrumental]` first and `[End]` last for an instrumental. Bars come from the brief: a
   section's bars are the time to the next section divided by the bar length.
-- **notes**: what to ask for that the prompt can't hold (the length to generate, about the film's length plus a
-  few seconds), and that its timings won't be exact: line it up afterwards.
+- **notes**: anything the prompt can't hold, and that its timings won't be exact. Generators don't keep to a
+  length reliably, so say a longer track is still usable: lining up ends it with the film. Where the generator
+  can crop a song before download, cropping near the film's length keeps the file small.
 
 The studio's music lane has a Brief button with the prompt to copy. Say where it is; don't paste the whole prompt
 into the chat unless asked.
@@ -80,13 +86,16 @@ motion-director music fit <film> [clip id] [--dry]
 ```
 
 It measures the track's tempo, beats and biggest lift, then slides the clip so the lift lands on the drop section
-(or, without one, its beats on the film's), trims its start rather than starting before the film, and speeds it
-up or slows it a little, pitch kept, so its tempo is the brief's. Read what it says back:
+(or, without one, its beats on the film's), trims its start rather than starting before the film, speeds it up
+or slows it a little, pitch kept, so its tempo is the brief's, and, when the track runs past the film, ends it
+with the film and fades it out (a bar for a ring, two for a fade, half a bar for a button). Read what it says back:
 
 - **"seems to run at 95 BPM, not near the brief's 124"**: the generator ignored the tempo. The speed is left
   alone. Offer to generate it again with the tempo higher in the style line, or to change the brief (and the
   film's sections) to suit the track if the user loves it.
 - **A large rate change** (beyond about 4%): it will sound slightly different; say so.
+- **"ends at 30.0 s, before the film does"**: the track is too short. Offer another generation, or a held
+  final section, or let the film close on its effects.
 
 Then play it with the user in the Edit tab. Set the music's volume so the sound effects still read (around −12 to
 −18 dB under them is a common start), and give it a fade-out if its ending doesn't land on the film's. The music

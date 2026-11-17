@@ -13,7 +13,9 @@ const seed = (b: Brief | null, cues: Sheet['cues'] = [], error: string | null = 
 afterEach(() => { seed(null); vi.unstubAllGlobals(); });
 
 test('the prompt is the style line, then the structure', () => {
-  expect(promptText(brief)).toBe('Instrumental, upbeat electronic pop, 124 BPM\n\n[Instrumental]\n[Intro: 3 bars]');
+  expect(promptText(brief)).toBe('Instrumental, upbeat electronic pop, 124 BPM\n\n[Instrumental]\n[Intro: 3 bars]\n[End]');
+  // with a length, the style says it, so the generator makes a track that long
+  expect(promptText({ ...brief, length: 35 })).toMatch(/^Instrumental, upbeat electronic pop, 124 BPM, 0:35 long, ending at 0:35\n/);
 });
 
 test('no brief: no button', () => {

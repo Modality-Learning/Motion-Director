@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { barTimes, beatPhase, biggestLift, fitPlan, onsets, tempoCandidates, tempoNear, tempoOverall, validateBrief } from './music.mjs';
+import { barTimes, beatPhase, biggestLift, clockOf, fitPlan, onsets, promptText, structureLines, tempoCandidates, tempoNear, tempoOverall, validateBrief } from './music.mjs';
 
 const SR = 11025;
 /** A click track: a short burst on every beat from `phase`, louder from `lift` on (a drop), with some noise. */
@@ -90,4 +90,28 @@ test('a track that ignored the requested tempo is found out, and its speed is le
   assert.equal(plan.matched, false);
   // close to the brief and agreeing with the whole range: corrected as usual
   assert.equal(fitPlan(brief, { bpm: 122, phase: 0, lift: null, strength: 98, overall: 122, overallStrength: 98 }, { at: 0 }).rate, 1.0164);
+});
+
+test('the structure counts each section in bars, to the next section and the last to the end', () => {
+  const brief = { bpm: 120, beatsPerBar: 4, offset: 0, sections: [{ name: 'Intro', at: 0, note: 'a pad' }, { name: 'Lift', at: 8 }, { name: 'Outro', at: 30 }] };
+  assert.deepEqual(structureLines(brief, 35), ['[Intro: 4 bars, a pad]', '[Lift: 11 bars]', '[Outro: 3 bars]']);
+  assert.equal(clockOf(95), '1:35');
+});
+
+test('a track longer than the film ends with it, faded to suit the ending; a shorter one is said', () => {
+  const brief = { bpm: 120, beatsPerBar: 4, offset: 0, sections: [], ending: 'button' };
+  const long = fitPlan(brief, { bpm: 120, phase: 0, lift: null, seconds: 147 }, { at: 0, from: 0 }, { duration: 96 });
+  assert.deepEqual([long.to, long.fadeOut], [96, 1]);
+  assert.match(long.note, /runs to 2:27: it ends with the film at 1:36, fading out over 1 s/);
+  assert.equal(fitPlan({ ...brief, ending: 'fade' }, { bpm: 120, phase: 0, lift: null, seconds: 147 }, { at: 0 }, { duration: 96 }).fadeOut, 4);
+  const short = fitPlan(brief, { bpm: 120, phase: 0, lift: null, seconds: 30 }, { at: 0 }, { duration: 96 });
+  assert.equal(short.to, null);
+  assert.match(short.note, /ends at 30\.0 s, before the film does \(96 s\)/);
+});
+
+test('the prompt says how long the track should be, and ends on [End]', () => {
+  const brief = { bpm: 101, length: 35, sections: [], prompt: { style: 'Instrumental, light playful pop, 101 BPM.', structure: '[Instrumental]\n[Intro: 2 bars]' } };
+  assert.equal(promptText(brief), 'Instrumental, light playful pop, 101 BPM, 0:35 long, ending at 0:35\n\n[Instrumental]\n[Intro: 2 bars]\n[End]');
+  // a style that already names a length keeps its own
+  assert.match(promptText({ ...brief, prompt: { style: 'pop, 0:40 long' } }), /^pop, 0:40 long$/);
 });
