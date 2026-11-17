@@ -11,12 +11,12 @@ const sent = (id: string, ago = 0) => ({ id, status: 'sent', at: new Date(Date.n
 
 afterEach(() => { vi.unstubAllGlobals(); useCommentList.setState({ film: null, comments: [], link: null, open: false }); });
 
-test('the line is the agent\'s own words, else that it has comments, else nothing', () => {
-  expect(statusLine(s('Softening the bounce'), 'Claude', 2, 'hello')).toBe('Softening the bounce');
-  expect(statusLine(s('Softening the bounce', 'tour'), 'Claude', 0, 'hello')).toBe('Softening the bounce (tour)');
-  expect(statusLine(null, 'Codex', 1, 'hello')).toBe('Codex has 1 comment');
-  expect(statusLine(null, 'Claude', 3, 'hello')).toBe('Claude has 3 comments');
-  expect(statusLine(null, 'Claude', 0, 'hello')).toBeNull();
+test('the line is the agent\'s own words, else that it is working on your comments, else nothing', () => {
+  expect(statusLine(s('Softening the bounce'), 2, 'hello')).toBe('Softening the bounce');
+  expect(statusLine(s('Softening the bounce', 'tour'), 0, 'hello')).toBe('Softening the bounce (tour)');
+  expect(statusLine(null, 1, 'hello')).toBe('Working on your comment');
+  expect(statusLine(null, 3, 'hello')).toBe('Working on your 3 comments');
+  expect(statusLine(null, 0, 'hello')).toBeNull();
 });
 
 test('beside the link icon: the agent\'s status with a spinner, announced, and nothing when idle', async () => {
@@ -25,7 +25,7 @@ test('beside the link icon: the agent\'s status with a spinner, announced, and n
   useCommentList.setState({ film: 'hello', comments: [sent('a')] });
   render(<AgentStatus />);
   expect(await screen.findByText('Recolouring the card')).toBeInTheDocument();
-  expect(screen.getByRole('status')).toHaveTextContent('Claude is working: Recolouring the card');
+  expect(screen.getByRole('status')).toHaveTextContent('Claude: Recolouring the card');
 
 });
 
@@ -33,7 +33,7 @@ test('without a status of its own, comments with the agent still show a spinner'
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ status: null }))));
   useCommentList.setState({ film: 'hello', comments: [sent('a'), sent('b')], link: { connected: true, available: true, fails: 0, checkedAt: null, restart: '' } });
   render(<AgentStatus />);
-  expect(await screen.findByText('Claude has 2 comments')).toBeInTheDocument();
+  expect(await screen.findByText('Working on your 2 comments')).toBeInTheDocument();
 });
 
 test('idle: the region stays in the page, empty', async () => {
@@ -48,7 +48,7 @@ test('a click on the status opens the comments list, with what the agent is work
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ status: s('Recolouring the card') }), { headers: { 'content-type': 'application/json' } })));
   useCommentList.setState({ film: 'hello', comments: [sent('a')] });
   render(<AgentStatus />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Comments: Claude is working: Recolouring the card' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Comments: Claude: Recolouring the card' }));
   expect(screen.getByRole('heading', { name: 'With Claude (1)' })).toBeInTheDocument();
   expect(screen.getAllByText('Recolouring the card').length).toBeGreaterThan(1);
 });

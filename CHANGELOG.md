@@ -35,7 +35,8 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
 - **One place to check on your agent.** Its status beside the link icon stands out with a spinner while it works,
   and a click opens your comments: what it's working on, what it has, what's queued and what's done. The separate
   comments button is gone. A comment that was never picked up stops the spinner after 15 minutes, and any comment
-  with the agent can now be cleared.
+  with the agent can now be cleared. The note the agent gets asks it to say what it's working on, and until it
+  does the status reads "Working on your comment".
 
 ## 0.2.0 (2026-11-17)
 

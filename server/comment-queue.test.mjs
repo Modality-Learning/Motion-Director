@@ -56,6 +56,12 @@ test('a batch says how to mark each one done, then gives the notes oldest first'
   assert.ok(text.indexOf('[c1]\nfirst') < text.indexOf('[c2]\nsecond'));
 });
 
+test('a batch can ask the agent to say what it is working on first', () => {
+  const text = formatBatch([{ id: 'c1', note: 'first' }], 'motion-director comments resolve', 'Say what you are working on: motion-director status "…".');
+  assert.match(text, /^Motion Director: a comment from the studio\. Say what you are working on: motion-director status "…"\. Make each change/);
+  assert.doesNotMatch(formatBatch([{ id: 'c1', note: 'first' }], 'x'), /status/);
+});
+
 test('ids are short and lower-case', () => {
   assert.match(newId(1794840000000, () => 0.5), /^c[a-z0-9]{8}$/);
 });

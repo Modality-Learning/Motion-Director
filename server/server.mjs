@@ -85,6 +85,8 @@ const INBOX = sessionInbox();
 const SESSION_ID = process.env.CLAUDE_CODE_SESSION_ID || null;
 const BIN = join(PKG, 'bin', 'motion-director.mjs');
 const RESOLVE_CMD = `node "${BIN}" comments resolve --root "${PROMO}"`;
+// the agent's status while it works on them: shown beside the studio's link icon, instead of only "working on your comment"
+const sayCmd = (film) => { const cmd = `node "${BIN}" status --root "${PROMO}"`; return `First say what you're working on, in three or four words, so the studio shows it: ${cmd} "Softening the bounce" --film ${film}; then ${cmd} --done when you've finished.`; };
 // how to start this studio again from a Claude session (which then takes over this port): the repair request
 const RESTART_CMD = `${DEV ? 'MD_DEV=1 ' : ''}node "${BIN}" studio --root "${PROMO}" --port ${PORT}`;
 // the link to the session: checked at start, every 20 s, after a failed send, and when the studio asks
@@ -105,7 +107,7 @@ if (INBOX) { checkLink(); setInterval(checkLink, 20_000).unref(); }
 async function sendQueued(film) {
   const queued = readComments(OUT, film).filter((c) => c.status === 'queued');
   if (!queued.length) return { sent: 0, via: link.ok ? 'session' : 'clipboard' };
-  const text = formatBatch(queued, RESOLVE_CMD);
+  const text = formatBatch(queued, RESOLVE_CMD, sayCmd(film));
   if (INBOX && await deliver(INBOX, text)) { setStatus(OUT, film, queued.map((c) => c.id), 'sent'); if (!link.ok) checkLink(); return { sent: queued.length, via: 'session' }; }
   if (INBOX) checkLink(); // it was there and now isn't: the studio's link icon breaks
   // no session to send to (or it has gone): the notes go to the clipboard, and count as sent once copied

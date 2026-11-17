@@ -97,7 +97,8 @@ export function callTool(root, name, args = {}, state = null) {
       const queued = open.filter((c) => c.film === film && c.status === 'queued').map((c) => c.id);
       if (queued.length) setStatus(out, film, queued, 'sent'); // with the agent now
     }
-    return { text: formatBatch(open, 'resolve_comments with the ids, or `motion-director comments resolve`') };
+    return { text: formatBatch(open, 'resolve_comments with the ids, or `motion-director comments resolve`',
+      'First say what you\'re working on, in three or four words, with set_status, so the studio shows it; set_status with done: true when you\'ve finished.') };
   }
   if (name === 'set_status') {
     if (args.done) { clearAgentStatus(out); return { text: 'Status cleared.' }; }

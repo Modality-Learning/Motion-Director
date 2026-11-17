@@ -65,10 +65,12 @@ export function filmsOf(outDir, ids) {
   return found;
 }
 
-/** The message Claude gets: what the notes are, how to say each is done, then the notes, oldest first. */
-export function formatBatch(comments, resolveCmd) {
+/** The message the agent gets: what the notes are, how to say what it's doing (`say`, a sentence: the studio shows
+ * it beside its link icon), how to say each is done, then the notes, oldest first. */
+export function formatBatch(comments, resolveCmd, say = '') {
   const n = comments.length;
   const head = `Motion Director: ${n === 1 ? 'a comment' : `${n} comments`} from the studio. ` +
+    (say ? `${say} ` : '') +
     `Make each change, then mark it done so the studio shows it resolved: ${resolveCmd} <id>` +
     (n > 1 ? ' (several ids at once are fine).' : '.');
   return [head, ...comments.map((c) => `\n[${c.id}]\n${c.note}`)].join('\n');

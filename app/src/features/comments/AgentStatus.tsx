@@ -12,11 +12,11 @@ import { isWorking, useAgentName, useCommentList } from './list';
 /** What the agent says it's doing (server/agent-status.mjs): a few words, the film, and what it's changing. */
 export interface AgentStatusLine { text: string; film: string | null; about: string | null; by: string | null; at: string }
 
-/** The line to show: the agent's own words, else (while it has this film's comments and hasn't said) that it has
- * them, else nothing. A status about another film says which. */
-export function statusLine(status: AgentStatusLine | null, agent: string, withAgent: number, film: string | null) {
+/** The line to show: the agent's own words, else (while it has this film's comments and hasn't said what it's doing)
+ * that it's working on them, else nothing. A status about another film says which. */
+export function statusLine(status: AgentStatusLine | null, withAgent: number, film: string | null) {
   if (status) return status.film && film && status.film !== film ? `${status.text} (${status.film})` : status.text;
-  if (withAgent) return `${agent} has ${withAgent} comment${withAgent === 1 ? '' : 's'}`;
+  if (withAgent) return withAgent === 1 ? 'Working on your comment' : `Working on your ${withAgent} comments`;
   return null;
 }
 
@@ -45,17 +45,17 @@ export function AgentStatus() {
   const working = comments.filter((c) => isWorking(c, now)).length;
   const missed = comments.filter((c) => c.status === 'sent').length - working;
   const queued = comments.filter((c) => c.status === 'queued').length;
-  const line = statusLine(status, agent, working, film);
+  const line = statusLine(status, working, film);
   const who = status?.by || agent;
   const idle = missed ? `${missed} not picked up` : queued ? `${queued} queued` : null;
 
   return (
     <Popover open={open} onOpenChange={(o) => useCommentList.setState({ open: o })}>
       {/* always in the page, so a screen reader hears each new line; empty while the agent is idle */}
-      <span role="status" aria-live="polite" className="sr-only">{line ? `${who} is working: ${line}` : ''}</span>
-      <Hint label={line ? `${who} is working: ${line}. Click for your comments` : `${agent} and your comments: in progress, queued and done`}>
+      <span role="status" aria-live="polite" className="sr-only">{line ? `${who}: ${line}` : ''}</span>
+      <Hint label={line ? `${who}: ${line}. Click for your comments` : `${agent} and your comments: in progress, queued and done`}>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="ghost" aria-label={`Comments${line ? `: ${who} is working: ${line}` : idle ? `: ${idle}` : ''}`}
+          <Button size="sm" variant="ghost" aria-label={`Comments${line ? `: ${who}: ${line}` : idle ? `: ${idle}` : ''}`}
             className={cn('max-w-72 min-w-0 gap-1.5 px-2.5',
               line ? 'border border-primary/45 bg-primary/10 text-foreground hover:bg-primary/15' : 'text-muted-foreground hover:text-foreground',
               open && !line && 'bg-accent text-foreground')}>
