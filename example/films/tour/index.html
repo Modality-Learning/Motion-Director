@@ -39,12 +39,13 @@
 .uline { top: 61px; height: 2px; background: var(--fg); border-radius: 1px; }
 .crumbs { left: 0; width: 1600px; top: 21px; text-align: center; color: var(--mu); font-size: 15px; }
 .crumbs b { color: var(--fg); font-weight: 600; }
-.slink { left: 1352px; top: 15px; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--mu); }
+.slink { left: 1402px; top: 15px; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--mu); }
 .slink svg { width: 18px; height: 18px; }
-.chev { left: 1544px; top: 15px; height: 34px; min-width: 40px; border-radius: 8px; background: var(--sec); border: 1px solid var(--bd); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; }
-.chev svg { width: 15px; height: 15px; }
-.chev .n { min-width: 20px; height: 20px; border-radius: 10px; background: var(--warn); color: #2a1600; font: 600 12px/20px var(--font-ui); text-align: center; padding: 0 5px; }
-.cbtn { left: 1396px; top: 15px; height: 34px; width: 140px; border-radius: 8px; background: var(--sec); border: 1px solid var(--bd); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
+/* the agent's status: quiet while idle, a pill with a spinner and what it's doing while it works; it opens the comments list */
+.ast { right: 202px; top: 15px; height: 34px; border-radius: 8px; display: flex; align-items: center; gap: 7px; padding: 0 10px; font-size: 14px; white-space: nowrap; color: var(--mu); border: 1px solid transparent; }
+.ast.on { color: var(--fg); border-color: rgba(236,236,238,.45); background: rgba(236,236,238,.1); }
+.ast svg { width: 16px; height: 16px; flex: none; display: block; }
+.cbtn { left: 1440px; top: 15px; height: 34px; width: 140px; border-radius: 8px; background: var(--sec); border: 1px solid var(--bd); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
 .cbtn.on { background: var(--fg); color: #111113; }
 .cbtn kbd { font: 600 11px/1 var(--font-ui); border: 1px solid var(--in); border-radius: 4px; padding: 2px 5px; color: inherit; opacity: .7; }
 .cbtn svg { width: 16px; height: 16px; }
@@ -335,13 +336,15 @@ const W = (x, y) => ({ x: ST.x + x * ST.s, y: ST.y + y * ST.s }); // studio px -
 const CH = { x: 1438, y: 153, w: 442, h: 774 };
 const studio = $('#studio');
 const svgC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
+const SPIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+const LISTICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>';
 const TABS = [['Vibe', 176, 62], ['Treatment', 246, 104], ['Edit', 358, 58], ['Export', 424, 78]];
 studio.innerHTML = `<div class="a bar"></div><div class="a brand">Motion Director</div>
   ${TABS.map(([n, x, w]) => `<div class="a tab" style="left:${x}px;width:${w}px">${n}</div>`).join('')}<div class="a uline" id="uline"></div>
   <div class="a crumbs" id="crumbs">Example &nbsp;/&nbsp; Films &nbsp;/&nbsp; <b>Hello, motion.</b></div>
   <div class="a slink" id="slink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg></div>
   <div class="a cbtn" id="cbtn">${svgC}Comment <kbd>C</kbd></div>
-  <div class="a chev" id="chev"><span class="n" id="chevN">1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+  <div class="a ast" id="ast"><span id="astI"></span><span id="astT"></span></div>
   <div class="a pane" id="pVibe"></div><div class="a pane" id="pTreat"></div><div class="a pane" id="pEdit"></div><div class="a pane" id="pExport"></div>`;
 const tabEls = [...studio.querySelectorAll('.tab')];
 const PANE = { vibe: $('#pVibe'), treat: $('#pTreat'), edit: $('#pEdit'), exp: $('#pExport') };
@@ -464,16 +467,16 @@ const HEAD = 'Motion Director comment on "Hello, motion."';
 const LOOPS = [
   { b: B.l1, tab: 'vibe', at: { x: SLOT.x + 186, y: 64 + SLOT.y + 100 }, box: { x: SLOT.x, y: 64 + SLOT.y, w: SLOT.w, h: SLOT.h }, tag: 'image pin  soft-shadow.png', title: 'Vibe · soft-shadow.png',
     text: 'This soft shadow. Find a few snappy launch films like it.', note: [['', HEAD], ['Vibe:', 'films/hello/vibe.json (pin "soft-shadow")'], ['About:', 'the vibe board\'s image pin "soft-shadow.png" (Look)'], ['Comment:', 'This soft shadow. Find a few snappy launch films like it.']],
-    work: 'Searching and editing vibe.json…', says: 'Added three launch films, the palette, a typeface and a note on motion, each with what to take from it.' },
+    doing: 'Finding launch films', work: 'Searching and editing vibe.json…', says: 'Added three launch films, the palette, a typeface and a note on motion, each with what to take from it.' },
   { b: B.l2, tab: 'treat', at: { x: 330, y: 64 + 372 + 95 }, box: { x: 46, y: 64 + 372 + 64, w: 536, h: 52 }, tag: 'beat 1.2–3.5 s', title: 'Treatment · the beat at 1.2–3.5 s',
     text: 'Make it three bounces, each lower than the last.', note: [['', HEAD], ['Treatment:', 'films/hello/TREATMENT.md'], ['About:', 'the beat at 1.2–3.5 s: "The ball falls in and bounces once."'], ['Comment:', 'Make it three bounces, each lower than the last.']],
-    work: 'Editing TREATMENT.md and index.html…', says: 'Rewrote the beat and the ball\'s motion: it now lands three times, lower each time.' },
+    doing: 'Rewriting the second beat', work: 'Editing TREATMENT.md and index.html…', says: 'Rewrote the beat and the ball\'s motion: it now lands three times, lower each time.' },
   { b: B.l3, tab: 'edit', at: inFilm(585, 395), box: null, tag: '#ball  90 × 90', title: '#ball · 0:03.5',
     text: 'Land the last bounce softer.', note: [['', HEAD], ['Film:', 'films/hello/index.html'], ['About:', '(#ball) at 0:03.5'], ['Comment:', 'Land the last bounce softer.']],
-    work: 'Editing index.html…', says: 'Softened the last landing: it comes in sooner and lower.' },
+    doing: 'Softening the last bounce', work: 'Editing index.html…', says: 'Softened the last landing: it comes in sooner and lower.' },
   { b: B.l4, tab: 'edit', at: { x: 290 + TLX(2.1) + 40, y: 64 + 456 + 88 + 40 + 20 }, box: { x: 290 + TLX(2.1) - 3, y: 64 + 456 + 88 + 40 + 2, w: BOUNCE.len * 180 + 6, h: 36 }, tag: 'clip  ball-bounce', title: 'ball-bounce · 0:02.1',
     text: 'Put this on every landing.', note: [['', HEAD], ['Film:', 'films/hello/index.html'], ['Sounds:', 'films/hello/sound.json (cue "ball-bounce")'], ['About:', 'ball-bounce on the sound timeline at 0:02.1'], ['Comment:', 'Put this on every landing.']],
-    work: 'Editing sound.json…', says: 'Linked the bounce to the ball: one on each landing, so they follow it if the motion changes.' },
+    doing: 'Putting a pop on every landing', work: 'Editing sound.json…', says: 'Linked the bounce to the ball: one on each landing, so they follow it if the motion changes.' },
 ];
 const ASK = 'The app has changed. Bring the screens in step.';
 const MSG = [];
@@ -546,7 +549,7 @@ LOOPS.forEach((l, j) => {
   if (j === 1) CUR.push([B.treatTab, tabC(1).x, tabC(1).y], [B.treatTab + .4, tabC(1).x, tabC(1).y]);
   if (j === 2) CUR.push([B.play1[0], W(700, 400).x, W(700, 400).y]);
   if (j === 3) CUR.push([B.clipDrop + .5, W(800, 760).x, W(800, 760).y]);
-  const cb = W(1466, 32); // the Comment button
+  const cb = W(1510, 32); // the Comment button
   // after Enter the pointer just eases aside: nothing to copy, nowhere to go
   CUR.push([b.click - .9, cb.x, cb.y], [b.click - .7, cb.x, cb.y], [b.click, p.x, p.y], [b.enter + .3, p.x, p.y], [b.apply + .4, p.x + 70, p.y + 50]);
   CLICKS.push(b.click - .8, b.click);
@@ -718,13 +721,19 @@ function drawStudio(t) {
   const ul = $('#uline'); op(ul, ti >= 0 ? 1 : 0);
   if (ti >= 0) { const m = P(since, 0, .3), A = TABS[prev >= 0 ? prev : ti], Bt = TABS[ti]; ul.style.left = lerp(A[1], Bt[1], m) + 'px'; ul.style.width = lerp(A[2], Bt[2], m) + 'px'; }
   $('#cbtn').classList.toggle('on', commenting(t));
-  // the link to your agent lights when your agent opens the studio; the count is comments with your agent, cleared as each is done
+  // the link to your agent lights when your agent opens the studio
   const lk = $('#slink'), lp0 = spring(t - B.linked);
   op(lk, P(t, B.tabs + .4, B.tabs + .8)); lk.style.color = t >= B.linked ? Motion.mix('#3ccf7f', '#ececee', P(t, B.linked + .8, B.linked + 1.6)) : '#5c5c63';
   lk.style.transform = `scale(${t >= B.linked ? lerp(1.35, 1, clamp(lp0)) : 1})`;
-  op($('#chev'), P(t, B.tabs + .5, B.tabs + .9));
-  const withAgent = LOOPS.filter((l) => t >= l.b.send && t < l.b.resolve).length, chN = $("#chevN");
-  chN.style.display = withAgent ? "" : "none"; chN.textContent = withAgent;
+  // the agent's status: what it says it's doing while it has a comment, makes the film, or brings the screens in step
+  op($('#ast'), P(t, B.tabs + .5, B.tabs + .9));
+  const doing = LOOPS.find((l) => t >= l.b.send && t < l.b.resolve)?.doing
+    ?? (t >= B.ff[0] && t < B.ffDone ? 'Making Hello, motion.' : t >= B.l5.send && t < B.l5.apply ? 'Bringing the screens in step' : null);
+  const ast = $('#ast'), astI = $('#astI');
+  ast.classList.toggle('on', !!doing);
+  if (astI.dataset.k !== (doing ? 'spin' : 'list')) { astI.dataset.k = doing ? 'spin' : 'list'; astI.innerHTML = doing ? SPIN : LISTICON; }
+  if (doing) astI.firstChild.style.transform = `rotate(${(t * 400) % 360}deg)`;
+  $('#astT').textContent = doing || '';
   ['vibe', 'treat', 'edit', 'exp'].forEach((k, j) => { const p = j === ti ? P(since, 0, .3, E.out) : 0; op(PANE[k], p); PANE[k].style.transform = `translateY(${(1 - p) * 12}px)`; });
 
   /* vibe: the screenshot lands; after your agent's reply, the pins it added drop in */
