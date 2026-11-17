@@ -13,7 +13,7 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
   Music go there.
 - **Music briefs, written with Claude.** Claude agrees a direction with you, finds a tempo that puts the film's
   section changes on bar lines (`motion-director music <film>`), and writes the brief: the sections and a prompt
-  for Suno or another music generator, ready to copy from the lane's Brief button.
+  for Suno or another music generator, ready to copy from the + beside the lane's name.
 - **Line up the music.** Drop the generated track on the lane and press Line up (or `motion-director music fit
   <film>`): its biggest lift lands on the brief's drop, and its speed is corrected so it keeps the brief's time.
   A track that ignored the tempo is left as it is, and you're told.
@@ -21,7 +21,7 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
   ending at 0:35", and an [End] tag), and `motion-director music` prints a structure whose bars add up to the
   film. Generators still overshoot, so lining up now ends a longer track with the film, faded out to suit the
   ending, and says when a track is too short.
-- **Comment on the brief.** Each section, the prompt and the whole brief have a comment button in the Brief, and
+- **Comment on the brief.** Each section, the prompt and the whole brief have a comment button in the brief, and
   in comment mode the music lane's section markers take comments too. Claude amends the brief from them: a new
   direction in its own words (generators refuse band names), the sections and bars kept in step.
 - **Mute and group the tracks.** Your effects tracks sit in an orange SFX group that closes to one thin row, the

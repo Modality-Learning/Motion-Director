@@ -290,7 +290,7 @@ shared **Compositions**; each opens on these tabs (full detail in the package's 
   - The **library** (left): the user's sounds by family, with filters and search; drag one in, or **+**
     at the playhead. A sound's own editor sets its trim, volume, fades and hit point for every use.
   - The **music lane**, above the effects, holds the soundtrack: one thin row with the brief's sections marked,
-    opened with its twirl to a row per music track with the bar lines. Its **Brief** button shows the tempo,
+    opened with its twirl to a row per music track with the bar lines. Its **+** button opens the brief: it shows the tempo,
     the sections and the prompt to copy. A selected music clip's inspector has **Line up with the brief**.
   - The **SFX** group, in an orange container, holds your own effects tracks: open by default, one thin row
     when closed. Every group (Music, SFX) and every track has a mute; muted sounds aren't heard or rendered

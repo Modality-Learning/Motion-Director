@@ -232,7 +232,7 @@ Opening one gives these tabs:
   hand here: drag clips, trim, stretch, volume, fades, pitch, with undo and redo. `?` lists the keys.
   The **music lane** holds the soundtrack. It's one thin row by default, with the music brief's sections
   marked; its twirl opens a row per music track with the brief's bar lines. Sounds the library files as Music
-  go there. Its **Brief** button shows the tempo, the sections and the prompt to copy into a music generator,
+  go there. Its **+** button opens the brief: it shows the tempo, the sections and the prompt to copy into a music generator,
   and a selected music clip's **Line up with the brief**, in the inspector, fits the track to it (see the command
   `music`). Your own effects tracks sit in the orange **SFX** group, which closes to one thin row. Each group and
   each track has a mute: muted sounds aren't heard or rendered.

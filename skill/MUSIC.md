@@ -70,7 +70,7 @@ Write it for the generator the user names; for Suno:
   length reliably, so say a longer track is still usable: lining up ends it with the film. Where the generator
   can crop a song before download, cropping near the film's length keeps the file small.
 
-The studio's music lane has a Brief button with the prompt to copy. Say where it is; don't paste the whole prompt
+The studio's music lane has a + button beside its name that opens the brief, with the prompt to copy. Say where it is; don't paste the whole prompt
 into the chat unless asked.
 
 Before the user puts a generated track in a film for a client or product, mention that the right to use it
@@ -79,7 +79,7 @@ commercially depends on their plan with the generator.
 ## Comments on the brief
 
 The user comments on the brief in the studio: a section (its marker on the music lane, or the comment button
-beside it in the Brief), the prompt, or the whole brief. The note's `Music:` line names `music.json` and the part,
+beside it in the brief), the prompt, or the whole brief. The note's `Music:` line names `music.json` and the part,
 and `About:` quotes what it says now. Amend the brief, then:
 
 - **A change of direction** ("more of a Vulfpeck feel", "darker", "no drums"): rewrite the style in your own

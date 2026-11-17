@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Check, Copy, MessageSquare } from 'lucide-react';
+import { Check, Copy, MessageSquare, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Hint } from '@/components/Hint';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { secs } from '@/lib/format';
 import { copy, openMusicBox, type MusicPart } from '@/features/comments/comments';
@@ -13,7 +14,7 @@ import { clockOf, promptText } from './kit';
 
 export { promptText };
 
-/** The music lane's Brief button: the tempo, the sections at their times, and the prompt to copy into Suno or another
+/** The music lane's brief, behind a plus on the lane's name: the tempo, the sections at their times, and the prompt to copy into Suno or another
  * generator, each open to comments. Lining a track up is the clip's, in the inspector. */
 export function MusicBrief() {
   const brief = useEdit((s) => s.brief), problem = useEdit((s) => s.briefError);
@@ -21,9 +22,11 @@ export function MusicBrief() {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button size="xs" variant="ghost" className="ml-auto h-5 px-1.5 text-[11px]" aria-label="The music brief">Brief</Button>
-      </PopoverTrigger>
+      <Hint label="The music brief: its sections and the prompt">
+        <PopoverTrigger asChild>
+          <Button size="icon-xs" variant="ghost" className="ml-auto flex-none text-muted-foreground hover:text-foreground" aria-label="The music brief"><Plus /></Button>
+        </PopoverTrigger>
+      </Hint>
       {/* beside the lane, as tall as the window allows, scrolling inside: above it there is rarely room */}
       <PopoverContent side="right" align="start" collisionPadding={12} className="grid max-h-(--radix-popover-content-available-height) w-[26rem] gap-3 overflow-y-auto">
         {problem ? <p className="text-sm text-destructive">music.json doesn't check out: {problem}</p> : null}

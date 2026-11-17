@@ -1,8 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
-import { MusicBrief, promptText } from './MusicBrief';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { MusicBrief as Brief0, promptText } from './MusicBrief';
 import { useEdit } from './store';
 import type { Brief, Sheet } from './types';
+
+// the app provides tooltips at its root
+const MusicBrief = () => <TooltipProvider><Brief0 /></TooltipProvider>;
 
 const brief: Brief = {
   bpm: 124, beatsPerBar: 4, offset: 0.47, ending: 'button',
@@ -20,7 +24,7 @@ test('the prompt is the style line, then the structure', () => {
 
 test('no brief: no button', () => {
   seed(null);
-  const { container } = render(<MusicBrief />);
+  const { container } = render(<Brief0 />);
   expect(container).toBeEmptyDOMElement();
 });
 
