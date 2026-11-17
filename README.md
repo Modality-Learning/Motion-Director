@@ -17,31 +17,54 @@ Why it exists: an agent can build good motion graphics in code, but it cannot he
 chat ("the flap feels late") carries no context. The studio closes both gaps. The agent places sound on
 measured impacts, and you point at things instead of describing them.
 
-It is not published yet. It is made for use inside a project that holds your films, and it is meant to
-be open sourced later.
+It's early: version 0.1, used for real films, and changing quickly. Issues and ideas are welcome on GitHub.
+
+## Trying it out
+
+You need Claude Code, Node 22 or newer, and a Mac to render video (see [Requirements](#requirements)).
+
+**1. Give Claude the skill**, once, in Claude Code:
+
+```
+/plugin install motion-director --marketplace Modality-Learning/Motion-Director
+```
+
+On a Claude Code older than 2.1.275, add the marketplace first:
+`/plugin marketplace add Modality-Learning/Motion-Director`, then
+`/plugin install motion-director@motion-director`. Updates come through `/plugin` (Installed, then Update).
+
+**2. Ask for a film**, in the repository it's about:
+
+> Make a 20-second film that shows off our new onboarding flow.
+
+With no project there yet, Claude offers to set one up (step 3) and asks where the films should live. Then
+it agrees the direction with you and writes a treatment before any animation, shows you a storyboard, and
+builds the film. Review it in the studio: click anything in the film and comment, and the note goes to Claude
+with the element and the moment attached.
+
+**3. Or set up a project yourself**, in the folder that will hold the films (a folder of its own, such as
+`promo/`, keeps the tool's packages out of your app's):
+
+```bash
+npm install -D github:Modality-Learning/Motion-Director
+npx motion-director init                   # the folders, a starter film, 14 starter sounds and NOTES.md
+npx playwright install chromium            # once, for stills and renders
+npx motion-director studio                 # http://127.0.0.1:4321/studio/
+```
+
+`NOTES.md` is for what's particular to your project: the brand, reference films, where the product's UI lives,
+house rules. Claude reads it before starting. The starter sounds are Motion Director's own (generated, no
+licences), so they're tracked in git; your own sounds stay out of it.
 
 ## Requirements
 
 - Node 22 or newer.
-- macOS, for the video encoder and the audio tool. Both are Swift programs built on first use with the
-  Xcode Command Line Tools (`xcode-select --install`) and use AVFoundation. Previewing in the studio
-  and capturing frames work anywhere Chromium does.
 - Playwright's Chromium: `npx playwright install chromium`, once.
-
-## Quick start
-
-From the folder where you want the project:
-
-```bash
-npm install github:Modality-Learning/Motion-Director
-npx motion-director init                   # a new project here
-npx motion-director studio                 # http://127.0.0.1:4321/studio/
-```
-
-`init` makes the folders below and a `films/_template` starter. Copy it to `films/<name>`, then open the
-studio and pick the film. To make one with Claude, link the skill into the project's skills (see
-[The skill](#the-skill)) and describe the film you want. The skill starts with direction and a written
-treatment before any animation.
+- **To render video: macOS** with Apple's Command Line Tools (`xcode-select --install`). The encoder and the
+  sound mixer are small Swift programs, built on first use, that use AVFoundation. Without them, the studio
+  disables its Render button and says what's missing, and `motion-director render` stops with the same
+  message. Everything else works on any system: previewing, the storyboard, comments, sound placement and
+  the web export.
 
 ## A project
 
@@ -123,6 +146,15 @@ A film's clips are saved in `films/<film>/sound.json`. `library.json` holds each
 volume, speed, fades, hit point, family, tags, a description and what it is good for), which every clip
 starts from. The sound design method is in [skill/SOUND.md](skill/SOUND.md).
 
+`motion-director sound-search "soft paper rustle"` finds library sounds by what they sound like, for
+sounds nobody has described yet. It is an experiment. It runs CLAP, a model that places a sound and a
+sentence about it close together, on your machine. The first run downloads the model (about 160 MB) into
+`~/.cache/motion-director`, or the folder named by `MD_MODELS`. Your sounds are never sent anywhere. It
+needs `@huggingface/transformers`, which isn't installed with Motion Director (it's large, and only this
+experiment uses it): `npm install @huggingface/transformers` in the project turns it on. It also needs macOS's
+`afconvert`. Nothing else in the package loads it. Treat the result as a shortlist: the model hears what a sound is, not its length or hit
+point, and a description you wrote yourself is still the better guide.
+
 ### Brand and kit overrides
 
 The kit is looked up in the project's own `kit/` first and the package's second, file by file. The
@@ -149,8 +181,10 @@ Opening one gives these tabs:
   inspector shows its parameters and sounds. The timeline is the transport (play with Space, ruler to
   scrub), with the storyboard's beats, the sound objects and your tracks. Sound is edited by hand here:
   drag clips, trim, stretch, volume, fades, pitch, with undo and redo. `?` lists the keys.
-- **Export** (films). The drift check, renders (a share MP4, or ProRes 422 HQ or 4444 masters; 1080p,
-  1440p or 4K) with progress and cancel, and the film's files with Show in Finder and Open.
+- **Export** (films). **Video**: the drift check, renders (a share MP4, or ProRes 422 HQ or 4444 masters;
+  1080p, 1440p or 4K) with progress and cancel, and the film's files with Show in Finder and Open.
+  **Scroll** (a prototype): the film as a web page plays it, live and without an iframe, moved by scrolling
+  or by buttons, with the snippets to put it on a site and an export (see the command `web`).
 
 **Comments.** A comment is a message to the agent. In comment mode, click the thing you mean (a frame,
 an element, a clip, a beat, a pin, the timeline at a time), type, and press **Enter**: the note goes, with any
@@ -159,6 +193,9 @@ nothing to set up). **⌘Enter** queues it instead. The note says the film, what
 a selector or cue id, and your comment. A studio started any other way copies the note to paste into the chat.
 The chevron beside the Comment button opens the comments list: queued (Send all, or take one out), with Claude,
 and resolved. The agent marks each one done (`motion-director comments resolve <id>`), and the list follows live.
+The link icon beside it shows whether comments reach Claude: click it to check again, or, once it has failed a
+few times, to copy a repair request for Claude. Starting the studio from a Claude session takes over one already
+running for the same project on that port, so a new session heals the link by starting it again.
 Every comment and its status is kept in `out/comments/<film>.jsonl`. The note format is in
 [skill/SKILL.md](skill/SKILL.md).
 
@@ -167,9 +204,6 @@ arrivals, fastest moments, landings and exits. These are the impacts a sound is 
 each sound in the library too (hit point, length, character) and sorts it into a family by name and by
 how it sounds.
 
-The link icon beside it shows whether comments reach Claude: click it to check again, or, once it has failed a
-few times, to copy a repair request for Claude. Starting the studio from a Claude session takes over one already
-running for the same project on that port, so a new session heals the link by starting it again.
 **Live updates.** The studio follows files changed outside it (by an agent, an editor or another
 window) without a reload. Sounds and library settings update in place, new sound files appear, and a
 change to a film's or composition's code reloads its preview at the playhead.
@@ -181,11 +215,13 @@ Every command works on a project (see above for how it is found).
 | Command | What it does |
 |---|---|
 | `motion-director studio [--port n]` | Opens the studio. `MD_DEV=1` serves the app with hot reloading, for working on Motion Director itself. |
-| `motion-director render <film> [out]` | Renders to `out/<film>.mp4` (white, 2560 × 1440, 25 fps) with the film's sound. Env: `CODEC=h264\|prores422hq\|prores4444`, `DSF=1\|1.3333333333\|2`, `FPS`, `BITRATE`, `BG=white\|textured`, `SOUND=0` for silent, `WAV=1` to keep the mix as a WAV beside it. |
+| `motion-director render <film> [out]` | Renders to `out/<film>.mp4` (white, 2560 × 1440, 25 fps) with the film's sound. Env: `CODEC=h264\|prores422hq\|prores4444`, `DSF=1\|1.3333333333\|2`, `FPS`, `BITRATE`, `BG=white\|textured`, `SOUND=0` for silent, `WAV=1` to keep the mix as a WAV beside it, `JOBS` (capture processes, default 4: on a 12-core M2 Max, 6 and 8 were slower). Frames are interleaved across the processes and encoded while they're captured; a 96-second film at 1440p takes about 80 s. |
 | `motion-director board <film>` | Saves the storyboard as one image, `out/<film>-board.png`. |
 | `motion-director bundle <film>` | Saves the film as one self-contained HTML file in `out/`, to share. |
+| `motion-director web <film> [--out <folder>]` | A prototype. Writes the film into a site as files the site owns, with no package to install: the player `motion-film.js` (shared by every film in the folder, updated when a film needs a newer one), `<film>.film.js`, their types and, in a React project, `MotionFilm.tsx` (written once, then yours). The film plays live in a `<motion-film>` element (no iframe, no video), follows scrolling (`mode="scroll"`) or moves with `goTo('<key>')` from anything on the page. Silent for now. Without `--out` it writes to `out/` with an example page. See `example/site/` for a small React site that uses it. |
 | `motion-director purity <film> [step]` | Checks `render(t)` is a pure function of time: opens the film fresh at each second and compares it with the film played to that moment. |
 | `motion-director sound-check <film> [moments.json] [--hits id,id]` | Reports how often each sound is heard and at how many pitches, overlapping clips, and the mix's peak, loudest moments and quiet stretches. `--hits` says where each clip peaks against where it should land. |
+| `motion-director sound-search "<words>" [--like <sound>] [--n 8] [--json]` | Experimental. Ranks the library's sounds by how well they match a description, or by how much they sound like one of them. Several descriptions can be given at once. |
 | `motion-director init [folder]` | Makes a new project with a starter film. |
 | `motion-director skill` | Prints where the Claude skill is. |
 
@@ -214,9 +250,10 @@ npm run build                     # type check, then build the app into dist/app
 
 ## Installing it in a project
 
-Today a consumer installs it from a path, for example `"motion-director": "file:../../motion-director"`
-in the project's `package.json`. Later it will be a git tag. Either way `npm install` runs `prepare`,
-which builds the studio app into `dist/app`, so the studio works straight after installing. A project
+A project installs it from GitHub (`npm install -D github:Modality-Learning/Motion-Director`, or
+`#v0.1.0` on the end for a fixed version) or, while working on Motion Director itself, from a path
+(`"motion-director": "file:../motion-director"`). Either way `npm install` runs `prepare`, which builds the
+studio app into `dist/app`, so the studio works straight after installing. A project
 that wants the commands as scripts adds, for example:
 
 ```json
@@ -237,7 +274,9 @@ a written treatment, keyframes and a storyboard, transitions, sound, final rende
   ears.
 - [MOTION.md](skill/MOTION.md): the motion principles. Brand-neutral, and a project may add its own.
 
-`motion-director skill` prints the folder. Link it into the project's skills (for Claude Code,
-`.claude/skills/motion-director` or the project's shared skills folder), or write a thin skill of your
-own that points here and adds what is yours: the reference films, brand and kit files, where the sound
-library lives.
+Claude Code installs it as a plugin: this repository is a plugin marketplace
+([.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)) whose plugin is the `skill/` folder
+([skill/.claude-plugin/plugin.json](skill/.claude-plugin/plugin.json)); see [Trying it out](#trying-it-out).
+`claude plugin validate .` checks both. To keep it in the repository instead, `motion-director skill` prints
+the folder: link it into `.claude/skills/motion-director`, or write a thin skill of your own that points to it
+and adds what's yours.

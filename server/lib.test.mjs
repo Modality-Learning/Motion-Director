@@ -96,8 +96,9 @@ test('turns render output into progress: capture is 90%, encoding the rest', () 
   const job = {};
   applyProgressLine(job, 'study: UI sources changed since b4a6591f');
   applyProgressLine(job, 'capturing 100 frames (white background, scale 1, 25 fps) in 4 processes');
-  ['captured 25', 'captured 25'].forEach((l) => applyProgressLine(job, l));
+  ['captured 25', 'encoded 0 / 100', 'captured 25'].forEach((l) => applyProgressLine(job, l));
 
+  // the encoder starts alongside the capture; until every frame is in, the phase is still capturing
   assert.equal(job.phase, 'Capturing frames');
   assert.equal(job.progress, 45);
 

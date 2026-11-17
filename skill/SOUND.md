@@ -28,6 +28,19 @@ by ear; say what they should listen for.
   loudest moments (with the clips there) and any quiet stretch. Read every flag before reporting.
   `motion-director sound-check <film> --hits flap-3,bell` mixes just those clips and says where each one's sound peaks against
   where it should land.
+- **The search** (experimental, and only once the user has installed `@huggingface/transformers` in the
+  project; if it says the package is missing, mention that and carry on without it):
+  `motion-director sound-search "soft paper rustle" "short airy whoosh"` ranks the library by what each file
+  sounds like, and `--like <sound path>` finds more like one sound.
+  `--json` gives the same list to a script. Use it for a shortlist when sounds have no uses or
+  description and their names say little. Describe the sound itself in a few plain words ("paper
+  rustling", "a coin dropping"), not the job ("for the button"), and don't put "the sound of" in front:
+  that ranks worse. It finds the right kind of sound far more often than the right file, so read the
+  whole list, and where names are descriptive trust the name over the rank. It always returns
+  something: when the library has no such sound (no typing, no camera), the list is confident and
+  wrong, so check each name or length in `analysis()` before using one. A score only orders one
+  search. It hears a sound's first ten seconds, and is least sure of very short clicks. If the command
+  says its package is missing, carry on without it.
 
 ## 1. Read the film before choosing sounds
 
@@ -43,7 +56,8 @@ by ear; say what they should listen for.
 - Choose sounds by what the user says they are first: a sound's `uses` in `library.json` (what it is
   good for: `ui-click`, `typing`, `notification`, `success`, `appear`, `transition`, `impact`, `paper`,
   `slide`, `reveal`, `music`, `ambience`, or the user's own words such as `logo sting`) and its `description`, then its family and name, then its
-  measured character. Where sounds have neither and their names say little, ask the user to describe and
+  measured character. The search (see Tools) comes after all of these: it suggests, the user's words
+  decide. Where sounds have neither and their names say little, ask the user to describe and
   mark the ones they want used: the sound's editor (✎) suggests uses from its name.
 - If the library is empty or lacks a kind of sound the film needs, say which (a short whoosh, a click,
   paper, a chime) rather than forcing a poor match.

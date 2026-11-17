@@ -37,19 +37,26 @@ for TOOL in encode audio; do
 done
 
 FRAMES=$(mktemp -d)
-trap 'rm -rf "$FRAMES"' EXIT
+PIDS=() ENC=
+# on any exit: stop whatever is still running (a failed capture leaves the others and the encoder waiting), then
+# remove the frames
+trap 'kill ${PIDS[@]+"${PIDS[@]}"} $ENC 2>/dev/null || true; rm -rf "$FRAMES"' EXIT
 # plain writes, not console.log: a coloured terminal (FORCE_COLOR) would wrap numbers in escape codes
 DURATION=$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync('$PROMO/films/$NAME/film.json','utf8')).duration))")
 TOTAL=$(node -e "process.stdout.write(String(Math.round($DURATION * $FPS)))")
-STEP=$(( (TOTAL + JOBS - 1) / JOBS ))
 echo "capturing $TOTAL frames (scale $DSF, $FPS fps, $CODEC) in $JOBS processes"
-PIDS=()
+# each process captures one frame in every JOBS (process k: frames k, k+JOBS, …), so the frames arrive about in
+# order and the encoder works through them while the capture runs, instead of waiting for all of them
+"$PROMO/out/.bin/encode" "$FRAMES" "$FRAMES/picture.$EXT" "$FPS" "$TOTAL" &
+ENC=$!
 for ((k = 0; k < JOBS; k++)); do
-  A=$((k * STEP)); B=$(( (k + 1) * STEP < TOTAL ? (k + 1) * STEP : TOTAL ))
-  node "$HERE/capture.mjs" "$NAME" "$FRAMES" "$FPS" "$A" "$B" &
+  node "$HERE/capture.mjs" "$NAME" "$FRAMES" "$FPS" "$k" "$TOTAL" "$JOBS" &
   PIDS+=($!)
 done
-for p in "${PIDS[@]}"; do wait "$p"; done # stops here if any capture failed
+for p in "${PIDS[@]}"; do wait "$p"; done # stops here if any capture failed (the trap stops the rest)
+PIDS=()
+wait "$ENC" # the last frames, then the file is finished
+ENC=
 
 # sound: mixed from the cues at the moments the film reported while capturing
 # the mix: kept beside the video when asked for (WAV=1), else made with the frames and cleaned up with them
@@ -62,10 +69,9 @@ if [ "${SOUND:-1}" != 0 ]; then
 fi
 
 if [ $HAVE_SOUND = 1 ]; then
-  "$PROMO/out/.bin/encode" "$FRAMES" "$FRAMES/picture.$EXT" "$FPS"
   # the picture is copied as encoded; the sound is AAC in a share MP4, uncompressed in a ProRes master
   "$PROMO/out/.bin/audio" mux "$FRAMES/picture.$EXT" "$STEM" "$OUT" "$([ "$CODEC" = h264 ] && echo aac || echo pcm)"
   if [ "${WAV:-0}" = 1 ]; then echo "stem: $STEM"; fi
 else
-  "$PROMO/out/.bin/encode" "$FRAMES" "$OUT" "$FPS"
+  mv -f "$FRAMES/picture.$EXT" "$OUT"
 fi

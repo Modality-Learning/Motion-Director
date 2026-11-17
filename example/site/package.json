@@ -1,0 +1,10 @@
+{
+  "name": "motion-director-example-site",
+  "private": true,
+  "type": "module",
+  "description": "A small React site that plays a Motion Director film from files exported into it. It has no packages of its own: it runs on the repository's React and Vite (see README.md).",
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

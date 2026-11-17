@@ -1,6 +1,5 @@
 *
 !.gitignore
 !library.json
-# the example ships the sounds it makes itself (make-sounds.mjs), so these are tracked
+# the example ships the starter sounds, which Motion Director makes itself (templates/sounds/make-sounds.mjs), so these are tracked
 !*.wav
-!make-sounds.mjs

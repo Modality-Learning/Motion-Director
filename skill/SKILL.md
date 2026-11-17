@@ -7,15 +7,30 @@ description: Make or change a promo or explainer film (motion graphics in code, 
 
 Films live in a **project**: a folder with a `motion-director.config.mjs`, and `films/`, `comps/`,
 `sounds/`, `kit/` and `out/` inside it. Motion Director is the tool installed beside it (see its README).
-Paths below are relative to the project unless they say "the package". Commands are `motion-director <cmd>`;
-a project may wrap them in its own scripts, and its notes say so.
+Paths below are relative to the project unless they say "the package". Commands are `motion-director <cmd>`
+(`npx motion-director <cmd>` in the project); a project may wrap them in its own scripts, and its notes say so.
+
+### When there is no project yet
+
+Find the project by its `motion-director.config.mjs` (`git ls-files '*motion-director.config.mjs'`). If the
+repository has none and the user wants a film, offer to set one up, and ask where the films should live: a
+folder of their own (such as `promo/`, which keeps the tool's packages out of the app's) or the repository root.
+Then, in that folder:
+
+1. `npm install -D github:Modality-Learning/Motion-Director` (it makes a `package.json` if there is none).
+2. `npx motion-director init`: the folders, a starter film, 14 starter sounds and `NOTES.md`.
+3. `npx playwright install chromium`, once, for stills and renders. Video rendering needs macOS and Apple's
+   Command Line Tools (`xcode-select --install`); `motion-director render` says if either is missing, and
+   everything else works without them.
+4. `npx motion-director studio`, and open the address it prints.
 
 Finished films in `films/` show the patterns, but don't read them to start a film: settle the direction
 and the story in words first, and look up a pattern when you need it. The project's own notes (its
-README, agent notes or project skill) say which films are good references and what each shows.
+`NOTES.md`, README, agent notes or project skill) say which films are good references and what each shows,
+and hold its brand and house rules: read them before starting.
 
 [The motion principles](MOTION.md), [the sound design guide](SOUND.md) and [organising the sound library](LIBRARY.md) sit
-beside this file.
+beside this file (in `${CLAUDE_SKILL_DIR}` when this skill is installed as a plugin).
 
 ## What this is for
 
@@ -242,7 +257,9 @@ shared **Compositions**; each opens on these tabs (full detail in the package's 
     at the playhead. A sound's own editor sets its trim, volume, fades and hit point for every use.
   - The **inspector** (right) follows the selection: a clip's settings, an element's parameters, or the
     piece's parameters (on screen now first). At its foot, the mix: an equaliser and master volume.
-- **Export:** the project's drift check (when it has one), renders, and the film's files.
+- **Export:** two tabs. **Video**: the project's drift check (when it has one), renders, and the film's
+  files. **Scroll**: the film playing live as a web page would, moved by scrolling or by buttons, with an
+  export for the web (below).
 
 The studio follows your edits live: a film's code, `film.json`, `sound.json` and the sound library show in
 an open studio without a reload (the preview reloads in place at the playhead). You don't need to ask the
@@ -378,6 +395,50 @@ out each surface. Check what the real product shows at that size first: if its p
 something a beat depends on, ask whether to frame the wide UI or change the beat. Never invent the missing
 UI. Reframe wide screens with camera shots (one part of the screen per beat), and expect the storyboard to
 catch layout problems the in-between frames won't.
+
+## A film on a web page
+
+A film can also play live in a site, with no video and no iframe. `motion-director web <film> --out <folder>`
+writes it into the site as files the site owns, the way shadcn/ui adds components, with no package to install:
+
+- `motion-film.js` and its types: the player (`kit/web.js`), one per folder, shared by every film in it. It is
+  replaced when a film needs a newer one, and a newer one already there is kept (it plays older films).
+- `<film>.film.js` and its types: the film, which imports the player beside it.
+- `MotionFilm.tsx`, in a React project: the component. Written once; after that it belongs to the site.
+
+The element runs the film in its shadow root, so the site's styles and the film's stay apart, and draws each
+moment with the film's own `render(t)`. It is a prototype: there is no sound yet. `example/site/` is a working
+example (a React landing page, one film moved by buttons and one by scrolling).
+
+When the user wants a film on their site, and the site is in the same repository:
+
+- Export into the app's source, not `out/`: `motion-director web <film> --out <their folder>`, the same folder
+  for every film. The player and film files are generated: never edit them; change the film and export again
+  after every change. Commit them with the site.
+- React: `import { MotionFilm } from './films/MotionFilm'` and `import tour from './films/tour.film.js'`, then
+  `<MotionFilm film={tour} ref={…} onPointChange={…} />`; the ref is the element. Without React: import the
+  film module and place `<motion-film film="<film>">`. Use the site's own components and layout around it;
+  the film is only the element. With server rendering it is an empty box of the film's shape until the page's
+  script runs.
+- **Moved by the interface:** call `goTo('<key name>')` on the element from the site's own handlers (a button,
+  a step list, a route change). Key names are the film's `KEYS`, and their `note`s arrive with them
+  (`points`), so a site can label its controls from the film; keep both readable and stable once a site uses
+  them. `goTo` cuts; `{ speed: 4 }` plays there instead (backwards too) and `{ duration: 1 }` makes a set,
+  eased move. A chapter that should play on from its start is `play({ from: '<key name>' })`. For anything
+  else, the film is drawn from its time alone, so the site can drive it with `seek(t)` from its own loop.
+- **Showing progress:** `pointchange` (`onPointChange`) says which moment the film is in;
+  `sectionProgress(['Step 1', 'Step 2', …])` gives how far through each section it is (0 to 1 each), for a bar
+  that fills per chapter. Call it from `timeupdate` (`onTimeUpdate`, every frame) and write the values to the
+  page directly (a CSS variable), not through component state.
+- **Moved by scrolling:** `mode="scroll"`, pinned with `position: sticky; top: 0` inside a tall section (about
+  one screen of height per key moment); `track="#section"` when the pinned box is not the section itself.
+  `goTo` then moves the page there (a cut jumps; a speed or duration scrolls smoothly).
+- Scrolling plays the film backwards and jumps it, so `purity` must pass, and anything drawn "on the way
+  through" must be reset in `render(t)`. Run `motion-director purity <film>` before exporting.
+- Film scripts run as strict-mode functions with the film's own `document` and `window`: no shared globals
+  between a film's scripts, no remote scripts, and local images by path won't travel (inline them).
+- Reduced motion is handled by the element (jumps and steps). It is announced as one image, labelled with
+  the film's title; give it a `label` that says what the film shows on that page.
 
 ## Keeping the framework whole
 

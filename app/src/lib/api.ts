@@ -40,7 +40,9 @@ export interface Comp {
 }
 export interface Preset { label: string; detail: string; codec: string; ext: string }
 export interface Size { label: string; dsf: string }
-export interface Project { name: string; drift: boolean }
+/** Whether this machine can render video (render/can-render.mjs): a reason, and a command that fixes it, when not. */
+export interface VideoSupport { ok: boolean; reason?: string; fix?: string }
+export interface Project { name: string; drift: boolean; video?: VideoSupport }
 export interface Catalog {
   project: Project;
   films: Film[];

@@ -16,6 +16,8 @@ import { TYPES, serveProject } from './static.mjs';
 import { imageName, validateVibe } from './vibe.mjs';
 import { PRESETS, SIZES, applyProgressLine, changeOf, filmOutputs, insideDir, listComps, listFilms, planRender } from './lib.mjs';
 import { saveValues } from '../render/params.mjs';
+import { buildFilmModule, buildPlayer, writeWebFilm } from '../render/web.mjs';
+import { videoSupportCached } from '../render/can-render.mjs';
 import { formatComment, validateComment } from './comments.mjs';
 import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importFolder, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
@@ -160,7 +162,7 @@ async function api(req, res, url) {
   const films = listFilms(PROMO);
 
   if (req.method === 'GET' && pathname === '/api/films') {
-    return json(res, 200, { project: { name: CONFIG.name, drift: !!CONFIG.checks.drift }, films: films.map((f) => ({ ...f, outputs: filmOutputs(OUT, f.name) })), comps: listComps(PROMO, films), presets: PRESETS, sizes: SIZES });
+    return json(res, 200, { project: { name: CONFIG.name, drift: !!CONFIG.checks.drift, video: await videoSupportCached() }, films: films.map((f) => ({ ...f, outputs: filmOutputs(OUT, f.name) })), comps: listComps(PROMO, films), presets: PRESETS, sizes: SIZES });
   }
   if (req.method === 'GET' && pathname === '/api/drift') {
     const film = films.find((f) => f.name === url.searchParams.get('film'));
@@ -184,6 +186,17 @@ async function api(req, res, url) {
     const known = kind === 'film' ? films : listComps(PROMO, films);
     return known.some((x) => x.name === name) ? { kind, name, dir: join(PROMO, kind === 'film' ? 'films' : 'comps', name) } : null;
   };
+  // the web player and a film's module, built fresh for the Export tab's Scroll preview (render/web.mjs). The film
+  // imports ./motion-film.js, which from /api/web/film.js is the player route, as it is beside it in a project
+  if (req.method === 'GET' && (pathname === '/api/web/motion-film.js' || pathname === '/api/web/film.js')) {
+    const film = url.searchParams.get('film');
+    if (pathname === '/api/web/film.js' && !films.some((f) => f.name === film)) return json(res, 404, { error: 'No such film' });
+    try {
+      const { js } = pathname === '/api/web/film.js' ? buildFilmModule(PROMO, film) : buildPlayer(PROMO);
+      res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(js);
+    } catch (err) { return json(res, 400, { error: err.message }); }
+  }
   if (req.method === 'GET' && pathname === '/api/treatment') {
     // the film in words, TREATMENT.md beside its page as Claude wrote it (an older BRIEF.md if that's what there is)
     const piece = pieceOf(url.searchParams);
@@ -337,12 +350,22 @@ async function api(req, res, url) {
     return json(res, 200, { url: `/out/${r.file.slice(OUT.length + 1)}` });
   }
   if (req.method === 'POST' && pathname === '/api/render') {
+    const video = await videoSupportCached();
+    if (!video.ok) return json(res, 409, { error: video.reason, fix: video.fix });
     if (jobs.some((j) => j.status === 'running')) return json(res, 409, { error: 'A render is already running' });
     const plan = planRender(body, films);
     if (plan.error) return json(res, 400, plan);
     plan.options = { preset: body.preset, size: body.size };
     const { pid, ...job } = startRender(plan);
     return json(res, 202, job);
+  }
+  if (req.method === 'POST' && pathname === '/api/web/export') {
+    const film = films.find((f) => f.name === body.film);
+    if (!film) return json(res, 404, { error: 'No such film' });
+    try {
+      const r = writeWebFilm(PROMO, film.name, OUT, { example: true });
+      return json(res, 200, { files: r.written, notes: r.notes, bytes: r.bytes, page: `${film.name}.web.html`, module: `${film.name}.film.js` });
+    } catch (err) { return json(res, 400, { error: err.message }); }
   }
   let m;
   if (req.method === 'POST' && (m = pathname.match(/^\/api\/jobs\/(\d+)\/cancel$/))) {

@@ -1,0 +1,12 @@
+{
+  "name": "motion-director",
+  "owner": { "name": "Modality Learning" },
+  "description": "Make motion-graphics films with Claude: films as code, a studio to review and comment, sound placed on measured impacts, and a renderer.",
+  "plugins": [
+    {
+      "name": "motion-director",
+      "source": "./skill",
+      "description": "How Claude makes and changes films with Motion Director: direction and a written treatment first, then a storyboard, animation, sound and a final render."
+    }
+  ]
+}

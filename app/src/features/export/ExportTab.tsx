@@ -6,29 +6,40 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { getJson, post, type Drift, type Film, type Job } from '@/lib/api';
 import { cap, fmtBytes, fmtTime } from '@/lib/format';
 import { local, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { ScrollExport } from './ScrollExport';
 
-/** Export: the project's own check that the film still matches the app, the render, and the files made. */
+/** Export: as a video (the project's own check that the film still matches the app, the render, and the files made),
+ * or for scrolling on a web page (ScrollExport). */
 export function ExportTab() {
   const item = useOpenItem() as (Film & { kind: 'film' }) | null;
   const drift = useStudio((s) => s.catalog?.project.drift);
   useJobs();
+  const [mode, setMode] = useState(() => (local.get('exportMode') === 'scroll' ? 'scroll' : 'video'));
   if (!item || item.kind !== 'film') return null;
   return (
-    <div className="grid gap-5 p-5 lg:grid-cols-2">
-      <div className="grid content-start gap-5">
-        {drift ? <DriftCard film={item.name} /> : null}
-        <RenderCard film={item} />
-      </div>
-      <div className="grid content-start gap-5">
-        <JobsCard />
-        <FilesCard film={item} />
-      </div>
-    </div>
+    <Tabs value={mode} onValueChange={(v) => { setMode(v); local.set('exportMode', v); }} className="gap-5 p-5">
+      <TabsList aria-label="Export as">
+        <TabsTrigger value="video" className="px-4">Video</TabsTrigger>
+        <TabsTrigger value="scroll" className="px-4">Scroll</TabsTrigger>
+      </TabsList>
+      <TabsContent value="video" className="grid gap-5 lg:grid-cols-2">
+        <div className="grid content-start gap-5">
+          {drift ? <DriftCard film={item.name} /> : null}
+          <RenderCard film={item} />
+        </div>
+        <div className="grid content-start gap-5">
+          <JobsCard />
+          <FilesCard film={item} />
+        </div>
+      </TabsContent>
+      <TabsContent value="scroll"><ScrollExport film={item} /></TabsContent>
+    </Tabs>
   );
 }
 
@@ -67,9 +78,10 @@ const Note = ({ ok, children }: { ok?: boolean; children: React.ReactNode }) => 
   <div className={cn('rounded-lg border-l-4 bg-background/40 p-3', ok ? 'border-success' : 'border-warning')}>{children}</div>
 );
 
-function RenderCard({ film }: { film: Film }) {
+export function RenderCard({ film }: { film: Film }) {
   const presets = useStudio((s) => s.catalog!.presets), sizes = useStudio((s) => s.catalog!.sizes);
   const running = useStudio((s) => s.jobs.some((j) => j.status === 'running'));
+  const video = useStudio((s) => s.catalog!.project.video) ?? { ok: true };
   const [preset, setPreset] = useState(() => local.get('preset') || 'share');
   const [size, setSize] = useState(() => local.get('size') || '1440p');
   const [status, setStatus] = useState('');
@@ -133,8 +145,14 @@ function RenderCard({ film }: { film: Film }) {
               </Label>
             </div>
           ) : null}
+          {!video.ok ? (
+            <Note>
+              <p id="renderBlocked">{video.reason}</p>
+              {video.fix ? <p className="mt-2 text-sm">To fix it, run <code className="rounded bg-background px-1.5 py-0.5">{video.fix}</code> in a terminal, then reload the studio.</p> : null}
+            </Note>
+          ) : null}
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={running}>Render</Button>
+            <Button type="submit" disabled={running || !video.ok} aria-describedby={!video.ok ? 'renderBlocked' : undefined}>Render</Button>
             <span className="text-sm text-muted-foreground" aria-live="polite">{status}</span>
           </div>
         </CardContent>

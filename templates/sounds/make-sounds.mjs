@@ -1,11 +1,11 @@
-// The example's sounds are generated here, from nothing but maths and a seeded PRNG, so it ships with sounds it
-// owns (no samples, no licences). `node example/sounds/make-sounds.mjs` rebuilds them, byte for byte.
-import { writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+// The starter sounds, generated from nothing but maths and a seeded PRNG, so Motion Director ships sounds it owns
+// (no samples, no licences). `motion-director init` writes them into a new project's sounds/; the example's are
+// rebuilt, byte for byte, with `node templates/sounds/make-sounds.mjs example/sounds`.
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SR = 44100;
-const OUT = dirname(fileURLToPath(import.meta.url));
 const TAU = Math.PI * 2;
 
 // --- tools -----------------------------------------------------------------------------------------------
@@ -232,5 +232,14 @@ const SOUNDS = {
   'typing': typing, 'success-chime': successChime, 'paper-slide': paperSlide, 'shutter': shutter,
 };
 
-for (const [name, build] of Object.entries(SOUNDS)) writeFileSync(join(OUT, `${name}.wav`), wav(build()));
-console.log(`wrote ${Object.keys(SOUNDS).length} sounds to ${OUT}`);
+/** Writes every starter sound into a folder, as <name>.wav. Returns the file names. */
+export function makeSounds(outDir) {
+  mkdirSync(outDir, { recursive: true });
+  return Object.entries(SOUNDS).map(([name, build]) => { writeFileSync(join(outDir, `${name}.wav`), wav(build())); return `${name}.wav`; });
+}
+export const STARTER_SOUNDS = Object.keys(SOUNDS).map((n) => `${n}.wav`);
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const out = resolve(process.argv[2] || '.');
+  console.log(`wrote ${makeSounds(out).length} sounds to ${out}`);
+}

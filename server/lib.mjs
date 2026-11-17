@@ -70,7 +70,9 @@ export function applyProgressLine(job, line) {
   let m;
   if ((m = line.match(/^capturing (\d+) frames/))) { job.total = +m[1]; job.phase = 'Capturing frames'; }
   else if ((m = line.match(/^captured (\d+)/))) job.captured = (job.captured || 0) + +m[1];
-  else if ((m = line.match(/^encoded (\d+) \/ (\d+)/))) { job.phase = 'Encoding'; job.encoded = +m[1]; job.total = job.total || +m[2]; }
+  // the encoder runs alongside the capture: it's only the phase once every frame is captured
+  else if ((m = line.match(/^encoded (\d+) \/ (\d+)/))) { job.encoded = +m[1]; job.total = job.total || +m[2]; if ((job.captured || 0) >= job.total) job.phase = 'Encoding'; }
+  else if (/^done \d+/.test(line) && job.total && (job.captured || 0) >= job.total) job.phase = 'Encoding';
   else if (/^ok \d+ frames ->/.test(line)) { job.phase = 'Done'; job.encoded = job.total; }
   else if (/^sound: mixed/.test(line)) job.phase = 'Mixing sound';
   const total = job.total || 0;
@@ -91,10 +93,11 @@ export function insideDir(dir, rel) {
 /** The rendered files that belong to a film, newest first. */
 export function filmOutputs(outDir, filmName) {
   if (!existsSync(outDir)) return [];
-  const kinds = { '.mp4': 'Video (H.264)', '.mov': 'Video (ProRes)', '.wav': 'Sound (WAV stem)', '.png': 'Storyboard', '.html': 'Single-file preview' };
+  const kinds = { '.mp4': 'Video (H.264)', '.mov': 'Video (ProRes)', '.wav': 'Sound (WAV stem)', '.png': 'Storyboard', '.html': 'Single-file preview', '.film.js': 'Web film', '.web.html': 'Web film example page' };
+  const kindOf = (f) => kinds[f.match(/\.(film\.js|web\.html)$/)?.[0]] || (extname(f) === '.js' ? undefined : kinds[extname(f)]);
   return readdirSync(outDir)
-    .filter((f) => kinds[extname(f)] && (f.startsWith(`${filmName}_`) || f.startsWith(`${filmName}.`) || f === `${filmName}-board.png`))
-    .map((f) => { const s = statSync(join(outDir, f)); return { file: basename(f), kind: kinds[extname(f)], bytes: s.size, modified: s.mtime.toISOString() }; })
+    .filter((f) => kindOf(f) && (f.startsWith(`${filmName}_`) || f.startsWith(`${filmName}.`) || f === `${filmName}-board.png`))
+    .map((f) => { const s = statSync(join(outDir, f)); return { file: basename(f), kind: kindOf(f), bytes: s.size, modified: s.mtime.toISOString() }; })
     .sort((a, b) => b.modified.localeCompare(a.modified));
 }
 

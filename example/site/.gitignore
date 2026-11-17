@@ -1,0 +1,2 @@
+# the films are exported into src/films (README.md); a real site commits them, this example makes them fresh
+src/films/
