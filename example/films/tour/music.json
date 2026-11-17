@@ -5,18 +5,18 @@
   "length": 96,
   "ending": "button",
   "sections": [
-    { "name": "Intro", "at": 0.47, "note": "sparse: a pad and a soft pluck under the opening line" },
-    { "name": "Vibe", "at": 6.28, "note": "the beat comes in, light and curious" },
-    { "name": "Treatment", "at": 19.83, "note": "a little fuller as the plan takes shape" },
-    { "name": "Claude makes it", "at": 31.44, "drop": true, "note": "the lift: the fast-forward, full energy" },
-    { "name": "Edit", "at": 43.06, "note": "settle back, keep the groove" },
-    { "name": "Sync", "at": 60.48, "note": "playful, room for the bounce sounds to land on top" },
-    { "name": "Export", "at": 75.96, "note": "build towards the finish" },
-    { "name": "Ending", "at": 91.44, "note": "the finished film: a clean, confident button ending" }
+    { "name": "Intro", "at": 0.47, "note": "sparse electric piano chords and a closed hi-hat under the opening line, waiting" },
+    { "name": "Vibe", "at": 6.28, "note": "the melodic bass riff takes the lead over a tight, dry groove" },
+    { "name": "Treatment", "at": 19.83, "note": "organ swells under the bass as the plan takes shape" },
+    { "name": "Agent makes it", "at": 31.44, "drop": true, "note": "the lift: the bass riff climbs into its fastest run and the whole band hits with it" },
+    { "name": "Edit", "at": 43.06, "note": "drop back to bass and drums, keep the groove" },
+    { "name": "Sync", "at": 60.48, "note": "the riff returns, playful, with room for the bounce sounds to land on top" },
+    { "name": "Export", "at": 75.96, "note": "a key change up, rising towards the finish" },
+    { "name": "Ending", "at": 91.44, "note": "one big unison hit: a clean, confident button ending" }
   ],
   "prompt": {
-    "style": "Instrumental, upbeat electronic pop, 124 BPM, 4/4, warm analogue synth pads, plucky arpeggios, light four-on-the-floor kick, crisp claps, playful and confident, clean modern mix, no vocals",
-    "structure": "[Instrumental]\n[Intro: 3 bars, pad and soft pluck]\n[Verse: 7 bars, light beat comes in]\n[Pre-Chorus: 6 bars, fuller]\n[Chorus: 6 bars, full energy, the lift]\n[Break: 9 bars, settle back, keep the groove]\n[Verse: 8 bars, playful, leave space]\n[Build: 8 bars, rising]\n[Outro: 3 bars, button ending]\n[End]",
-    "notes": "Ask for 1:36. If it comes back longer (Suno often makes two minutes or more), use it anyway: Line up puts its biggest lift on 'Claude makes it', corrects its tempo, and ends it with the film."
+    "style": "Instrumental bass-led funk, 124 BPM, 4/4, a fast melodic fingerstyle bass riff as the lead instrument, tight dry drums with crisp ghost notes, sparse electric piano chords, organ swells, punchy unison hits, dry compressed vintage mix, joyful, no vocals",
+    "structure": "[Instrumental]\n[Intro: 3 bars, electric piano chords and a closed hi-hat, waiting]\n[Verse: 7 bars, the melodic bass riff takes the lead over a tight dry groove]\n[Pre-Chorus: 6 bars, organ swells under the bass, building]\n[Chorus: 6 bars, the lift, the bass riff climbs into its fastest run, the whole band hits with it]\n[Break: 9 bars, drop back to bass and drums, keep the groove]\n[Verse: 8 bars, the riff returns, playful, leave space]\n[Build: 8 bars, a key change up, rising]\n[Outro: 3 bars, one big unison hit, button ending]\n[End]",
+    "notes": "Ask for 1:36. If it comes back longer (Suno often makes two minutes or more), use it anyway: Line up puts its biggest lift on 'Agent makes it', corrects its tempo, and ends it with the film. The style describes the sound asked for (a dry funk band led by a fast, melodic bass line) in its own words: generators refuse song and band names."
   }
 }

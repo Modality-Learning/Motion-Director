@@ -42,7 +42,7 @@ Write `films/<film>/music.json` (kit/music.mjs checks it; the studio shows it):
   "bpm": 124, "beatsPerBar": 4, "offset": 0.47, "length": 97, "ending": "button",
   "sections": [
     { "name": "Intro", "at": 0.47, "note": "sparse: a pad and a soft pluck" },
-    { "name": "Claude makes it", "at": 31.44, "drop": true, "note": "the lift: full energy" }
+    { "name": "Agent makes it", "at": 31.44, "drop": true, "note": "the lift: full energy" }
   ],
   "prompt": { "style": "…", "structure": "…", "notes": "…" }
 }
