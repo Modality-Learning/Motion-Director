@@ -32,6 +32,10 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
 - **Waveforms you can trust zoomed in.** A long clip zoomed in drew its waveform stretched and cut short, so
   what you saw drifted from what you heard. It now stays in step at any zoom, and shows each moment's loudness
   as well as its peaks, so a quiet intro looks quiet and a hi-hat shows as a sharp tick.
+- **One place to check on your agent.** Its status beside the link icon stands out with a spinner while it works,
+  and a click opens your comments: what it's working on, what it has, what's queued and what's done. The separate
+  comments button is gone. A comment that was never picked up stops the spinner after 15 minutes, and any comment
+  with the agent can now be cleared.
 
 ## 0.2.0 (2026-11-17)
 

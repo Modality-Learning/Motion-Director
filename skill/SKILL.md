@@ -358,7 +358,7 @@ only says you have comments; a status nobody clears goes after 15 minutes.
 
 Every comment has an id (`[c0a1b2c3]` above its note). **When you have made a comment's change, mark it done**
 with the `resolve_comments` tool, or the command the message gives (`motion-director comments resolve <id> [id…]`): the studio's comments list
-moves it to Resolved at once, which is the user's only sign it was dealt with. Don't reply in the studio and don't
+moves it to Done at once, which is the user's only sign it was dealt with. Don't reply in the studio and don't
 mark a comment done that you couldn't do: say why in the chat and leave it open. `motion-director comments` lists
 what is still open.
 

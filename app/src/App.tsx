@@ -6,7 +6,6 @@ import { TopBar } from '@/components/TopBar';
 import { Home } from '@/views/Home';
 import { Workspace } from '@/views/Workspace';
 import { CommentBox } from '@/features/comments/CommentBox';
-import { CommentsPanel } from '@/features/comments/CommentsPanel';
 import { useCommentListSync } from '@/features/comments/list';
 import { useCommentKeys } from '@/features/comments/comments';
 import { useLiveCatalog } from '@/lib/useLiveCatalog';
@@ -47,7 +46,6 @@ export function App() {
       {/* the workspace's tabs sit in the top bar; their panels fill the page below it */}
       {route.view === 'work' ? <Tabs value={route.tab} onValueChange={(tab) => go({ ...route, tab: tab as Tab })} className="contents">{shell}</Tabs> : shell}
       <CommentBox />
-      <CommentsPanel />
       <Toaster position="bottom-center" />
     </TooltipProvider>
   );

@@ -33,7 +33,7 @@ interface ListState {
   comments: StudioComment[];
   /** Enter reaches Claude directly: the studio was started from a Claude Code session */
   session: boolean;
-  /** the comments sidebar is open */
+  /** the comments list (from the agent status beside the link icon) is open */
   open: boolean;
   link: SessionLink | null;
   checking: boolean;
@@ -83,8 +83,10 @@ export async function setStatus(ids: string[], status: 'sent' | 'removed' | 'que
   await loadComments(film);
 }
 
-/** Open (queued or with Claude) comments: the count beside the Comment button. */
-export const openCount = (cs: StudioComment[]) => cs.filter((c) => c.status !== 'resolved').length;
+/** How long a comment with the agent counts as being worked on: as long as the agent's own status lasts
+ * (server/agent-status.mjs). Older, it was most likely never picked up, and the spinner stops for it. */
+export const WORKING_MS = 15 * 60_000;
+export const isWorking = (c: StudioComment, now: number) => c.status === 'sent' && now - Date.parse(c.changed || c.at) < WORKING_MS;
 
 /** Keeps the list on the open film, and in step with the log. */
 export function useCommentListSync() {

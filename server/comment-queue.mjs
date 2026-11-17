@@ -2,7 +2,7 @@
 //   queued    waiting (⌘Enter in the comment box); sent with the next Enter, or Send all in the comments list
 //   sent      with Claude: through the session that started the studio, or copied to paste by hand
 //   resolved  Claude has made the change (`motion-director comments resolve <id>`)
-//   removed   taken out of the queue before it was sent
+//   removed   taken out by hand: from the queue before it was sent, or cleared after it never got picked up
 // The log is the project's out/comments/<film>.jsonl, append-only: a line per comment, then a line per change of
 // status. Older lines (before ids) read as resolved: they were copied and pasted, and are done with.
 //

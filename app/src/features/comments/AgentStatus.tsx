@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { CircleAlert, Clock, ListChecks, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Hint } from '@/components/Hint';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getJson } from '@/lib/api';
 import { onLive } from '@/lib/live';
-import { useAgentName, useCommentList } from './list';
+import { cn } from '@/lib/utils';
+import { CommentsList, useNow } from './CommentsList';
+import { isWorking, useAgentName, useCommentList } from './list';
 
 /** What the agent says it's doing (server/agent-status.mjs): a few words, the film, and what it's changing. */
 export interface AgentStatusLine { text: string; film: string | null; about: string | null; by: string | null; at: string }
@@ -15,12 +20,16 @@ export function statusLine(status: AgentStatusLine | null, agent: string, withAg
   return null;
 }
 
-/** Beside the link icon: a spinner and what the agent is working on, so it's clear the film is about to change and
- * why. Live: the agent's `motion-director status` (or MCP set_status) shows at once. */
+/** Beside the link icon: what the agent is working on, with a spinner, standing out while it works so it's clear
+ * the film is about to change and why. It's also the one place to check on the agent: a click opens the comments
+ * list. Idle, it is a quiet button, saying when something is queued or was never picked up. Live: the agent's
+ * `motion-director status` (or MCP set_status) shows at once. */
 export function AgentStatus() {
   const agent = useAgentName();
   const film = useCommentList((s) => s.film);
-  const withAgent = useCommentList((s) => s.comments.filter((c) => c.status === 'sent').length);
+  const open = useCommentList((s) => s.open);
+  const comments = useCommentList((s) => s.comments);
+  const now = useNow(30_000);
   const [status, setStatus] = useState<AgentStatusLine | null>(null);
 
   useEffect(() => {
@@ -32,17 +41,33 @@ export function AgentStatus() {
     return () => { live = false; off(); clearInterval(tick); };
   }, []);
 
-  const line = statusLine(status, agent, withAgent, film);
+  // a comment with the agent counts as worked on for as long as a status would; older, it was never picked up
+  const working = comments.filter((c) => isWorking(c, now)).length;
+  const missed = comments.filter((c) => c.status === 'sent').length - working;
+  const queued = comments.filter((c) => c.status === 'queued').length;
+  const line = statusLine(status, agent, working, film);
   const who = status?.by || agent;
+  const idle = missed ? `${missed} not picked up` : queued ? `${queued} queued` : null;
+
   return (
-    // always in the page, so a screen reader hears each new line; empty while the agent is idle
-    <span role="status" aria-live="polite" className="flex max-w-64 min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-      {line ? (
-        <>
-          <Loader2 className="size-3.5 flex-none motion-safe:animate-spin" aria-hidden="true" />
-          <span className="truncate" title={`${who} is working: ${line}`}><span className="sr-only">{who} is working: </span>{line}</span>
-        </>
-      ) : null}
-    </span>
+    <Popover open={open} onOpenChange={(o) => useCommentList.setState({ open: o })}>
+      {/* always in the page, so a screen reader hears each new line; empty while the agent is idle */}
+      <span role="status" aria-live="polite" className="sr-only">{line ? `${who} is working: ${line}` : ''}</span>
+      <Hint label={line ? `${who} is working: ${line}. Click for your comments` : `${agent} and your comments: in progress, queued and done`}>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="ghost" aria-label={`Comments${line ? `: ${who} is working: ${line}` : idle ? `: ${idle}` : ''}`}
+            className={cn('max-w-72 min-w-0 gap-1.5 px-2.5',
+              line ? 'border border-primary/45 bg-primary/10 text-foreground hover:bg-primary/15' : 'text-muted-foreground hover:text-foreground',
+              open && !line && 'bg-accent text-foreground')}>
+            {line ? <Loader2 className="text-primary motion-safe:animate-spin" aria-hidden="true" />
+              : missed ? <CircleAlert className="text-warning" aria-hidden="true" />
+                : queued ? <Clock className="text-warning" aria-hidden="true" />
+                  : <ListChecks aria-hidden="true" />}
+            {line || idle ? <span className="truncate">{line || idle}</span> : null}
+          </Button>
+        </PopoverTrigger>
+      </Hint>
+      <PopoverContent align="end" className="w-[380px] p-0"><CommentsList working={line} /></PopoverContent>
+    </Popover>
   );
 }

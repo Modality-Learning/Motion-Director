@@ -246,8 +246,10 @@ an element, a clip, a beat, a pin, the timeline at a time), type, and press **En
 queued ones, to the Claude Code session that started the studio (its messaging socket, which the studio inherits;
 nothing to set up). **⌘Enter** queues it instead. The note says the film, what it is about with its current value,
 a selector or cue id, and your comment. A studio started any other way copies the note to paste into the chat.
-The chevron beside the Comment button opens the comments list: queued (Send all, or take one out), with Claude,
-and resolved. The agent marks each one done (`motion-director comments resolve <id>`), and the list follows live.
+The agent's status, beside the link icon, stands out with a spinner while it works, and a click on it opens the
+comments list: what it's working on, the comments with it, the queued ones (Send all, or take one out) and the
+done ones. The agent marks each one done (`motion-director comments resolve <id>`), and the list follows live. A
+comment that was never picked up stops the spinner after 15 minutes; copy it to paste, or clear it.
 The link icon beside it shows whether comments reach Claude: click it to check again, or, once it has failed a
 few times, to copy a repair request for Claude. Starting the studio from a Claude session takes over one already
 running for the same project on that port, so a new session heals the link by starting it again.

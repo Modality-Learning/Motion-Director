@@ -1,11 +1,10 @@
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Hint } from '@/components/Hint';
 import { Kbd } from '@/components/Kbd';
 import { TABS, commentable, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { openCount, useCommentList } from '@/features/comments/list';
 import { SessionLinkButton } from '@/features/comments/SessionLink';
 import { AgentStatus } from '@/features/comments/AgentStatus';
 import { UpdateNotice } from '@/features/updates/UpdateNotice';
@@ -13,7 +12,8 @@ import { UpdateNotice } from '@/features/updates/UpdateNotice';
 const label = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' } as const;
 
 /** The bar along the top. Left: the name, and while a piece is open its tabs. Centre: where you are, from the project
- * (its name in motion-director.config.mjs) to the open film or composition. Right: the save indicator and comment mode. */
+ * (its name in motion-director.config.mjs) to the open film or composition. Right: the save indicator; on a film, the agent's status (which opens the comments list), the link to the agent,
+ * and comment mode. */
 export function TopBar() {
   const project = useStudio((s) => s.catalog?.project);
   const route = useStudio((s) => s.route);
@@ -23,8 +23,6 @@ export function TopBar() {
   const setCommentMode = useStudio((s) => s.setCommentMode);
   const work = route.view === 'work' && item ? route : null;
   const canComment = !!work && work.kind === 'film' && commentable(work.tab);
-  const { open: listOpen, comments } = useCommentList();
-  const waiting = openCount(comments);
   const crumb = 'text-muted-foreground no-underline hover:text-foreground hover:underline';
 
   return (
@@ -69,14 +67,6 @@ export function TopBar() {
                 </Button>
               </Hint>
             ) : null}
-            {/* the comments list: what is queued, with Claude, or resolved; the count is what is still open */}
-            <Hint label="Comments: queued, with Claude, resolved">
-              <Button size="sm" variant={listOpen ? 'default' : 'secondary'} aria-expanded={listOpen} aria-label={`Comments${waiting ? `, ${waiting} open` : ''}`}
-                onClick={() => useCommentList.setState({ open: !listOpen })} className="gap-1.5 px-2.5">
-                {waiting ? <span className="min-w-5 rounded-full bg-warning px-1.5 text-xs leading-5 font-semibold text-[#2a1600] tabular-nums">{waiting}</span> : null}
-                <ChevronDown className={cn('transition-transform', listOpen && 'rotate-180')} />
-              </Button>
-            </Hint>
           </div>
         ) : null}
       </div>

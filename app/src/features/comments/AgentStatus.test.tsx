@@ -1,12 +1,15 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render as rtl, screen } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { afterEach, expect, test, vi } from 'vitest';
 import { AgentStatus, statusLine, type AgentStatusLine } from './AgentStatus';
-import { useCommentList, type StudioComment } from './list';
+import { WORKING_MS, useCommentList, type StudioComment } from './list';
+
+const render = (ui: React.ReactElement) => rtl(<TooltipProvider>{ui}</TooltipProvider>);
 
 const s = (text: string, film: string | null = 'hello'): AgentStatusLine => ({ text, film, about: null, by: 'Claude', at: '2026-11-17T10:00:00Z' });
-const sent = (id: string) => ({ id, status: 'sent', at: '', view: 'edit', frame: null, t: 0, text: '', about: null, target: null }) as StudioComment;
+const sent = (id: string, ago = 0) => ({ id, status: 'sent', at: new Date(Date.now() - ago).toISOString(), view: 'edit', frame: null, t: 0, text: '', about: null, target: null }) as StudioComment;
 
-afterEach(() => { vi.unstubAllGlobals(); useCommentList.setState({ film: null, comments: [], link: null }); });
+afterEach(() => { vi.unstubAllGlobals(); useCommentList.setState({ film: null, comments: [], link: null, open: false }); });
 
 test('the line is the agent\'s own words, else that it has comments, else nothing', () => {
   expect(statusLine(s('Softening the bounce'), 'Claude', 2, 'hello')).toBe('Softening the bounce');
@@ -39,4 +42,30 @@ test('idle: the region stays in the page, empty', async () => {
   render(<AgentStatus />);
   await act(async () => {});
   expect(screen.getByRole('status')).toBeEmptyDOMElement();
+});
+
+test('a click on the status opens the comments list, with what the agent is working on at its top', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ status: s('Recolouring the card') }), { headers: { 'content-type': 'application/json' } })));
+  useCommentList.setState({ film: 'hello', comments: [sent('a')] });
+  render(<AgentStatus />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Comments: Claude is working: Recolouring the card' }));
+  expect(screen.getByRole('heading', { name: 'With Claude (1)' })).toBeInTheDocument();
+  expect(screen.getAllByText('Recolouring the card').length).toBeGreaterThan(1);
+});
+
+test('a comment never picked up stops the spinner, and the idle button says so', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ status: null }))));
+  useCommentList.setState({ film: 'hello', comments: [sent('a', WORKING_MS + 60_000)] });
+  render(<AgentStatus />);
+  await act(async () => {});
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  expect(screen.getByRole('button', { name: 'Comments: 1 not picked up' })).toBeInTheDocument();
+});
+
+test('idle with nothing open: a quiet button that still opens the list', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ status: null }))));
+  useCommentList.setState({ film: 'hello', comments: [] });
+  render(<AgentStatus />);
+  fireEvent.click(screen.getByRole('button', { name: 'Comments' }));
+  expect(await screen.findByText('Not working on anything now.')).toBeInTheDocument();
 });

@@ -1,8 +1,8 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { CommentsPanel, shortAbout } from './CommentsPanel';
-import { STALE_MS, openCount, useCommentList, type StudioComment } from './list';
+import { CommentsList, shortAbout } from './CommentsList';
+import { STALE_MS, WORKING_MS, isWorking, useCommentList, type StudioComment } from './list';
 import { REPAIR_AFTER, SessionLinkButton, repairRequest } from './SessionLink';
 
 const c = (id: string, status: StudioComment['status'], text: string, extra: Partial<StudioComment> = {}): StudioComment =>
@@ -12,10 +12,10 @@ afterEach(() => { useCommentList.setState({ film: null, comments: [], session: f
 
 const show = (comments: StudioComment[], session = true) => {
   useCommentList.setState({ film: 'tour', comments, session, open: true });
-  return render(<TooltipProvider><CommentsPanel /></TooltipProvider>);
+  return render(<TooltipProvider><CommentsList working={null} /></TooltipProvider>);
 };
 
-test('groups the comments: queued with Send all, with Claude, and resolved folded away', () => {
+test('groups the comments: with Claude, queued with Send all, and done folded away', () => {
   show([c('a', 'queued', 'Softer bounce.'), c('b', 'sent', 'Tile sooner.'), c('d', 'resolved', 'Bolder headline.')]);
 
   const queued = screen.getByRole('heading', { name: 'Queued (1)' }).closest('section')!;
@@ -25,7 +25,7 @@ test('groups the comments: queued with Send all, with Claude, and resolved folde
   expect(screen.getByText('Tile sooner.')).toBeTruthy();
   // resolved ones stay folded until asked for
   expect(screen.queryByText('Bolder headline.')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Resolved (1)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Done (1)' }));
   expect(screen.getByText('Bolder headline.')).toBeTruthy();
 });
 
@@ -44,8 +44,29 @@ test('a queued comment can be taken out of the queue', () => {
   expect(JSON.parse(String((init as RequestInit).body))).toEqual({ film: 'tour', ids: ['a'], status: 'removed' });
 });
 
-test('the count beside the Comment button is what is still open', () => {
-  expect(openCount([c('a', 'queued', 'x'), c('b', 'sent', 'y'), c('d', 'resolved', 'z')])).toBe(2);
+test('a comment with the agent counts as worked on for as long as a status lasts', () => {
+  const now = Date.parse('2026-11-16T01:00:00Z');
+  expect(isWorking(c('a', 'sent', 'x', { changed: new Date(now - 60_000).toISOString() }), now)).toBe(true);
+  expect(isWorking(c('b', 'sent', 'y', { changed: new Date(now - WORKING_MS - 1000).toISOString() }), now)).toBe(false);
+  expect(isWorking(c('d', 'queued', 'z', { changed: new Date(now).toISOString() }), now)).toBe(false);
+});
+
+test('a comment with the agent can be cleared, one at a time or all together', () => {
+  const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ comments: [], session: true })));
+  show([c('a', 'sent', 'Never arrived.'), c('b', 'sent', 'Nor this.')]);
+  const posted = () => fetch.mock.calls.filter(([u]) => u === '/api/comments/status').map(([, i]) => JSON.parse(String((i as RequestInit).body)));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear “Never arrived.”' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+  expect(posted()).toEqual([{ film: 'tour', ids: ['a'], status: 'removed' }, { film: 'tour', ids: ['a', 'b'], status: 'removed' }]);
+});
+
+test('the top says what the agent is working on, or that it is not', () => {
+  useCommentList.setState({ film: 'tour', comments: [], session: true });
+  const { unmount } = render(<TooltipProvider><CommentsList working="Softening the bounce" /></TooltipProvider>);
+  expect(screen.getByText('Softening the bounce')).toBeTruthy();
+  unmount();
+  render(<TooltipProvider><CommentsList working={null} /></TooltipProvider>);
+  expect(screen.getByText('Not working on anything now.')).toBeTruthy();
 });
 
 test('what a comment is about, without the scope id, time or current value', () => {
