@@ -7,6 +7,7 @@ import { TABS, commentable, useOpenItem, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { openCount, useCommentList } from '@/features/comments/list';
 import { SessionLinkButton } from '@/features/comments/SessionLink';
+import { AgentStatus } from '@/features/comments/AgentStatus';
 
 const label = { vibe: 'Vibe', treatment: 'Treatment', edit: 'Edit', export: 'Export' } as const;
 
@@ -56,7 +57,8 @@ export function TopBar() {
           {save.state === 'saving' ? 'Saving…' : save.state === 'saved' ? 'Saved ✓' : save.state === 'error' ? `Not saved: ${save.detail || 'try again'}` : ''}
         </span>
         {work && work.kind === 'film' ? (
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 items-center gap-1">
+            <AgentStatus />
             <SessionLinkButton />
             {canComment ? (
               <Hint label="Comment mode (C)">

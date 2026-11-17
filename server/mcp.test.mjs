@@ -62,7 +62,7 @@ test('the protocol: initialize, tools, a call, an unknown method, and notificati
   assert.deepEqual(init.result.capabilities, { tools: { listChanged: false } });
   assert.equal(JSON.parse(readFileSync(join(r.out, '.agent.json'), 'utf8')).name, 'Codex'); // the studio names it
   assert.equal(handle({ jsonrpc: '2.0', id: 9, method: 'initialize', params: { protocolVersion: '1999-01-01' } }, state).result.protocolVersion, '2025-06-18');
-  assert.deepEqual(handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, state).result.tools.map((t) => t.name), ['project', 'read_comments', 'resolve_comments']);
+  assert.deepEqual(handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, state).result.tools.map((t) => t.name), ['project', 'read_comments', 'set_status', 'resolve_comments']);
   assert.match(handle({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'project', arguments: {} } }, state).result.content[0].text, /launch/);
   assert.equal(handle({ jsonrpc: '2.0', id: 4, method: 'resources/list' }, state).error.code, -32601);
   assert.equal(handle({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'rm' } }, state).error.code, -32602);

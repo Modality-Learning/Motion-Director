@@ -31,6 +31,7 @@ const USAGE = `usage: motion-director <command> [--root <project>]
   sound-search "<words>" [--like path] [--n 8] [--json]
   organise [--n 150] | apply <file>  list sounds to organise, or apply Claude's batch
   comments [film] | resolve <ids> list open comments, or mark them done
+  status "<a few words>" | --done what you're working on, shown in the studio with a spinner
   init [folder]                   start a new project
   skill                           print where the skill lives (Claude Code: install the plugin)
   codex                           set up Codex: link the skill into .agents/skills, print its MCP command
@@ -102,6 +103,7 @@ if (cmd === 'codex') {
 
 const SCRIPTS = { studio: 'server/server.mjs', board: 'render/board.mjs', bundle: 'render/bundle.mjs', purity: 'render/purity.mjs', 'sound-check': 'render/sound-check.mjs', organise: 'render/sound-organise.mjs', 'sound-search': 'render/sound-embed.mjs', comments: 'server/comments-cli.mjs' };
 SCRIPTS.web = 'render/web.mjs';
+SCRIPTS.status = 'server/status-cli.mjs';
 if (cmd === 'render') {
   // say what's missing before starting, rather than failing part way (render/can-render.mjs)
   const { videoSupport } = await import('../render/can-render.mjs');

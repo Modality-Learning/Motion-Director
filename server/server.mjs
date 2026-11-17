@@ -19,6 +19,7 @@ import { saveValues } from '../render/params.mjs';
 import { buildFilmModule, buildPlayer, writeWebFilm } from '../render/web.mjs';
 import { videoSupportCached } from '../render/can-render.mjs';
 import { explainBlocked } from '../render/blocked.mjs';
+import { readAgentStatus } from './agent-status.mjs';
 import { formatComment, validateComment } from './comments.mjs';
 import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
 import { NEEDS_WAV, analyseLibrary, audioTool, browserCopy, importFolder, importTarget, sheetVersion, soundsDir, libraryLabel, listSounds, readLibrary, readSheet, saveLibraryEntry, saveSheet, soundFile, stretched } from './sound-lib.mjs';
@@ -56,7 +57,7 @@ function announce(ev) {
   }, 150));
 }
 // the comment logs (out/comments): a status changed from the command line (Claude marking one resolved) shows at once
-try { mkdirSync(join(OUT, 'comments'), { recursive: true }); watch(join(OUT, 'comments'), (_, file) => { const f = file && String(file).match(/^([^/\\]+)\.jsonl$/); if (f) announce({ type: 'comments', film: f[1] }); }); } catch { /* no out/ */ }
+try { mkdirSync(join(OUT, 'comments'), { recursive: true }); watch(join(OUT, 'comments'), (_, file) => { const f = file && String(file).match(/^([^/\\]+)\.jsonl$/); if (f) announce({ type: 'comments', film: f[1] }); else if (String(file) === 'status.json') announce({ type: 'status' }); }); } catch { /* no out/ */ }
 
 /* Comments go to the Claude Code session the studio was started from, when there is one (comment-queue.mjs) */
 const INBOX = sessionInbox();
@@ -206,6 +207,10 @@ async function api(req, res, url) {
     if (!piece) return json(res, 400, { error: 'Unknown film or composition' });
     const file = treatmentFile(piece.dir), text = file ? await readFile(join(piece.dir, file), 'utf8').catch(() => null) : null;
     return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text, file: file || 'TREATMENT.md' });
+  }
+  if (req.method === 'GET' && pathname === '/api/agent-status') {
+    // what the agent says it's doing (server/agent-status.mjs), for the status beside the link icon
+    return json(res, 200, { status: readAgentStatus(OUT) });
   }
   if (req.method === 'GET' && pathname === '/api/session') {
     // the link to Claude: whether comments reach it, and which session they go to (Claude compares it with its own)

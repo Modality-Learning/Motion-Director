@@ -320,6 +320,14 @@ comments over MCP:
   to you, the command says so and exits.
 - Don't stop a studio for another project, or one on a port the user didn't ask for.
 
+**Say what you're doing while you work.** The studio shows a status beside its link icon, with a spinner, so the
+user knows the film is about to change and why. When you start on comments, or on any change the user is watching
+in the studio, set it in three or four words, naming the thing, not the method:
+`motion-director status "Softening the bounce" --film <film> --about "#ball"` (or the MCP tool `set_status`).
+`--about` takes the selector or cue id the comment named. Update it as you move to the next comment, and clear it
+when you've finished: `motion-director status --done` (`set_status` with `done: true`). Without one, the studio
+only says you have comments; a status nobody clears goes after 15 minutes.
+
 Every comment has an id (`[c0a1b2c3]` above its note). **When you have made a comment's change, mark it done**
 with the `resolve_comments` tool, or the command the message gives (`motion-director comments resolve <id> [id…]`): the studio's comments list
 moves it to Resolved at once, which is the user's only sign it was dealt with. Don't reply in the studio and don't

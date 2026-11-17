@@ -10,6 +10,7 @@ import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { CONFIG, PKG, findRoot } from './project.mjs';
 import { filmsOf, formatBatch, readComments, setStatus } from './comment-queue.mjs';
+import { clearAgentStatus, setAgentStatus } from './agent-status.mjs';
 
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const VERSION = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8')).version;
@@ -57,6 +58,16 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: { film: { type: 'string', description: "Only this film's comments (its folder name). Default: every film." } }, additionalProperties: false },
   },
   {
+    name: 'set_status',
+    description: "Say what you're doing, in three or four words (\"Softening the bounce\"), so the studio shows it with a spinner while you work. Set it when you start on comments or a change the user is watching, update it as you move on, and call it with done: true when you've finished.",
+    inputSchema: { type: 'object', properties: {
+      text: { type: 'string', description: 'What you are doing now, in a few words.' },
+      film: { type: 'string', description: 'The film it is about (its folder name).' },
+      about: { type: 'string', description: 'What you are changing: a selector or sound cue id, as the comment named it.' },
+      done: { type: 'boolean', description: 'true when you have finished: the studio stops showing a status.' },
+    }, additionalProperties: false },
+  },
+  {
     name: 'resolve_comments',
     description: "Mark studio comments done once you've made the change, so the studio shows them resolved.",
     inputSchema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 1, description: 'The comment ids, such as c1a2b3c4.' } }, required: ['ids'], additionalProperties: false },
@@ -64,7 +75,7 @@ const TOOLS = [
 ];
 
 /** Runs a tool: { text, isError }. */
-export function callTool(root, name, args = {}) {
+export function callTool(root, name, args = {}, state = null) {
   if (!root) return { isError: true, text: `No Motion Director project here (no ${CONFIG} in this folder, above it, or a few folders below). Set one up with \`npx motion-director init\` in the folder that will hold the films, or set MD_ROOT.` };
   const out = join(root, 'out');
   if (name === 'project') {
@@ -85,6 +96,11 @@ export function callTool(root, name, args = {}) {
       if (queued.length) setStatus(out, film, queued, 'sent'); // with the agent now
     }
     return { text: formatBatch(open, 'resolve_comments with the ids, or `motion-director comments resolve`') };
+  }
+  if (name === 'set_status') {
+    if (args.done) { clearAgentStatus(out); return { text: 'Status cleared.' }; }
+    const s = setAgentStatus(out, { text: args.text, film: args.film, about: args.about, by: state?.agent || null });
+    return { text: `Status: ${s.text}` };
   }
   if (name === 'resolve_comments') {
     const ids = Array.isArray(args.ids) ? args.ids.map(String) : [];
@@ -117,6 +133,7 @@ export function handle(msg, state) {
     case 'initialize': {
       const asked = msg.params?.protocolVersion;
       recordAgent(state.root, msg.params?.clientInfo);
+      state.agent = agentName(msg.params?.clientInfo?.name);
       return reply({
         protocolVersion: PROTOCOLS.includes(asked) ? asked : PROTOCOLS[0],
         capabilities: { tools: { listChanged: false } },
@@ -130,7 +147,7 @@ export function handle(msg, state) {
       const { name, arguments: args } = msg.params || {};
       if (!TOOLS.some((t) => t.name === name)) return fail(-32602, `Unknown tool ${name}`);
       try {
-        const r = callTool(state.root, name, args);
+        const r = callTool(state.root, name, args, state);
         return reply({ content: [{ type: 'text', text: r.text }], isError: !!r.isError });
       } catch (err) { return reply({ content: [{ type: 'text', text: `Failed: ${err.message}` }], isError: true }); }
     }
