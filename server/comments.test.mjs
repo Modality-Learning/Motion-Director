@@ -133,3 +133,19 @@ test('a pin on the vibe board: the board, the pin by its id, and what it is', ()
   assert.match(note, /^About: the vibe board's image pin "Faint grid paper behind everything\." \(Look\)$/m);
   assert.match(note, /^Comment: Less of this\.$/m);
 });
+
+test('a comment on the music brief names the brief, the part, and what it says now', () => {
+  const brief = { bpm: 101, sections: [{ name: 'Synced', at: 21.21, note: 'the lift: full but light', drop: true }], prompt: { style: 'Instrumental, light playful electronic pop, 101 BPM' } };
+  const at = { film: FILMS[0].name, view: 'edit', frame: null, t: 21.21, text: 'More of a tight minimalist funk feel here' };
+  const section = formatComment(validateComment({ ...at, target: { music: { part: 'section', section: 'Synced' } } }, FILMS).comment, FILMS[0], 'promo', { brief });
+  assert.match(section, /^Music: promo\/films\/[a-z-]+\/music\.json \(section "Synced"\)$/m);
+  assert.match(section, /^About: the music brief's section "Synced" at 0:21\.2: "the lift: full but light"$/m);
+  assert.match(section, /^Comment: More of a tight minimalist funk feel here$/m);
+  const prompt = formatComment(validateComment({ ...at, target: { music: { part: 'prompt' } } }, FILMS).comment, FILMS[0], 'promo', { brief });
+  assert.match(prompt, /^About: the music brief's prompt: "Instrumental, light playful electronic pop, 101 BPM"$/m);
+  const whole = formatComment(validateComment({ ...at, target: { music: { part: 'brief' } } }, FILMS).comment, FILMS[0], 'promo', { brief });
+  assert.match(whole, /^Music: promo\/films\/[a-z-]+\/music\.json$/m);
+  assert.match(whole, /^About: the music brief \(101 BPM, 1 section\)$/m);
+  assert.equal(validateComment({ ...at, target: { music: { part: 'section' } } }, FILMS).error, 'Bad target');
+  assert.equal(validateComment({ ...at, target: { music: { part: 'lyrics' } } }, FILMS).error, 'Bad target');
+});

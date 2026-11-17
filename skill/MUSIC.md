@@ -76,6 +76,22 @@ into the chat unless asked.
 Before the user puts a generated track in a film for a client or product, mention that the right to use it
 commercially depends on their plan with the generator.
 
+## Comments on the brief
+
+The user comments on the brief in the studio: a section (its marker on the music lane, or the comment button
+beside it in the Brief), the prompt, or the whole brief. The note's `Music:` line names `music.json` and the part,
+and `About:` quotes what it says now. Amend the brief, then:
+
+- **A change of direction** ("more of a Vulfpeck feel", "darker", "no drums"): rewrite the style in your own
+  words: what makes that sound (the instruments, the drums, the bass, the mix, the feel), never the names. Keep
+  the tempo if it suits the new direction; if it doesn't, choose again from `motion-director music <film>`, and
+  move the sections onto the new bar lines.
+- **A section** ("lift later", "quieter here"): change that section's note, its drop, or its time (onto another
+  bar line), then rewrite the structure so the bars still add up to the length.
+- Keep `length` the film's. Say in a line what changed and whether the user needs to generate the music again
+  (a new direction or structure does; a note about the mix may not), and that the Brief has the new prompt to
+  copy. Mark the comment resolved.
+
 ## 4. Lining it up
 
 The user adds the generated track to the sound library and drops it on the music lane (or a sound the library

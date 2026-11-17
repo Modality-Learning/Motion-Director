@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { secs } from '@/lib/format';
-import { copy } from '@/features/comments/comments';
+import { copy, openMusicBox, type MusicPart } from '@/features/comments/comments';
+import { cn } from '@/lib/utils';
 import { lineUpMusic, useEdit } from './store';
 import type { Brief } from './types';
 
@@ -43,7 +44,10 @@ export function MusicBrief() {
         {brief ? (
           <>
             <div className="grid gap-0.5">
-              <p className="text-sm font-semibold">The music brief</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold">The music brief</p>
+                <CommentOn part={{ part: 'brief' }} t={0} label="Comment on the whole brief" text="Comment" />
+              </div>
               <p className="text-sm text-muted-foreground">
                 {brief.bpm} BPM in {brief.beatsPerBar}/4{brief.offset ? `, first downbeat at ${secs(brief.offset)}` : ''}{brief.ending ? `, a ${brief.ending} ending` : ''}{brief.length ? `, ${clockOf(brief.length)} long` : ''}
               </p>
@@ -51,9 +55,10 @@ export function MusicBrief() {
             {brief.sections.length ? (
               <ol className="grid gap-1 text-sm">
                 {brief.sections.map((s) => (
-                  <li key={`${s.name}-${s.at}`} className="grid grid-cols-[3.5rem_1fr] gap-2">
+                  <li key={`${s.name}-${s.at}`} className="group/sec grid grid-cols-[3.5rem_1fr_auto] items-start gap-2">
                     <span className="text-muted-foreground tabular-nums">{secs(s.at)}</span>
                     <span><b className="font-semibold">{s.name}</b>{s.drop ? ' (the drop)' : ''}{s.note ? <span className="text-muted-foreground">: {s.note}</span> : null}</span>
+                    <CommentOn part={{ part: 'section', section: s.name }} t={s.at} label={`Comment on ${s.name}`} />
                   </li>
                 ))}
               </ol>
@@ -72,6 +77,18 @@ export function MusicBrief() {
   );
 }
 
+/** A comment on part of the brief, for Claude to amend it: opens the studio's comment box there. Always shown for the
+ * whole brief and the prompt; a section's shows on hover or focus, so the list stays calm. */
+function CommentOn({ part, t, label, text }: { part: MusicPart; t: number; label: string; text?: string }) {
+  return (
+    <Button size="xs" variant="ghost" aria-label={label} title={label}
+      className={cn('text-muted-foreground', !text && 'opacity-0 group-hover/sec:opacity-100 focus-visible:opacity-100')}
+      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); openMusicBox(part, t, r.left, r.bottom + 6); }}>
+      <MessageSquare />{text ?? null}
+    </Button>
+  );
+}
+
 function PromptBlock({ brief }: { brief: Brief }) {
   const [done, setDone] = useState(false);
   const text = promptText(brief);
@@ -82,7 +99,10 @@ function PromptBlock({ brief }: { brief: Brief }) {
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">Prompt</span>
-        <Button size="xs" variant="ghost" onClick={copyIt} aria-label="Copy the prompt">{done ? <Check /> : <Copy />}{done ? 'Copied' : 'Copy'}</Button>
+        <span className="flex items-center gap-1">
+          <CommentOn part={{ part: 'prompt' }} t={0} label="Comment on the prompt" text="Comment" />
+          <Button size="xs" variant="ghost" onClick={copyIt} aria-label="Copy the prompt">{done ? <Check /> : <Copy />}{done ? 'Copied' : 'Copy'}</Button>
+        </span>
       </div>
       <pre className="max-h-56 overflow-auto rounded-md bg-background p-2 text-xs leading-relaxed whitespace-pre-wrap">{text}</pre>
       {brief.length ? <p className="text-xs text-muted-foreground">Ask for {clockOf(brief.length)}: the prompt says so. Generators often make more; Line up ends the music with the film, faded.</p> : null}

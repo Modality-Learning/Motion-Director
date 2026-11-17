@@ -49,3 +49,16 @@ test('a brief that does not check out says why', () => {
   fireEvent.click(screen.getByRole('button', { name: 'The music brief' }));
   expect(screen.getByText(/music.json doesn't check out: bpm must be between 40 and 240/)).toBeInTheDocument();
 });
+
+test('the brief takes comments: on a section, on the prompt and on the whole of it, each opening the comment box', async () => {
+  const { useComments } = await import('@/features/comments/comments');
+  seed(brief);
+  render(<MusicBrief />);
+  fireEvent.click(screen.getByRole('button', { name: 'The music brief' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Comment on The lift' }));
+  expect(useComments.getState()).toMatchObject({ open: true, title: 'The lift · Music', pending: { view: 'edit', t: 31.44, target: { music: { part: 'section', section: 'The lift' } } } });
+  fireEvent.click(screen.getByRole('button', { name: 'Comment on the prompt' }));
+  expect(useComments.getState()).toMatchObject({ title: 'The prompt · Music', pending: { target: { music: { part: 'prompt' } } } });
+  fireEvent.click(screen.getByRole('button', { name: 'Comment on the whole brief' }));
+  expect(useComments.getState()).toMatchObject({ title: 'The music brief', pending: { target: { music: { part: 'brief' } } } });
+});

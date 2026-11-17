@@ -9,6 +9,8 @@ const str = (v, max) => (typeof v === 'string' && v.length <= max ? v : null);
 
 /** Checks a comment sent by the studio page. Returns { comment } or { error }. */
 const ITEM_KINDS = ['clip', 'object', 'track', 'beat', 'timeline'];
+/* the music brief (films/<film>/music.json): all of it, one of its sections, its prompt, or the music at a time */
+const MUSIC_PARTS = ['brief', 'section', 'prompt', 'lane'];
 export function validateComment(body, films) {
   const film = films.find((f) => f.name === body?.film);
   if (!film) return { error: 'Unknown film' };
@@ -24,7 +26,11 @@ export function validateComment(body, films) {
   // the target is an element with parameters, any other element (preview), or nothing (the frame or video)
   const tg = body.target;
   let target = null;
-  if (tg != null && tg.pin != null) {
+  if (tg != null && tg.music != null) {
+    const m = tg.music;
+    target = { music: { part: MUSIC_PARTS.includes(m.part) ? m.part : null, section: m.section == null ? null : str(m.section, 40) } };
+    if (!target.music.part || (target.music.part === 'section') !== !!target.music.section) return { error: 'Bad target' };
+  } else if (tg != null && tg.pin != null) {
     // a pin on the vibe board, by its id
     target = { pin: { id: str(tg.pin.id, 40) } };
     if (!target.pin.id) return { error: 'Bad target' };
@@ -51,7 +57,7 @@ export function validateComment(body, films) {
 /** The comment as a note to paste into a chat with an agent. base is the project's folder from the top of its
  * repository ('' when the project is the repository); treatment is the film's treatment file (TREATMENT.md, or an
  * older BRIEF.md), and vibe its board, to name a pin. */
-export function formatComment(c, film, base = '', { treatment = 'TREATMENT.md', vibe = null } = {}) {
+export function formatComment(c, film, base = '', { treatment = 'TREATMENT.md', vibe = null, brief = null } = {}) {
   const time = `${Math.floor(c.t / 60)}:${(c.t % 60).toFixed(1).padStart(4, '0')}`;
   const tg = c.target, current = tg?.value ? `, currently "${tg.value.replace(/\n/g, ' / ')}"` : '';
   const dir = `${base ? `${base}/` : ''}films/${film.name}`;
@@ -59,6 +65,17 @@ export function formatComment(c, film, base = '', { treatment = 'TREATMENT.md', 
     const q = tg.quote, plain = (s) => s.replace(/\*\*|__|`|(?<![\w*])[*_]|[*_](?![\w*])/g, '');
     const where = q.beat ? `the beat at ${q.beat.time}${q.beat.title ? ` ("${plain(q.beat.title)}")` : ''}` : q.section ? `the treatment's "${plain(q.section)}"` : 'the treatment';
     return [`Motion Director comment on "${film.title}"`, `Treatment: ${dir}/${treatment}`, `Film: ${dir}/index.html`, `About: ${where}: "${q.text}"`, `Comment: ${c.text}`].join('\n');
+  }
+  if (tg?.music) {
+    // the music brief: which part, what it says now, so the agent amends the brief (skill/MUSIC.md)
+    const m = tg.music, sec = m.section ? brief?.sections?.find((s) => s.name === m.section) : null;
+    const secAt = sec ? `${Math.floor(sec.at / 60)}:${(sec.at % 60).toFixed(1).padStart(4, '0')}` : null;
+    const where = m.part === 'section' ? ` (section "${m.section}")` : m.part === 'prompt' ? ' (prompt)' : '';
+    const about = m.part === 'section' ? `the music brief's section "${m.section}"${secAt ? ` at ${secAt}` : ''}${sec?.note ? `: "${sec.note}"` : ''}`
+      : m.part === 'prompt' ? `the music brief's prompt${brief?.prompt?.style ? `: "${brief.prompt.style.length > 120 ? `${brief.prompt.style.slice(0, 120)}…` : brief.prompt.style}"` : ''}`
+      : m.part === 'lane' ? `the music at ${time}`
+      : `the music brief${brief ? ` (${brief.bpm} BPM, ${brief.sections?.length ?? 0} section${brief.sections?.length === 1 ? '' : 's'})` : ''}`;
+    return [`Motion Director comment on "${film.title}"`, `Music: ${dir}/music.json${where}`, `About: ${about}`, `Comment: ${c.text}`].join('\n');
   }
   if (tg?.pin) {
     const pin = vibe?.pins?.find((x) => x.id === tg.pin.id), what = pin ? (pin.title || pin.font || pin.take || pin.url || pin.src || pin.sound || '') : '';

@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { clock, secs } from '@/lib/format';
 import { local, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { openItemBox, useComments, type TimelineItem } from '@/features/comments/comments';
+import { openItemBox, openMusicBox, useComments, type MusicPart, type TimelineItem } from '@/features/comments/comments';
 import { SETTINGS, barTimes, effective, overrides } from './kit';
 import { MusicBrief } from './MusicBrief';
 import { FRAME, GUT, MINI, PAD, TRK, clamp, dB, dragModeAt, dragTo, freeze, gainY, laneOf, layerRows, nameOf, ppsFor, readout, round, shortName, ticks, trackCount, xAt, type DragStart } from './geometry';
@@ -370,7 +370,7 @@ function MusicRows({ axis }: { axis: Axis }) {
   };
   return (
     <>
-      <Row height={MINI} className="music-lane bg-(--music)/[.05]" {...dropOn} name={
+      <Row height={MINI} data-music-lane="" className="music-lane bg-(--music)/[.05]" {...dropOn} name={
         <>
           <button type="button" aria-expanded={open} title={open ? 'Show the music as one row' : 'Show each music track'} onClick={twirl}
             className="inline-flex cursor-pointer items-center gap-1.5 text-xs leading-none font-semibold text-foreground">
@@ -380,7 +380,7 @@ function MusicRows({ axis }: { axis: Axis }) {
         </>
       }>
         {sections.map((s) => (
-          <span key={`${s.name}-${s.at}`} title={`${s.name}${s.drop ? ' (the drop)' : ''} at ${secs(s.at)}${s.note ? `: ${s.note}` : ''}`}
+          <span key={`${s.name}-${s.at}`} data-music-section={s.name} title={`${s.name}${s.drop ? ' (the drop)' : ''} at ${secs(s.at)}${s.note ? `: ${s.note}` : ''}`}
             className="pointer-events-auto absolute top-0 z-[2] h-full border-l border-(--music)/70" style={{ left: xAt(s.at, k) }}>
             <span className="absolute top-0.5 left-1 text-[10px] leading-none font-semibold whitespace-nowrap text-(--music)">{s.drop ? '◆ ' : ''}{s.name}</span>
           </span>
@@ -388,7 +388,7 @@ function MusicRows({ axis }: { axis: Axis }) {
         {open ? null : cues.map((c) => <MusicMini key={c.id} c={c} k={k} on={sel === c.id} />)}
       </Row>
       {open ? (
-        <div className="music-lane relative">
+        <div data-music-lane="" className="music-lane relative">
           {brief ? barTimes(brief, duration).map((t) => <i key={t} className="pointer-events-none absolute top-0 bottom-0 z-0 border-l border-(--music)/15" style={{ left: xAt(t, k) }} />) : null}
           <Lane axis={axis} cues={cues} rows={rows} className="bg-(--music)/[.03]" rowClass="border-b-(--music)/15"
             clipClass="border-(--music)/70 bg-(--music)/15 data-[on]:bg-(--music)/30 data-[on]:shadow-[0_0_0_1px_var(--music)]"
@@ -570,7 +570,7 @@ function useTimelineComments(inRef: React.RefObject<HTMLDivElement | null>, tAt:
     tl.classList.add('tl-commenting');
     let hover: Element | null = null, frozen = false;
     const mark = (n: Element | null) => { if (hover === n) return; hover?.classList.remove('c-hover'); hover = n; n?.classList.add('c-hover'); };
-    const itemAt = (el: Element, x: number): { node: Element | null; t: number; item: TimelineItem } | null => {
+    const itemAt = (el: Element, x: number): { node: Element | null; t: number; item?: TimelineItem; music?: MusicPart } | null => {
       const { duration, sheet, beats, focus } = useEdit.getState(), t = round(clamp(tRef.current(x), 0, duration), 2);
       // the ruler (and its corner: play, the time, the keys) keeps working, so you can scrub while commenting
       if (el.closest('.tl-ruler')) return null;
@@ -579,6 +579,11 @@ function useTimelineComments(inRef: React.RefObject<HTMLDivElement | null>, tAt:
         const ob = c.object && sheet.objects?.[c.object];
         return { node: clip, t: round(cueStart(c), 2), item: { kind: 'clip', label: shortName(c.sound), detail: ob ? `on ${ob.label}` : `Track ${(c.track ?? 0) + 1}`, id: c.id } };
       }
+      // the music lane: a section of the brief by its marker, the brief from the lane's name column, or the music at a time
+      const sec = el.closest<HTMLElement>('[data-music-section]'), s = sec ? useEdit.getState().brief?.sections.find((x) => x.name === sec.dataset.musicSection) : undefined;
+      if (sec && s) return { node: sec, t: s.at, music: { part: 'section', section: s.name } };
+      const lane = el.closest('[data-music-lane]');
+      if (lane) return el.closest('[data-gut]') ? { node: lane, t, music: { part: 'brief' } } : { node: lane, t, music: { part: 'lane' } };
       const beat = el.closest<HTMLElement>('[data-beat]'), b = beat ? beats[+beat.dataset.beat!] : undefined;
       if (beat && b) return { node: beat, t: b.t, item: { kind: 'beat', label: b.name, detail: b.note ? b.note.slice(0, 200) : undefined } };
       const graph = el.closest('[data-graph]');
@@ -593,7 +598,8 @@ function useTimelineComments(inRef: React.RefObject<HTMLDivElement | null>, tAt:
       const hit = itemAt(e.target as Element, e.clientX); if (!hit) return;
       e.preventDefault(); e.stopPropagation();
       mark(hit.node); frozen = true;
-      openItemBox(hit.item, hit.t, e.clientX, e.clientY);
+      if (hit.music) openMusicBox(hit.music, hit.t, e.clientX, e.clientY);
+      else if (hit.item) openItemBox(hit.item, hit.t, e.clientX, e.clientY);
     };
     const click = (e: MouseEvent) => { if (!(e.target as Element).closest('.tl-ruler')) { e.preventDefault(); e.stopPropagation(); } };
     const dbl = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); };

@@ -91,6 +91,15 @@ export function openPinBox(pin: { id: string; kind: string; label: string }, x: 
   showBox(x, y, `${short || pin.kind} · Vibe`, { view: 'vibe', frame: null, t: 0, target: { pin: { id: pin.id } } });
 }
 
+/** A part of a film's music brief a comment is about: all of it, a section by name, its prompt, or the music at a time. */
+export interface MusicPart { part: 'brief' | 'section' | 'prompt' | 'lane'; section?: string }
+/** A comment on the music brief: from the music lane in comment mode, or from a comment button in the brief itself
+ * (which works without comment mode, so a note on the prompt is one click from reading it). */
+export function openMusicBox(m: MusicPart, t: number, x: number, y: number) {
+  const title = m.part === 'section' ? `${m.section} · Music` : m.part === 'prompt' ? 'The prompt · Music' : m.part === 'lane' ? `The music · ${fmtT(t)}` : 'The music brief';
+  showBox(x, y, title, { view: 'edit', frame: null, t, target: { music: { part: m.part, ...(m.section ? { section: m.section } : {}) } } });
+}
+
 /** A comment on something on the Edit tab's timeline. */
 export function openItemBox(item: TimelineItem, t: number, x: number, y: number) {
   if (!useStudio.getState().commentMode) return;

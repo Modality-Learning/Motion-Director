@@ -21,6 +21,9 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
   ending at 0:35", and an [End] tag), and `motion-director music` prints a structure whose bars add up to the
   film. Generators still overshoot, so lining up now ends a longer track with the film, faded out to suit the
   ending, and says when a track is too short.
+- **Comment on the brief.** Each section, the prompt and the whole brief have a comment button in the Brief, and
+  in comment mode the music lane's section markers take comments too. Claude amends the brief from them: a new
+  direction in its own words (generators refuse band names), the sections and bars kept in step.
 
 ## 0.2.0 (2026-11-17)
 

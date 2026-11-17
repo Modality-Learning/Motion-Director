@@ -326,7 +326,7 @@ async function api(req, res, url) {
     const v = validateComment(body, films);
     if (v.error) return json(res, 400, v);
     const film = films.find((f) => f.name === v.comment.film);
-    const note = formatComment(v.comment, film, BASE, { treatment: treatmentFile(join(PROMO, 'films', film.name)) || 'TREATMENT.md', vibe: readVibe(join(PROMO, 'films', film.name)).vibe });
+    const note = formatComment(v.comment, film, BASE, { treatment: treatmentFile(join(PROMO, 'films', film.name)) || 'TREATMENT.md', vibe: readVibe(join(PROMO, 'films', film.name)).vibe, brief: readBrief(PROMO, film.name).brief ?? null });
     const c = addComment(OUT, v.comment, note);
     if (body.mode === 'queue') return json(res, 200, { id: c.id, status: 'queued', queued: readComments(OUT, film.name).filter((x) => x.status === 'queued').length });
     return json(res, 200, { id: c.id, ...(await sendQueued(film.name)) });

@@ -6,7 +6,7 @@ export interface Axis { k: number; tAt: (clientX: number) => number; duration: n
 
 /** The name column: it stays on the left when the timeline scrolls sideways. */
 export function Gut({ className, children, ...rest }: { className?: string; children?: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={cn('sticky left-0 z-[3] flex h-full w-[148px] flex-none items-center gap-1.5 overflow-hidden border-r bg-card px-2.5 text-xs whitespace-nowrap text-muted-foreground', className)}>{children}</div>;
+  return <div data-gut="" {...rest} className={cn('sticky left-0 z-[3] flex h-full w-[148px] flex-none items-center gap-1.5 overflow-hidden border-r bg-card px-2.5 text-xs whitespace-nowrap text-muted-foreground', className)}>{children}</div>;
 }
 /** A row: its name in the column on the left, its content across the time axis. */
 export function Row({ className, height, name, gutClass, children, ...rest }: { className?: string; height: number; name: React.ReactNode; gutClass?: string; children?: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {

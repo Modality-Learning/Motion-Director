@@ -365,6 +365,7 @@ Every note has the same shape, so you never have to guess what it is about:
 Motion Director comment on "<film title>"   (older notes: "Promo studio comment on")
 Treatment: …/TREATMENT.md                 only for text quoted from the treatment
 Vibe: …/vibe.json (pin "palette")         only for a pin on the vibe board
+Music: …/music.json (section "Synced")      only for the music brief: a section, (prompt), or the whole brief
 Film: films/<film>/index.html              the file to change (paths are from the top of the repository)
 Sounds: …/sound.json (cue "flap-3")        only for the timeline: where the clip lives, and its id
 Beats: the KEYS list in …/index.html       only for a beat
@@ -387,6 +388,7 @@ Comment: <what the user wants>
 | Text in the treatment | `the treatment's "Visual direction": "one continuous canvas"` | The treatment first (`TREATMENT.md`): change the words, then whatever in the film they describe; say if the film already differs |
 | Text beside a storyboard frame | `the beat at 9.4–16.2 s ("Give precise edits."): "the picker hops…"` | That beat in the treatment and in the film: its row in the beats table, and the motion in that time range |
 | A pin on the vibe board | `the vibe board's colour pin "Cream and ink, nothing louder." (Look)` | That pin in `vibe.json` (its take, or whether it stays), then the treatment's Visual direction and the film where they follow it |
+| The music brief | `the music brief's section "Synced" at 0:21.2: "the lift…"`, `the music brief's prompt: "…"`, `the music brief (101 BPM, 7 sections)` or `the music at 0:12.0` | `music.json`, following [music for a film](MUSIC.md): amend it, keeping the tempo, sections, bars and length in step, and say what to generate again |
 
 Then:
 
