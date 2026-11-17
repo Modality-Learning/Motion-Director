@@ -215,7 +215,7 @@
 /* the pointer: an arrow, or comment mode's speech bubble whose point is the click point */
 #cursor { position: absolute; left: 0; top: 0; width: 34px; height: 34px; z-index: 20; }
 #cursor svg { position: absolute; left: 0; top: 0; width: 34px; height: 34px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.3)); }
-.ripple { position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 3px solid #ececee; z-index: 19; }
+.ripple { position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 3px solid #FFFFFF; background: rgba(255,255,255,.16); box-shadow: 0 0 0 1.5px rgba(17,17,19,.45), inset 0 0 0 1.5px rgba(17,17,19,.45); z-index: 19; }
 .keycap { position: absolute; left: 0; top: 0; padding: 8px 14px; border-radius: 10px; background: #1C1F24; color: #FAF9F5; font: 600 22px/1 var(--font-ui); box-shadow: 0 10px 24px -8px rgba(0,0,0,.5); z-index: 21; }
 </style>
 </head>
@@ -227,8 +227,8 @@
       <div id="studio"></div>
       <div id="chat"></div>
       <div id="file"><div class="shot"><i></i><b></b><u></u></div><div style="margin-top:8px">soft-shadow.png</div></div>
-      <div class="ripple" id="ripple"></div>
-      <div id="cursor"><svg class="arr" viewBox="0 0 24 24"><path d="M4 2.5l15.5 9.2-6.6 1.6 3.8 7.1-3 1.6-3.8-7.2-4.9 4.6z" fill="#FFFFFF" stroke="#111113" stroke-width="1.4" stroke-linejoin="round"/></svg><svg class="bub" viewBox="0 0 28 28"><path d="M3 25V14a11 11 0 1 1 11 11Z" fill="#ececee" stroke="#111113" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      <div class="ripple" id="ripple"></div><div class="ripple" id="ripple2"></div>
+      <div id="cursor"><svg class="arr" viewBox="0 0 24 24"><path d="M5 2v16.5l4-3.8 2.8 6.3 2.5-1.1-2.7-6.1H17z" fill="#FFFFFF" stroke="#111113" stroke-width="1.3" stroke-linejoin="round"/></svg><svg class="bub" viewBox="0 0 28 28"><path d="M3 25V14a11 11 0 1 1 11 11Z" fill="#ececee" stroke="#111113" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
       <div class="keycap" id="keycap">⌘V</div>
     </div>
     <div id="final"></div>
@@ -564,10 +564,21 @@ CUR.push([B.exportTab, tabC(3).x, tabC(3).y], [B.l5.type[0] - .1, COMPOSER.x, CO
 CLICKS.push(B.exportTab, B.l5.type[0] - .05, B.l5.send, B.render, B.openBtn);
 CUR.sort((a, b) => a[0] - b[0]);
 const HELD = [[B.grab, B.drop], [B.grabRow, B.clipDrop]];
+/* A move takes as long as its distance needs, a hop quicker than a sweep across the screen, and lands on its
+ * waypoint's time; until it starts, the pointer rests where it is, as a hand does between actions. It sets off
+ * smoothly and decelerates into the target. A drag carries something, so it goes a touch slower. */
+const SNAP = (p) => 1 - Math.pow(1 - Math.pow(p, 1.35), 4);
+const moveDur = (d, held) => (held ? clamp(.45 + d / 1600, .45, 1.1) : clamp(.26 + d / 2400, .26, .7));
 function cursorAt(t) {
   let i = 0; while (i < CUR.length - 1 && t >= CUR[i + 1][0]) i++;
-  const a = CUR[i], b = CUR[i + 1] || a, p = b === a ? 0 : P(t, a[0], b[0]);
-  const dx = b[1] - a[1], dy = b[2] - a[2], arc = Math.sin(Math.PI * p) * .08;
+  const a = CUR[i], b = CUR[i + 1] || a;
+  if (b === a) return { x: a[1], y: a[2] };
+  const dx = b[1] - a[1], dy = b[2] - a[2], d = Math.hypot(dx, dy);
+  const held = HELD.some(([s0, z]) => a[0] >= s0 - .01 && b[0] <= z + .01);
+  // a click (or a release) gets a beat of stillness before the hand moves on
+  let start = Math.max(a[0], b[0] - moveDur(d, held));
+  for (const ck of CLICKS) if (ck <= start && start < ck + .18) start = Math.min(ck + .18, b[0] - .22);
+  const p = P(t, start, b[0], held ? E.io : SNAP), arc = Math.sin(Math.PI * p) * .05;
   return { x: lerp(a[1], b[1], p) - dy * arc, y: lerp(a[2], b[2], p) + dx * arc };
 }
 // comment mode is on from the Comment button's press until the note is sent
@@ -635,7 +646,7 @@ const KEYS = [
 ];
 const SCENES = [['Opening', 0], ['Vibe', B.s1.in], ['Treatment', B.s2.in], ['Agent makes it', B.sM.in], ['Edit', B.s3.in], ['Sync', B.s4.in], ['Export', B.s5.in], ['Ending', B.close.in]];
 
-const veil = $('#veil'), world = $('#world'), curEl = $('#cursor'), ripple = $('#ripple'), keycap = $('#keycap'), fileEl = $('#file'), finalEl = $('#final');
+const veil = $('#veil'), world = $('#world'), curEl = $('#cursor'), ripple = $('#ripple'), ripple2 = $('#ripple2'), keycap = $('#keycap'), fileEl = $('#file'), finalEl = $('#final');
 const typed = (s, t, a, b) => s.slice(0, Math.round(s.length * clamp((t - a) / (b - a))));
 function render(t) { draw(HOLD ? keyAt(KEYS, t).key.t : t); }
 function draw(t) {
@@ -665,13 +676,14 @@ function draw(t) {
   op(curEl, curO);
   const bub = commenting(t);
   curEl.querySelector('.arr').style.display = bub ? 'none' : ''; curEl.querySelector('.bub').style.display = bub ? '' : 'none';
-  let press = 0, rip = null;
-  for (const ck of CLICKS) { if (t >= ck && t < ck + .18) press = Math.sin(Math.PI * (t - ck) / .18); if (t >= ck && t < ck + .5) rip = (t - ck) / .5; }
+  let press = 0, rip = null, rip2 = null;
+  for (const ck of CLICKS) { if (t >= ck && t < ck + .18) press = Math.sin(Math.PI * (t - ck) / .18); if (t >= ck && t < ck + .45) rip = (t - ck) / .45; if (t >= ck + .1 && t < ck + .6) rip2 = (t - ck - .1) / .5; }
   for (const [a, z] of HELD) if (t >= a && t < z) press = Math.max(press, Math.min(1, (t - a) / .08) * .7);
   const k = 1 / s;
-  curEl.style.transformOrigin = bub ? '3.6px 30.4px' : '5.5px 3px';
-  curEl.style.transform = bub ? `translate(${cu.x - 3.6}px,${cu.y - 30.4}px) scale(${k * (1 - press * .14)})` : `translate(${cu.x - 5.5}px,${cu.y - 3}px) scale(${k * (1 - press * .14)})`;
-  if (rip !== null && curO > 0) { op(ripple, .5 * (1 - rip)); tr(ripple, cu.x, cu.y, lerp(.3, 1.4, rip) * k); } else op(ripple, 0);
+  curEl.style.transformOrigin = bub ? '3.6px 30.4px' : '7.1px 2.8px';
+  curEl.style.transform = bub ? `translate(${cu.x - 3.6}px,${cu.y - 30.4}px) scale(${k * (1 - press * .14)})` : `translate(${cu.x - 7.1}px,${cu.y - 2.8}px) scale(${k * (1 - press * .14)})`;
+  if (rip !== null && curO > 0) { op(ripple, .95 * (1 - E.in(rip))); tr(ripple, cu.x, cu.y, lerp(.25, 1.2, E.out(rip)) * k); } else op(ripple, 0);
+  if (rip2 !== null && curO > 0) { op(ripple2, .55 * (1 - rip2)); tr(ripple2, cu.x, cu.y, lerp(.4, 1.7, E.out(rip2)) * k); } else op(ripple2, 0);
   op(keycap, 0);
 
   /* the finished film grows out of the renders list to fill the frame */
