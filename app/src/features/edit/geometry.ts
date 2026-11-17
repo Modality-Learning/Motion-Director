@@ -41,22 +41,25 @@ export function freeze(c: Cue, moments: Moment[]) {
 /** How long a clip plays, given its file's length (half a second until the file is known). */
 export const lenOf = (c: Cue, lib: Library, fileLen: number | null) => (fileLen ? playLength(effective(c, lib), fileLen) : 0.5);
 
+/** The lane a clip is on: the music lane, an object's, or your own tracks (null). Tracks are numbered within it. */
+export const MUSIC = '#music';
+export const laneOf = (c: Cue) => (c.music ? MUSIC : c.object ?? null);
 /* your own tracks: how many there are is saved with the film's sounds, so adding and removing are undoable */
-export const usedTracks = (sheet: Sheet) => sheet.cues.filter((c) => !c.object).reduce((m, c) => Math.max(m, c.track ?? 0), -1) + 1;
+export const usedTracks = (sheet: Sheet) => sheet.cues.filter((c) => laneOf(c) === null).reduce((m, c) => Math.max(m, c.track ?? 0), -1) + 1;
 export const trackCount = (sheet: Sheet) => clamp(Math.max(usedTracks(sheet), sheet.tracks ?? Math.max(2, usedTracks(sheet) + 1)), 1, 16);
 /** Removes track i and the sounds on it; the tracks below move up. */
 export function removeTrack(sheet: Sheet, i: number) {
   const n = trackCount(sheet);
-  sheet.cues = sheet.cues.filter((c) => c.object || (c.track ?? 0) !== i);
-  for (const c of sheet.cues) if (!c.object && (c.track ?? 0) > i) c.track = (c.track ?? 0) - 1;
+  sheet.cues = sheet.cues.filter((c) => laneOf(c) !== null || (c.track ?? 0) !== i);
+  for (const c of sheet.cues) if (laneOf(c) === null && (c.track ?? 0) > i) c.track = (c.track ?? 0) - 1;
   sheet.tracks = Math.max(1, n - 1);
 }
 /** An object's layer: a row per track its clips use, and one to spare for dropping when it's open. */
 export const layerRows = (cues: Cue[], open: boolean) => Math.max(1, cues.reduce((m, c) => Math.max(m, c.track ?? 0), -1) + 1 + (open ? 1 : 0));
 
-/** The first track (in a lane: an object's, or your own with null) free from `at` for `len` seconds. */
+/** The first track (in a lane: the music lane, an object's, or your own with null) free from `at` for `len` seconds. */
 export function freeTrack(sheet: Sheet, lane: string | null, at: number, len: number, lenOfCue: (c: Cue) => number, moments: Moment[]) {
-  const busy = (tr: number) => sheet.cues.some((c) => (c.object ?? null) === lane && (c.track ?? 0) === tr && startOf(c, moments) < at + len && startOf(c, moments) + lenOfCue(c) > at);
+  const busy = (tr: number) => sheet.cues.some((c) => laneOf(c) === lane && (c.track ?? 0) === tr && startOf(c, moments) < at + len && startOf(c, moments) + lenOfCue(c) > at);
   let track = 0;
   while (track < 15 && busy(track)) track++;
   return track;

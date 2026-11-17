@@ -12,6 +12,8 @@
  * Objects: a cue can belong to an element of the film (an "object"), named in sheet.objects:
  *   "objects": { "o1": { "label": "Study timer", "selector": "#timer" } }
  *   cue: { "at": 11.3, "object": "o1", "anchor": { "kind": "stop", "n": 0, "t": 11.76 } }
+ * Music: a cue with "music": true is the soundtrack. It plays like any cue; the studio keeps it on its own lane
+ * (tracks numbered within that lane), and films/<film>/music.json holds the brief it was made from (kit/music.mjs).
  * The anchor is the object's event the cue sits nearest (its nth arrival, fastest moment, stop or exit, as the
  * studio measured it). When the studio measures the object again and that event has moved, the cue moves by
  * the same amount. The cue's own time (at) is what plays and renders.
@@ -82,12 +84,14 @@ export function validateSheet(sheet) {
     const s = cleanSettings(Object.fromEntries(Object.keys(SETTINGS).filter((k) => k in c).map((k) => [k, c[k]])));
     if (s.error) return { error: `Cue ${c.id}: ${s.error}` };
     if (c.mute !== undefined && typeof c.mute !== 'boolean') return { error: `Cue ${c.id}: bad mute` };
+    if (c.music !== undefined && typeof c.music !== 'boolean') return { error: `Cue ${c.id}: bad music` };
+    if (c.music && c.object !== undefined) return { error: `Cue ${c.id}: music doesn't belong to an object` };
     // belonging to an object: one the sheet names, and the event it sits nearest
     if (c.object !== undefined && !o.objects[c.object]) return { error: `Cue ${c.id}: unknown object` };
     const anchor = c.object === undefined || c.anchor === undefined ? null : cleanAnchor(c.anchor);
     if (anchor && anchor.error) return { error: `Cue ${c.id}: ${anchor.error}` };
     seen.add(c.id);
-    cues.push({ id: c.id, sound: c.sound, ...(free ? { at: c.at } : { moment: c.moment, offset }), track, ...(c.mute ? { mute: true } : {}),
+    cues.push({ id: c.id, sound: c.sound, ...(free ? { at: c.at } : { moment: c.moment, offset }), track, ...(c.mute ? { mute: true } : {}), ...(c.music ? { music: true } : {}),
       ...(c.object !== undefined ? { object: c.object } : {}), ...(anchor ? { anchor } : {}), ...s.values });
   }
   // how many of your own tracks the timeline shows (optional; never fewer than the clips need)

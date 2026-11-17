@@ -25,10 +25,19 @@ export interface Cue extends Partial<Settings> {
   offset?: number;
   track?: number;
   mute?: boolean;
+  /** the soundtrack: shown on the music lane, its track numbered within that lane */
+  music?: boolean;
   object?: string;
   anchor?: Anchor;
 }
 export interface SheetObject { label: string; selector: string }
+/** A film's music brief (films/<film>/music.json; kit/music.mjs checks it). */
+export interface BriefSection { name: string; at: number; note?: string; drop?: boolean }
+export interface Brief {
+  bpm: number; beatsPerBar: number; offset: number; sections: BriefSection[];
+  ending?: 'button' | 'fade' | 'ring'; length?: number;
+  prompt?: { style?: string; structure?: string; notes?: string };
+}
 export interface Sheet { master: number; tracks?: number; objects?: Record<string, SheetObject>; cues: Cue[] }
 
 export interface LibEntry extends Partial<Settings> { family?: string; tags?: string[]; uses?: string[]; description?: string; /** the day Claude organised it, YYYY-MM-DD */ organised?: string }

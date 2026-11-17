@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS } from './kit';
-import { G, GUT, PAD, TRK, dragModeAt, dragTo, freeTrack, freeze, gainY, layerRows, lenOf, placeAt, ppsFor, readout, removeTrack, startOf, ticks, trackCount, usedTracks, yGain, type DragStart } from './geometry';
+import { G, GUT, MUSIC, PAD, TRK, dragModeAt, dragTo, freeTrack, freeze, gainY, laneOf, layerRows, lenOf, placeAt, ppsFor, readout, removeTrack, startOf, ticks, trackCount, usedTracks, yGain, type DragStart } from './geometry';
 import type { Cue, Sheet } from './types';
 
 const sheet = (cues: Cue[], extra: Partial<Sheet> = {}): Sheet => ({ master: 0, cues, ...extra });
@@ -122,5 +122,27 @@ describe('dragging a clip', () => {
     expect(readout('gain', { ...s0, gain: 3 }, 0, 1)).toBe('+3 dB');
     expect(readout('stretch-r', { ...s0, rate: 1.5 }, 0, 1)).toBe('1.5×');
     expect(readout('move', s0, 1, 2)).toBe('1.00 s · 2.00 s');
+  });
+});
+
+describe('the music lane', () => {
+  const sheet = (): Sheet => ({ master: 0, tracks: 2, cues: [
+    { id: 'a', sound: 'a.wav', at: 0, track: 0 },
+    { id: 'm', sound: 'music.wav', at: 0, track: 3, music: true },
+    { id: 'n', sound: 'music2.wav', at: 10, track: 0, music: true },
+  ] });
+  it('keeps music out of your own tracks: not counted, and not removed with a track', () => {
+    const s = sheet();
+    expect(usedTracks(s)).toBe(1); // music on its track 3 doesn't make four tracks
+    removeTrack(s, 0);
+    expect(s.cues.map((c) => c.id)).toEqual(['m', 'n']);
+  });
+  it('finds a free music track within the music lane, apart from your own tracks', () => {
+    const s = sheet();
+    const len = () => 20;
+    expect(freeTrack(s, MUSIC, 5, 5, len, [])).toBe(0); // music track 0 is free until 10
+    expect(freeTrack(s, MUSIC, 12, 5, len, [])).toBe(1); // and busy from 10
+    expect(freeTrack(s, null, 5, 5, len, [])).toBe(1); // your own track 0 is busy; music doesn't count
+    expect(laneOf(s.cues[1])).toBe(MUSIC);
   });
 });

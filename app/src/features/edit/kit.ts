@@ -1,6 +1,7 @@
 // The kit's sound rules (plain ES modules, shared with the renderer), with the types the Edit tab reads them by.
 import * as sound from '@kit/sound.mjs';
 import * as library from '@kit/sound-library.mjs';
+import * as music from '@kit/music.mjs';
 import type { Analysis, Anchor, Cue, LibEntry, Library, Moment, SettingKey, Settings, Sheet } from './types';
 
 export interface SettingSpec { label: string; unit?: string; min?: number; max?: number; def: unknown; bool?: boolean }
@@ -27,3 +28,5 @@ export const suggestUses = library.suggestUses as (path: string, family?: string
 export const suggestFor = library.suggestFor as (kind: string, sounds: { path: string; family: string; traits: string[]; uses?: string[] }[], n?: number) => string[];
 export const useId = library.useId as (text: string) => string;
 export const useLabel = library.useLabel as (id: string) => string;
+/** The bar lines of a music brief across the film (kit/music.mjs). */
+export const barTimes = music.barTimes as (brief: { bpm: number; beatsPerBar?: number; offset?: number }, duration: number) => number[];

@@ -141,3 +141,13 @@ test('a clip stays where it is when its kind of event is gone or moved too far',
   assert.equal(followEvent(was, [{ kind: 'peak', t: 6 }]), null);
   assert.deepEqual(followEvent(was, [{ kind: 'peak', t: 4 }]), { kind: 'peak', t: 4 });
 });
+
+test('a music cue is kept as music, and music never belongs to an object', () => {
+  const ok = validateSheet({ master: 0, cues: [{ id: 'm1', sound: 'music/groove.wav', at: 0, track: 1, music: true, gain: -14 }] });
+  assert.deepEqual(ok.sheet.cues[0], { id: 'm1', sound: 'music/groove.wav', at: 0, track: 1, music: true, gain: -14 });
+  assert.match(validateSheet({ master: 0, objects: { o1: { label: 'A', selector: '#a' } }, cues: [{ id: 'm1', sound: 'a.wav', at: 0, music: true, object: 'o1' }] }).error, /music doesn't belong to an object/);
+  assert.match(validateSheet({ master: 0, cues: [{ id: 'm1', sound: 'a.wav', at: 0, music: 'yes' }] }).error, /bad music/);
+  // it plays like any other cue
+  const { voices } = resolveVoices(ok.sheet, { sounds: {} }, []);
+  assert.deepEqual(voices.map((v) => [v.cue, v.at, v.gain]), [['m1', 0, -14]]);
+});

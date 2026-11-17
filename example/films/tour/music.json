@@ -1,0 +1,22 @@
+{
+  "bpm": 124,
+  "beatsPerBar": 4,
+  "offset": 0.47,
+  "length": 97,
+  "ending": "button",
+  "sections": [
+    { "name": "Intro", "at": 0.47, "note": "sparse: a pad and a soft pluck under the opening line" },
+    { "name": "Vibe", "at": 6.28, "note": "the beat comes in, light and curious" },
+    { "name": "Treatment", "at": 19.83, "note": "a little fuller as the plan takes shape" },
+    { "name": "Claude makes it", "at": 31.44, "drop": true, "note": "the lift: the fast-forward, full energy" },
+    { "name": "Edit", "at": 43.06, "note": "settle back, keep the groove" },
+    { "name": "Sync", "at": 60.48, "note": "playful, room for the bounce sounds to land on top" },
+    { "name": "Export", "at": 75.96, "note": "build towards the finish" },
+    { "name": "Ending", "at": 91.44, "note": "the finished film: a clean, confident button ending" }
+  ],
+  "prompt": {
+    "style": "Instrumental, upbeat electronic pop, 124 BPM, 4/4, warm analogue synth pads, plucky arpeggios, light four-on-the-floor kick, crisp claps, playful and confident, clean modern mix, no vocals",
+    "structure": "[Instrumental]\n[Intro: 3 bars, pad and soft pluck]\n[Verse: 7 bars, light beat comes in]\n[Pre-Chorus: 6 bars, fuller]\n[Chorus: 6 bars, full energy, the lift]\n[Break: 9 bars, settle back, keep the groove]\n[Verse: 8 bars, playful, leave space]\n[Build: 8 bars, rising]\n[Outro: 3 bars, button ending]\n[End]",
+    "notes": "Ask for about 1:40. Suno won't hit these lengths exactly: drop the track on the music lane and use Line up, which puts its biggest lift on 'Claude makes it' and corrects its tempo."
+  }
+}

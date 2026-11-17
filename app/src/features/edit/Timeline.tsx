@@ -12,16 +12,17 @@ import { clock, secs } from '@/lib/format';
 import { local, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { openItemBox, useComments, type TimelineItem } from '@/features/comments/comments';
-import { SETTINGS, effective, overrides } from './kit';
-import { FRAME, GUT, MINI, PAD, TRK, clamp, dB, dragModeAt, dragTo, freeze, gainY, layerRows, nameOf, ppsFor, readout, round, shortName, ticks, trackCount, xAt, type DragStart } from './geometry';
+import { SETTINGS, barTimes, effective, overrides } from './kit';
+import { MusicBrief } from './MusicBrief';
+import { FRAME, GUT, MINI, PAD, TRK, clamp, dB, dragModeAt, dragTo, freeze, gainY, laneOf, layerRows, nameOf, ppsFor, readout, round, shortName, ticks, trackCount, xAt, type DragStart } from './geometry';
 import { bufOf, fileLen, loadSound } from './audio';
 import { drawWave } from './waveform';
 import { GraphRow } from './MotionGraph';
 import { ViewBar } from './ViewBar';
 import { Gut, Row, type Axis } from './rows';
 import {
-  M, addCue, addTrack, changed, closeFocus, cueById, cueLen, cueStart, focusObject, hasSound, nudge, objectBy, openEditor, removeCue,
-  removeTrack, select, tellEdit, useEdit,
+  M, addCue, addMusic, addTrack, changed, closeFocus, cueById, cueLen, cueStart, focusObject, hasSound, nudge, objectBy, openEditor, removeCue,
+  removeTrack, select, setMusicOpen, tellEdit, useEdit,
 } from './store';
 import type { Cue } from './types';
 
@@ -132,6 +133,7 @@ export function Timeline({ hidden }: { hidden: boolean }) {
         <div ref={inRef} className="relative" style={{ width: W }}>
           <Ruler axis={axis} markRef={markRef} nowRef={nowRef} />
           <BeatsRow axis={axis} />
+          {hasSound() ? <MusicRows axis={axis} /> : null}
           <ObjectRows axis={axis} />
           {hasSound() ? <TrackRows axis={axis} /> : null}
           <div ref={headRef} className="pointer-events-none absolute top-0 bottom-0 z-[4] w-0.5 bg-destructive" />
@@ -353,10 +355,67 @@ function ObjectLayer({ id, axis, i }: { id: string | null; axis: Axis; i: number
   );
 }
 
+/* ── the music: one thin row with the soundtrack and the brief's sections, so it takes no more room than it needs;
+ * open, a row per music track (one spare to drop on) with the brief's bar lines. Open or closed is remembered. ── */
+function MusicRows({ axis }: { axis: Axis }) {
+  const sheet = useEdit((s) => s.sheet), brief = useEdit((s) => s.brief), open = useEdit((s) => s.musicOpen), sel = useEdit((s) => s.sel);
+  const { k, tAt, duration } = axis;
+  const cues = sheet.cues.filter((c) => c.music);
+  const rows = layerRows(cues, true);
+  const sections = brief?.sections ?? [];
+  const twirl = () => setMusicOpen(!open);
+  const dropOn = { // a sound dropped on the thin row goes on the first music track free there
+    onDragOver: (e: React.DragEvent) => { if (e.dataTransfer.types.includes(SOUND)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); const path = e.dataTransfer.getData(SOUND); if (path) addMusic(path, clamp(tAt(e.clientX), 0, duration)); },
+  };
+  return (
+    <>
+      <Row height={MINI} className="music-lane bg-(--music)/[.05]" {...dropOn} name={
+        <>
+          <button type="button" aria-expanded={open} title={open ? 'Show the music as one row' : 'Show each music track'} onClick={twirl}
+            className="inline-flex cursor-pointer items-center gap-1.5 text-xs leading-none font-semibold text-foreground">
+            <span className="w-2.5 text-muted-foreground">{open ? '▾' : '▸'}</span>Music<span className="text-muted-foreground"> {cues.length || ''}</span>
+          </button>
+          <MusicBrief />
+        </>
+      }>
+        {sections.map((s) => (
+          <span key={`${s.name}-${s.at}`} title={`${s.name}${s.drop ? ' (the drop)' : ''} at ${secs(s.at)}${s.note ? `: ${s.note}` : ''}`}
+            className="pointer-events-auto absolute top-0 z-[2] h-full border-l border-(--music)/70" style={{ left: xAt(s.at, k) }}>
+            <span className="absolute top-0.5 left-1 text-[10px] leading-none font-semibold whitespace-nowrap text-(--music)">{s.drop ? '◆ ' : ''}{s.name}</span>
+          </span>
+        ))}
+        {open ? null : cues.map((c) => <MusicMini key={c.id} c={c} k={k} on={sel === c.id} />)}
+      </Row>
+      {open ? (
+        <div className="music-lane relative">
+          {brief ? barTimes(brief, duration).map((t) => <i key={t} className="pointer-events-none absolute top-0 bottom-0 z-0 border-l border-(--music)/15" style={{ left: xAt(t, k) }} />) : null}
+          <Lane axis={axis} cues={cues} rows={rows} className="bg-(--music)/[.03]" rowClass="border-b-(--music)/15"
+            clipClass="border-(--music)/70 bg-(--music)/15 data-[on]:bg-(--music)/30 data-[on]:shadow-[0_0_0_1px_var(--music)]"
+            gutter={(r) => <span className="text-muted-foreground">Music {r + 1}</span>}
+            onDrop={(path, t, r) => addCue(path, t, r, null, true)} />
+        </div>
+      ) : null}
+    </>
+  );
+}
+/** A music clip on the thin row: a click opens the lane with the clip selected. */
+function MusicMini({ c, k, on }: { c: Cue; k: number; on: boolean }) {
+  const s = effective(c, useEdit.getState().lib), w = Math.max(4, cueLen(c) * k);
+  return (
+    <button type="button" data-cue={c.id} title={`Music: ${nameOf(c.sound)} at ${secs(cueStart(c))}`}
+      onClick={() => { useEdit.setState({ sel: c.id }); setMusicOpen(true); }}
+      className={cn('absolute top-[11px] z-[1] h-4 cursor-pointer overflow-hidden rounded border border-(--music)/70 bg-(--music)/20 p-0', on && 'shadow-[0_0_0_1px_var(--foreground)]', c.mute && 'opacity-45')}
+      style={{ left: xAt(cueStart(c), k), width: w }}>
+      <Wave sound={c.sound} from={s.from} to={s.to} w={w} h={14} />
+    </button>
+  );
+}
+
 /* ── your own tracks, numbered, and + Add track under them ── */
 function TrackRows({ axis }: { axis: Axis }) {
   const sheet = useEdit((s) => s.sheet);
-  const free = sheet.cues.filter((c) => !c.object), n = trackCount(sheet);
+  const free = sheet.cues.filter((c) => laneOf(c) === null), n = trackCount(sheet);
   const name = (i: number) => {
     const count = free.filter((c) => (c.track ?? 0) === i).length;
     const what = `Remove track ${i + 1}${count ? ` and its ${count} sound${count === 1 ? '' : 's'}` : ''}`;

@@ -29,6 +29,7 @@
   --warning: #e8952e;
   --success: #3ccf7f;
   --sound: #9fe3b0;             /* sounds on your own tracks (not an object's) */
+  --music: #9d95ff;             /* the soundtrack lane, its clips and the brief's sections */
   --ink: #111113;               /* behind small labels laid over clips */
   /* data colours: an object's clips and layer, the motion graph's lines and marks */
   --data-1: #e8952e;
@@ -94,6 +95,7 @@
   /* a clip's colour: your own tracks' sounds are light green; an object's take its colour (clipClass) */
   .tl-clip { --clip: var(--primary); }
   .tl-tracks .tl-clip { --clip: var(--sound); }
+  .music-lane .tl-clip { --clip: var(--music); }
   /* while dragging a clip, its value sits on it */
   .tl-clip[data-readout]::after {
     content: attr(data-readout); position: absolute; right: 4px; top: 2px; pointer-events: none;

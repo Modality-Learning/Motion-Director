@@ -20,6 +20,7 @@ import { buildFilmModule, buildPlayer, writeWebFilm } from '../render/web.mjs';
 import { videoSupportCached } from '../render/can-render.mjs';
 import { explainBlocked } from '../render/blocked.mjs';
 import { readAgentStatus } from './agent-status.mjs';
+import { fitMusic, readBrief } from './music-lib.mjs';
 import { checksOff, compareVersions, installedVersion, updateInfo, updateRequest } from './updates.mjs';
 import { formatComment, validateComment } from './comments.mjs';
 import { addComment, deliver, formatBatch, probe, readComments, sessionInbox, setStatus } from './comment-queue.mjs';
@@ -228,6 +229,12 @@ async function api(req, res, url) {
     const file = treatmentFile(piece.dir), text = file ? await readFile(join(piece.dir, file), 'utf8').catch(() => null) : null;
     return json(res, 200, { text: text && text.length > 200_000 ? text.slice(0, 200_000) : text, file: file || 'TREATMENT.md' });
   }
+  if (req.method === 'GET' && pathname === '/api/music') {
+    // a film's music brief (films/<film>/music.json): its tempo, sections and prompt, for the music lane
+    const film = films.find((f) => f.name === url.searchParams.get('film'));
+    if (!film) return json(res, 404, { error: 'No such film' });
+    return json(res, 200, readBrief(PROMO, film.name));
+  }
   if (req.method === 'GET' && pathname === '/api/update') {
     // the update notice: the version running, the one installed, the latest release and what's new in it
     return json(res, 200, updateState());
@@ -390,6 +397,13 @@ async function api(req, res, url) {
     plan.options = { preset: body.preset, size: body.size };
     const { pid, ...job } = startRender(plan);
     return json(res, 202, job);
+  }
+  if (req.method === 'POST' && pathname === '/api/music/fit') {
+    // Line up: measure the music clip's track and set its start, trim and speed to keep the brief's time
+    const film = films.find((f) => f.name === body.film);
+    if (!film) return json(res, 404, { error: 'No such film' });
+    const r = await fitMusic(PROMO, film.name, typeof body.cue === 'string' ? body.cue : null).catch((err) => ({ error: err.message }));
+    return json(res, r.error ? 400 : 200, r);
   }
   if (req.method === 'POST' && pathname === '/api/update/send') {
     // the update request, to the session that started the studio when there is one; else back to copy and paste

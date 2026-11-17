@@ -10,9 +10,10 @@
 //   comments a film's comment log (a comment sent, queued or resolved)   { film }
 //   session  the link to the Claude session came up or went down
 //   status   what the agent says it's doing changed (out/comments/status.json)
+//   music    a film's music brief (music.json)   { film }
 //   update   a newer release was found, or the package was updated under the running studio
 
-export interface LiveEvent { type: 'sound' | 'treatment' | 'vibe' | 'piece' | 'code' | 'library' | 'sounds' | 'comments' | 'session' | 'status' | 'update'; film?: string; comp?: string; kit?: boolean; version?: number }
+export interface LiveEvent { type: 'sound' | 'treatment' | 'vibe' | 'piece' | 'code' | 'library' | 'sounds' | 'comments' | 'session' | 'status' | 'update' | 'music'; film?: string; comp?: string; kit?: boolean; version?: number }
 
 const listeners = new Set<(ev: LiveEvent) => void>();
 let source: EventSource | null = null;

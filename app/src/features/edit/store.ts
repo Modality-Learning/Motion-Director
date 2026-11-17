@@ -10,12 +10,12 @@ import { getJson, post, type Kind } from '@/lib/api';
 import { frameFor, tell, type FilmMessage } from '@/lib/frames';
 import { local, useStudio, type Selection } from '@/lib/store';
 import type { LiveEvent } from '@/lib/live';
-import { DEFAULTS, SETTINGS, followEvent, resolveVoices, type TraitKey } from './kit';
-import { clamp, freeze, freeTrack, lenOf, placeAt, removeTrack as dropTrack, round, soundUrl, startOf, trackCount } from './geometry';
+import { DEFAULTS, SETTINGS, familyOf, followEvent, resolveVoices, type TraitKey } from './kit';
+import { MUSIC, clamp, freeze, freeTrack, lenOf, placeAt, removeTrack as dropTrack, round, soundUrl, startOf, trackCount } from './geometry';
 import { History } from './history';
 import { analyseCurve, eventsOf, hitTimeOf, reanchor as anchorClips } from './motion';
 import { fileLen, keepsPitch, loadSound, onLoaded, stopAudition, stretchUrl } from './audio';
-import type { Analysis, Beat, Cue, Curve, CurveState, EventKind, Focus, LibEntry, Library, LineKey, Moment, Sample, Settings, Sheet, SoundFile } from './types';
+import type { Analysis, Beat, Brief, Cue, Curve, CurveState, EventKind, Focus, LibEntry, Library, LineKey, Moment, Sample, Settings, Sheet, SoundFile } from './types';
 
 export interface EditState {
   key: string | null;
@@ -41,6 +41,11 @@ export interface EditState {
   /** objects that couldn't be found in the film when they were followed */
   lost: Set<string>;
   objectsOpen: boolean;
+  /** the music lane shows a row per music track (else one thin row); remembered */
+  musicOpen: boolean;
+  /** the film's music brief (music.json), and why it doesn't check out when it doesn't */
+  brief: Brief | null;
+  briefError: string | null;
   /** a mark on the graph asks the library for sounds that suit it */
   suggest: { kind: EventKind; t: number } | null;
   query: string;
@@ -68,7 +73,7 @@ const hidden = (): Set<LineKey> => {
 export const useEdit = create<EditState>(() => ({
   key: null, kind: 'film', film: null, duration: 0, moments: [], beats: [],
   sheet: { master: 0, cues: [] }, lib: { sounds: {} }, files: [], dir: '', audio: false, analysis: {},
-  sel: null, editing: null, focus: null, curve: null, lost: new Set(), objectsOpen: false, suggest: null,
+  sel: null, editing: null, focus: null, curve: null, lost: new Set(), objectsOpen: false, musicOpen: local.get('music-open') === '1', brief: null, briefError: null, suggest: null,
   query: '', traitFilter: new Set(), opened: new Set(), folded: new Set(), fresh: new Set(),
   zoom: 1, playing: false, hiddenLines: hidden(), canUndo: false, canRedo: false, status: '', rev: 0,
 }));
@@ -144,6 +149,7 @@ export async function showSound(name: string, kind: Kind, duration: number) {
       ]);
       if (get().key !== key) return; // another piece opened meanwhile
       set({ files: lib.files, lib: lib.library || { sounds: {} }, dir: lib.dir, audio: lib.audio, sheet: sheet.sheet || { master: 0, cues: [] } });
+      loadBrief();
       Object.assign(M, { version: sheet.version ?? 0, stale: false });
     } else {
       set({ files: [], lib: { sounds: {} }, sheet: { master: 0, cues: [] } });
@@ -233,6 +239,14 @@ function saveSheetNow(): Promise<Saved> {
   saveChain = run.catch(() => {});
   return run;
 }
+/** Saves any change still waiting for its pause now, before the server works on the film's sounds itself. */
+async function flushSave() {
+  if (!M.dirty) return;
+  clearTimeout(M.saveTimer);
+  const r = await saveSheetNow();
+  saving(r.ok ? 'saved' : 'error', r.data.error);
+  M.dirty = false;
+}
 const STALE = 'changed in another window: reload the studio';
 async function sendSheet(): Promise<Saved> {
   if (M.stale) return { ok: false, data: { error: STALE } };
@@ -314,6 +328,8 @@ export async function soundLive(ev: LiveEvent) {
     if (get().sel && !cueById(get().sel)) set({ sel: null });
     for (const c of r.sheet.cues) loadSound(c.sound);
     touch(); pushVoices();
+  } else if (ev.type === 'music' && ev.film === film) {
+    loadBrief();
   } else if ((ev.type === 'library' && !M.libDirty) || ev.type === 'sounds') {
     const lib = await getJson<{ files: SoundFile[]; library: Library }>('/api/sounds').catch(() => null);
     if (!lib) return;
@@ -327,10 +343,10 @@ export async function soundLive(ev: LiveEvent) {
 
 /* ── clips ── */
 export function select(id: string | null) { if (get().sel !== id) set({ sel: id }); }
-export function addCue(sound: string, at: number, track: number, object: { address: string; label: string } | null = null) {
+export function addCue(sound: string, at: number, track: number, object: { address: string; label: string } | null = null, music = false) {
   const id = `c${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`;
   const { sheet, duration } = get();
-  sheet.cues.push({ id, sound, at: round(clamp(at, -5, duration)), track: clamp(track, 0, 15), ...(object ? { object: ensureObject(object) } : {}) });
+  sheet.cues.push({ id, sound, at: round(clamp(at, music ? 0 : -5, duration)), track: clamp(track, 0, 15), ...(music ? { music: true } : object ? { object: ensureObject(object) } : {}) });
   loadSound(sound);
   set({ sel: id });
   changed();
@@ -355,12 +371,39 @@ export function removeTrack(i: number) {
 /** + on a sound: added starting at the playhead, or with ⌘ held, with its hit point on the playhead. It goes to
  * the open object if there is one, else to the first track free at that time. */
 export function addHere(path: string, alignHit: boolean) {
-  const { focus, sheet, analysis, moments } = get();
+  const { focus, sheet, analysis, moments, lib } = get();
   const { at, len } = placeAt(soundDefaults(path), M.t, alignHit, analysis[path]);
+  // music goes on the music lane, from the start of the film unless a later time was asked for
+  if (!focus && familyOf(path, analysis[path], lib.sounds[path]) === 'music') { addMusic(path, at); return; }
   const lane = focus ? objectBy(focus.address)?.[0] ?? '__none' : null; // an element with no sounds yet: an empty lane
   const track = freeTrack(sheet, lane, at, len, cueLen, moments);
   if (!focus && track >= trackCount(sheet)) sheet.tracks = Math.min(16, track + 1);
   addCue(path, at, track, focus);
+}
+
+/* ── music: the soundtrack lane, and the brief the music was made from (films/<film>/music.json, kit/music.mjs) ── */
+/** A track of music on the music lane, on its first row free at that time. */
+export function addMusic(path: string, at: number) {
+  const { sheet, moments } = get();
+  const t = Math.max(0, at), track = freeTrack(sheet, MUSIC, t, cueLen({ id: '', sound: path }), cueLen, moments);
+  addCue(path, t, track, null, true);
+}
+export function setMusicOpen(open: boolean) { set({ musicOpen: open }); local.set('music-open', open ? '1' : '0'); }
+export async function loadBrief() {
+  const film = get().film;
+  if (!film || get().kind !== 'film') return;
+  const r = await getJson<{ brief?: Brief; none?: boolean; error?: string }>(`/api/music?film=${encodeURIComponent(film)}`).catch(() => null);
+  if (get().film !== film) return;
+  set({ brief: r?.brief ?? null, briefError: r?.error ?? null });
+}
+/** Line up: the server measures the music clip's track and sets its start, trim and speed (the sheet comes back
+ * live). Unsaved changes here are saved first, so the server works on what you see. */
+export async function lineUpMusic(cue?: string) {
+  const film = get().film;
+  if (!film) return { error: 'No film' };
+  await flushSave();
+  const r = await post<{ plan?: { note: string; at: number; drop: string | null; matched: boolean }; error?: string }>('/api/music/fit', { film, cue });
+  return r.ok ? r.data : { error: r.data.error || 'Could not line the music up' };
 }
 
 /* ── objects: elements of the film that sounds belong to. Picking one in the preview opens its area: how it

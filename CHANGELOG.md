@@ -6,6 +6,18 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
 
 ## Unreleased
 
+## 0.3.0 (2026-11-17)
+
+- **A music lane.** The soundtrack has its own lane above the effects: one thin row by default, with the music
+  brief's sections marked, opening to a row per music track with the bar lines. Sounds the library files as
+  Music go there.
+- **Music briefs, written with Claude.** Claude agrees a direction with you, finds a tempo that puts the film's
+  section changes on bar lines (`motion-director music <film>`), and writes the brief: the sections and a prompt
+  for Suno or another music generator, ready to copy from the lane's Brief button.
+- **Line up the music.** Drop the generated track on the lane and press Line up (or `motion-director music fit
+  <film>`): its biggest lift lands on the brief's drop, and its speed is corrected so it keeps the brief's time.
+  A track that ignored the tempo is left as it is, and you're told.
+
 ## 0.2.0 (2026-11-17)
 
 - **Codex and other agents.** `npx motion-director codex` links the skill into the repository's `.agents/skills/`

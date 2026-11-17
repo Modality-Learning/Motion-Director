@@ -1,0 +1,93 @@
+# Music for a film
+
+A film's soundtrack is made outside Motion Director, by the user in a music generator such as Suno, from a prompt
+you write with them. What you add is what a generator can't know: where the film's sections change, so the
+music's breaks and its lift land on them. The music then sits on its own lane in the studio, under the sound
+effects, and you line it up with the film.
+
+Music is a matter of taste, so this is a conversation, not a deliverable: offer, listen, adjust.
+
+## 1. The direction, with the user
+
+Before writing anything, ask, briefly and in one message:
+
+- **The mood**, in their words, and any music they like for it. Describe what they name in your own words
+  (tempo, instruments, energy); never put an artist's or a song's name in a prompt. Generators refuse them, and
+  it isn't yours to copy.
+- **Vocals or not.** Default to instrumental for product films: words fight the film's own.
+- **Energy across the film**: where it should lift, where it should breathe.
+- **The ending**: a clean stop on the last beat (button), a fade, or a held final chord (ring).
+
+Then offer two or three directions of one line each ("warm lo-fi house, unhurried", "bright electronic pop, a
+proper lift at the build", "light acoustic, plucked guitar and claps"), and let them pick or mix.
+
+## 2. The tempo and sections, from the film
+
+`motion-director music <film>` lists the film's sections (its scenes) and the tempos that put their starts on bar
+lines, best first, with how far each section is from its nearest bar line at the best tempo.
+
+- Pick a tempo that suits the direction from the top few. A tempo the music would never have is no use however
+  well it fits.
+- A section a little off its bar line (under 0.15 s or so) is fine: nobody hears it. Further off, offer the user a
+  choice: move that moment of the film onto the bar line (a change to the film, so ask), or let the music's break
+  fall slightly apart from it.
+- `--keys` uses every key moment instead (rarely all on bars), `--at 0,8.5,16` times you choose.
+
+Write `films/<film>/music.json` (kit/music.mjs checks it; the studio shows it):
+
+```json
+{
+  "bpm": 124, "beatsPerBar": 4, "offset": 0.47, "length": 97, "ending": "button",
+  "sections": [
+    { "name": "Intro", "at": 0.47, "note": "sparse: a pad and a soft pluck" },
+    { "name": "Claude makes it", "at": 31.44, "drop": true, "note": "the lift: full energy" }
+  ],
+  "prompt": { "style": "…", "structure": "…", "notes": "…" }
+}
+```
+
+- `offset` is the film time of the first downbeat; section times sit on bar lines (offset plus whole bars).
+- Mark the one section where the music lifts hardest with `"drop": true`: lining up puts the track's biggest lift
+  there.
+- The notes say what the music does in each section, for the user and for the next pass.
+
+## 3. The prompt
+
+Write it for the generator the user names; for Suno:
+
+- **style**: one line of comma-separated descriptions, under 200 characters ideally: genre, tempo
+  (`124 BPM`), metre, the main instruments, the mood, the mix, and `no vocals` for an instrumental.
+- **structure**: Suno's section tags, one per line, in order, each with its length in bars and what happens:
+  `[Intro: 3 bars, pad and soft pluck]`, then `[Verse]`, `[Pre-Chorus]`, `[Chorus]`, `[Break]`, `[Build]`,
+  `[Outro]`, and `[Instrumental]` first and `[End]` last for an instrumental. Bars come from the brief: a
+  section's bars are the time to the next section divided by the bar length.
+- **notes**: what to ask for that the prompt can't hold (the length to generate, about the film's length plus a
+  few seconds), and that its timings won't be exact: line it up afterwards.
+
+The studio's music lane has a Brief button with the prompt to copy. Say where it is; don't paste the whole prompt
+into the chat unless asked.
+
+Before the user puts a generated track in a film for a client or product, mention that the right to use it
+commercially depends on their plan with the generator.
+
+## 4. Lining it up
+
+The user adds the generated track to the sound library and drops it on the music lane (or a sound the library
+files as Music goes there by itself). Then line it up: the Brief button's **Line up the music**, or
+
+```bash
+motion-director music fit <film> [clip id] [--dry]
+```
+
+It measures the track's tempo, beats and biggest lift, then slides the clip so the lift lands on the drop section
+(or, without one, its beats on the film's), trims its start rather than starting before the film, and speeds it
+up or slows it a little, pitch kept, so its tempo is the brief's. Read what it says back:
+
+- **"seems to run at 95 BPM, not near the brief's 124"**: the generator ignored the tempo. The speed is left
+  alone. Offer to generate it again with the tempo higher in the style line, or to change the brief (and the
+  film's sections) to suit the track if the user loves it.
+- **A large rate change** (beyond about 4%): it will sound slightly different; say so.
+
+Then play it with the user in the Edit tab. Set the music's volume so the sound effects still read (around −12 to
+−18 dB under them is a common start), and give it a fade-out if its ending doesn't land on the film's. The music
+lane is collapsed to one thin row by default; it opens with its twirl to show each track.

@@ -120,6 +120,7 @@ export function changeOf(where, rel) {
   const [piece] = parts, key = where === 'films' ? 'film' : where === 'comps' ? 'comp' : null;
   if (!key || piece.startsWith('_') || parts.length < 2) return null; // the template, or the folder itself
   if (parts.length === 2 && name === 'sound.json' && key === 'film') return { type: 'sound', film: piece };
+  if (parts.length === 2 && name === 'music.json' && key === 'film') return { type: 'music', film: piece }; // its music brief
   if (parts.length === 2 && (name === 'TREATMENT.md' || name === 'BRIEF.md')) return { type: 'treatment', [key]: piece };
   if ((parts.length === 2 && name === 'vibe.json') || (parts.length === 3 && parts[1] === 'vibe')) return { type: 'vibe', [key]: piece };
   if (parts.length === 2 && name === (key === 'film' ? 'film.json' : 'comp.json')) return { type: 'piece', [key]: piece };

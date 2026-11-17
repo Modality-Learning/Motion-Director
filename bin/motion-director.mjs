@@ -13,6 +13,7 @@
 //   motion-director sound-search "<words>"      library sounds by what they sound like (render/sound-embed.mjs)
 //   motion-director organise [--n 150] | apply <batch.json>   sort the sound library with Claude (skill/LIBRARY.md)
 //   motion-director comments [film] | resolve <id…>   the studio's open comments, or mark some done
+//   motion-director music <film> | music fit <film> [cue]   a soundtrack's tempo and brief; line a track up with it
 //   motion-director init [folder]             a new project with a starter film
 //   motion-director skill                       where the Claude skill is, to link into a project's skills
 //   motion-director --version [--json]          this version, the skill's, and whether a newer release is out
@@ -34,6 +35,7 @@ const USAGE = `usage: motion-director <command> [--root <project>]
   organise [--n 150] | apply <file>  list sounds to organise, or apply Claude's batch
   comments [film] | resolve <ids> list open comments, or mark them done
   status "<a few words>" | --done what you're working on, shown in the studio with a spinner
+  music <film> | fit <film> [cue]  tempos for the key moments and the brief; line the music up with it
   init [folder]                   start a new project
   skill                           print where the skill lives (Claude Code: install the plugin)
   codex                           set up Codex: link the skill into .agents/skills, print its MCP command
@@ -139,6 +141,7 @@ if (cmd === 'update') {
 const SCRIPTS = { studio: 'server/server.mjs', board: 'render/board.mjs', bundle: 'render/bundle.mjs', purity: 'render/purity.mjs', 'sound-check': 'render/sound-check.mjs', organise: 'render/sound-organise.mjs', 'sound-search': 'render/sound-embed.mjs', comments: 'server/comments-cli.mjs' };
 SCRIPTS.web = 'render/web.mjs';
 SCRIPTS.status = 'server/status-cli.mjs';
+SCRIPTS.music = 'render/music.mjs';
 if (cmd === 'render') {
   // say what's missing before starting, rather than failing part way (render/can-render.mjs)
   const { videoSupport } = await import('../render/can-render.mjs');

@@ -1,6 +1,6 @@
 {
   "name": "motion-director",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Make motion-graphics promo films with Claude: films as code, a studio to review, comment, tune sound and parameters, and a renderer.",
   "type": "module",
   "license": "MIT",

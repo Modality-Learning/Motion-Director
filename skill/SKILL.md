@@ -12,7 +12,7 @@ Paths below are relative to the project unless they say "the package". Commands 
 
 ### Keeping up to date
 
-This is the Motion Director skill 0.2.0. When you start working in a project, run `npx motion-director --version`:
+This is the Motion Director skill 0.3.0. When you start working in a project, run `npx motion-director --version`:
 it names the installed package, the skill it carries, and whether a newer release is out.
 
 - **The package is older than this skill:** this skill may name commands, tabs or options it doesn't have yet.
@@ -49,8 +49,8 @@ and the story in words first, and look up a pattern when you need it. The projec
 `NOTES.md`, README, agent notes or project skill) say which films are good references and what each shows,
 and hold its brand and house rules: read them before starting.
 
-[The motion principles](MOTION.md), [the sound design guide](SOUND.md) and [organising the sound library](LIBRARY.md) sit
-beside this file (in `${CLAUDE_SKILL_DIR}` when this skill is installed as a plugin).
+[The motion principles](MOTION.md), [the sound design guide](SOUND.md), [music for a film](MUSIC.md) and
+[organising the sound library](LIBRARY.md) sit beside this file (in `${CLAUDE_SKILL_DIR}` when this skill is installed as a plugin).
 
 ## What this is for
 
@@ -229,6 +229,11 @@ adjust. If the library lacks a kind of sound the film needs, say which. If `moti
 reports sounds not organised yet, offer to organise them first ([LIBRARY.md](LIBRARY.md)): you choose far
 better from a library you have described.
 
+**Music** is its own conversation, when the user wants a soundtrack: follow [music for a film](MUSIC.md). You
+agree a direction with them, work out a tempo that puts the film's section changes on bar lines
+(`motion-director music <film>`), write the brief and a prompt for their music generator, and once they have a
+track, line it up (`motion-director music fit <film>`). Music sits on its own lane, under the effects.
+
 ## 6. Final check and render
 
 1. Go through [MOTION.md](MOTION.md) section by section against the film, and any principles the project
@@ -284,6 +289,9 @@ shared **Compositions**; each opens on these tabs (full detail in the package's 
     open) and the user's **tracks**. Clips are dragged, trimmed, stretched and given volume here.
   - The **library** (left): the user's sounds by family, with filters and search; drag one in, or **+**
     at the playhead. A sound's own editor sets its trim, volume, fades and hit point for every use.
+  - The **music lane**, above the effects, holds the soundtrack: one thin row with the brief's sections marked,
+    opened with its twirl to a row per music track with the bar lines. Its **Brief** button shows the tempo,
+    the sections and the prompt to copy, and lines the track up.
   - The **inspector** (right) follows the selection: a clip's settings, an element's parameters, or the
     piece's parameters (on screen now first). At its foot, the mix: an equaliser and master volume.
 - **Export:** two tabs. **Video**: the project's drift check (when it has one), renders, and the film's

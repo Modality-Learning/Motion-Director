@@ -228,8 +228,12 @@ Opening one gives these tabs:
 - **Edit.** The preview over a timeline, the sound library on the left (films) and an inspector on the
   right. Click an element to select it: a box marks it, its motion graph opens on the timeline, and the
   inspector shows its parameters and sounds. The timeline is the transport (play with Space, ruler to
-  scrub), with the storyboard's beats, the sound objects and your tracks. Sound is edited by hand here:
-  drag clips, trim, stretch, volume, fades, pitch, with undo and redo. `?` lists the keys.
+  scrub), with the storyboard's beats, the music lane, the sound objects and your tracks. Sound is edited by
+  hand here: drag clips, trim, stretch, volume, fades, pitch, with undo and redo. `?` lists the keys.
+  The **music lane** holds the soundtrack. It's one thin row by default, with the music brief's sections
+  marked; its twirl opens a row per music track with the brief's bar lines. Sounds the library files as Music
+  go there. Its **Brief** button shows the tempo, the sections and the prompt to copy into a music generator,
+  and **Line up the music** fits the track to the brief (see the command `music`).
 - **Export** (films). **Video**: the drift check, renders (a share MP4, or ProRes 422 HQ or 4444 masters;
   1080p, 1440p or 4K) with progress and cancel, and the film's files with Show in Finder and Open.
   **Scroll** (a prototype): the film as a web page plays it, live and without an iframe, moved by scrolling
@@ -269,6 +273,8 @@ Every command works on a project (see above for how it is found).
 | `motion-director bundle <film>` | Saves the film as one self-contained HTML file in `out/`, to share. |
 | `motion-director web <film> [--out <folder>]` | A prototype. Writes the film into a site as files the site owns, with no package to install: the player `motion-film.js` (shared by every film in the folder, updated when a film needs a newer one), `<film>.film.js`, their types and, in a React project, `MotionFilm.tsx` (written once, then yours). The film plays live in a `<motion-film>` element (no iframe, no video), follows scrolling (`mode="scroll"`) or moves with `goTo('<key>')` from anything on the page. Silent for now. Without `--out` it writes to `out/` with an example page. See `example/site/` for a small React site that uses it. |
 | `motion-director purity <film> [step]` | Checks `render(t)` is a pure function of time: opens the film fresh at each second and compares it with the film played to that moment. |
+| `motion-director music <film> [--keys \| --at 0,8.5] [--json]` | The film's sections, the tempos that put their starts on bar lines (best first) and how far each is off its nearest bar line, and the film's music brief (`films/<film>/music.json`). |
+| `motion-director music fit <film> [cue] [--dry]` | Lines a music clip up with the brief: measures the track's tempo, beats and biggest lift, then puts the lift on the brief's drop (or its beats on the film's), trims rather than starting before the film, and corrects its speed (pitch kept) when it's within 12% of the brief's tempo. A track at another tempo altogether keeps its speed, and it says so. Needs macOS to decode. |
 | `motion-director sound-check <film> [moments.json] [--hits id,id]` | Reports how often each sound is heard and at how many pitches, overlapping clips, and the mix's peak, loudest moments and quiet stretches. `--hits` says where each clip peaks against where it should land. |
 | `motion-director sound-search "<words>" [--like <sound>] [--n 8] [--json]` | Experimental. Ranks the library's sounds by how well they match a description, or by how much they sound like one of them. Several descriptions can be given at once. |
 | `motion-director init [folder]` | Makes a new project with a starter film. |
