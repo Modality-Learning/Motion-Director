@@ -6,27 +6,36 @@ import { token } from '@/lib/tokens';
 
 const dprOf = () => Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
 
-/** The loudest sample in each of `n` columns across [a, b) of the data. */
-export function peaks(d: ArrayLike<number>, a: number, b: number, n: number) {
-  const per = Math.max(1, (b - a) / n), out = new Float32Array(n);
+/** Each of `n` columns across samples [a, b) of every channel: its loudest sample (the waveform's outline) and its
+ * RMS level (its body, which is what the ear hears as loud). `a` and `b` may fall between samples. */
+export function levels(chs: ArrayLike<number>[], a: number, b: number, n: number) {
+  const per = (b - a) / n, peak = new Float32Array(n), rms = new Float32Array(n);
   for (let x = 0; x < n; x++) {
-    let peak = 0;
-    for (let i = Math.floor(a + x * per), e = Math.min(b, Math.floor(a + (x + 1) * per)); i < e; i++) peak = Math.max(peak, Math.abs(d[i]));
-    out[x] = peak;
+    const i0 = Math.max(0, Math.floor(a + x * per)), i1 = Math.max(i0 + 1, Math.floor(a + (x + 1) * per));
+    let p = 0, q = 0, m = 0;
+    for (const d of chs) {
+      for (let i = i0, e = Math.min(i1, d.length); i < e; i++) { const v = d[i], av = v < 0 ? -v : v; if (av > p) p = av; q += v * v; m++; }
+    }
+    peak[x] = p; rms[x] = m ? Math.sqrt(q / m) : 0;
   }
-  return out;
+  return { peak, rms };
 }
 
-/** A clip's waveform: the part of the file it plays, across its width. */
-export function drawWave(canvas: HTMLCanvasElement, buf: AudioBuffer, s: Pick<Settings, 'from' | 'to'>, w: number, h: number) {
-  const W = Math.min(3000, Math.max(1, Math.round(w))), dpr = dprOf();
-  canvas.width = W * dpr; canvas.height = h * dpr; canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
-  const g = canvas.getContext('2d'); if (!g) return;
-  g.scale(dpr, dpr);
-  const d = buf.getChannelData(0), sr = buf.sampleRate, a = Math.floor(s.from * sr), b = Math.min(d.length, Math.floor((s.to ?? buf.duration) * sr));
-  const p = peaks(d, a, b, W);
-  g.fillStyle = token('foreground', 0.5);
-  for (let x = 0; x < W; x++) { const y = p[x] * h * 0.42; g.fillRect(x * (w / W), h / 2 - y, Math.max(1, w / W), Math.max(1, y * 2)); }
+/** The part of a clip's waveform from `x0` to `x0 + tw` (CSS pixels) of the clip's `w`: the time it plays, mapped
+ * evenly across the width, a column per CSS pixel (sharp in height). A long clip zoomed in is drawn as several of
+ * these, since a canvas can only be so wide. */
+export function drawWave(canvas: HTMLCanvasElement, buf: AudioBuffer, s: Pick<Settings, 'from' | 'to'>, w: number, h: number, x0 = 0, tw = w) {
+  const dpr = dprOf(), W = Math.max(1, Math.round(tw)), H = Math.max(1, Math.round(h * dpr));
+  canvas.width = W; canvas.height = H; canvas.style.width = `${tw}px`; canvas.style.height = `${h}px`;
+  const g = canvas.getContext('2d'); if (!g || w <= 0) return;
+  const sr = buf.sampleRate, end = Math.min(buf.duration, s.to ?? buf.duration), span = Math.max(0, end - s.from);
+  const a = (s.from + (x0 / w) * span) * sr, b = (s.from + ((x0 + tw) / w) * span) * sr;
+  const chs = Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i));
+  const { peak, rms } = levels(chs, a, b, W), mid = H / 2, amp = mid - dpr;
+  g.fillStyle = token('foreground', 0.3);
+  for (let x = 0; x < W; x++) { const y = Math.min(1, peak[x]) * amp; g.fillRect(x, mid - y, 1, Math.max(1, y * 2)); }
+  g.fillStyle = token('foreground', 0.65);
+  for (let x = 0; x < W; x++) { const y = Math.min(1, rms[x]) * amp; if (y >= 0.5) g.fillRect(x, mid - y, 1, y * 2); }
 }
 
 /** The loudest 10 ms in the kept part of a sound: a good first guess at where it lands. */

@@ -530,15 +530,24 @@ function Lane({ axis, cues, rows, gutter, onDrop, className, rowClass, clipClass
   );
 }
 
-/** A waveform, drawn once its file has decoded. */
+/** A waveform, drawn once its file has decoded, in tiles no wider than a canvas can safely be: zoomed in, a long
+ * music clip is tens of thousands of pixels wide. */
+const TILE = 1024;
 function Wave({ sound, from, to, w, h, className }: { sound: string; from: number; to: number | null; w: number; h: number; className?: string }) {
+  const n = Math.max(1, Math.ceil(w / TILE));
+  return <>{Array.from({ length: n }, (_, i) => (
+    <WaveTile key={i} sound={sound} from={from} to={to} w={w} h={h} x0={i * TILE} tw={Math.min(TILE, w - i * TILE)} className={className} />
+  ))}</>;
+}
+
+function WaveTile({ sound, from, to, w, h, x0, tw, className }: { sound: string; from: number; to: number | null; w: number; h: number; x0: number; tw: number; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null), buf = bufOf(sound);
   useLayoutEffect(() => {
     if (!ref.current) return;
     if (!buf) { loadSound(sound); return; }
-    drawWave(ref.current, buf, { from, to }, w, h);
-  }, [buf, sound, from, to, w, h]);
-  return <canvas ref={ref} aria-hidden="true" className={cn('pointer-events-none absolute top-0 left-0', className)} />;
+    drawWave(ref.current, buf, { from, to }, w, h, x0, tw);
+  }, [buf, sound, from, to, w, h, x0, tw]);
+  return <canvas ref={ref} aria-hidden="true" style={{ left: x0, width: tw, height: h }} className={cn('pointer-events-none absolute top-0', className)} />;
 }
 
 const HGT = TRK - 8;

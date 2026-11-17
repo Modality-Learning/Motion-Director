@@ -1,12 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS } from './kit';
 import { gainY } from './geometry';
-import { EQ_BARS, edGeom, edHandleAt, eqStep, findHit, peaks } from './waveform';
+import { EQ_BARS, edGeom, edHandleAt, eqStep, findHit, levels } from './waveform';
 
 describe('waveforms', () => {
-  it('take the loudest sample in each column', () => {
-    const p = peaks([0, 0.5, -0.9, 0.1, 0.2, -0.3], 0, 6, 3);
-    [0.5, 0.9, 0.3].forEach((v, i) => expect(p[i]).toBeCloseTo(v));
+  it('take the loudest sample in each column, across every channel', () => {
+    const { peak } = levels([[0, 0.5, -0.9, 0.1, 0.2, -0.3], [0, 0, 0, 0, 0, -0.7]], 0, 6, 3);
+    [0.5, 0.9, 0.7].forEach((v, i) => expect(peak[i]).toBeCloseTo(v));
+  });
+  it('give each column its RMS level, so a quiet click under a loud peak reads as quiet', () => {
+    const d = new Float32Array(200);
+    d[10] = 0.8; // a single click: a tall peak, little level
+    d.fill(0.5, 100, 200); // a steady tone: its level is its height
+    const { peak, rms } = levels([d], 0, 200, 2);
+    expect(peak[0]).toBeCloseTo(0.8); expect(rms[0]).toBeLessThan(0.1);
+    expect(rms[1]).toBeCloseTo(0.5);
+  });
+  it('map a slice of the file evenly, even with more columns than samples', () => {
+    const d = Float32Array.from({ length: 100 }, (_, i) => (i === 40 ? 1 : 0)); // a click at sample 40
+    const { peak } = levels([d], 20, 60, 400); // ten columns a sample
+    const at = peak.findIndex((v) => v === 1);
+    expect(at).toBe(200); // (40 - 20) / 40 of the way across
+    expect(peak.filter((v) => v === 1)).toHaveLength(10);
   });
   it('find the hit at the loudest 10 ms in the kept part', () => {
     const sr = 1000, d = new Float32Array(2000);

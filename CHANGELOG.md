@@ -29,6 +29,9 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
 - **Line up, more careful.** It's now on the music clip, in the inspector. It only puts a lift on the drop when the
   lift is near where the drop falls, so a late build-up can't cut a track in half; otherwise it lines up the beats
   with the smallest move.
+- **Waveforms you can trust zoomed in.** A long clip zoomed in drew its waveform stretched and cut short, so
+  what you saw drifted from what you heard. It now stays in step at any zoom, and shows each moment's loudness
+  as well as its peaks, so a quiet intro looks quiet and a hi-hat shows as a sharp tick.
 
 ## 0.2.0 (2026-11-17)
 
