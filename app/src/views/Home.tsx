@@ -35,7 +35,7 @@ export function Home() {
   );
 }
 
-const Tiles = ({ children }: { children: React.ReactNode }) => <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] items-start gap-5">{children}</div>;
+const Tiles = ({ children }: { children: React.ReactNode }) => <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5">{children}</div>;
 
 function Tile({ kind, x, films }: { kind: 'film' | 'comp'; x: Film | Comp; films: Film[] }) {
   const film = kind === 'film' ? (x as Film) : null, comp = kind === 'comp' ? (x as Comp) : null;
@@ -44,9 +44,12 @@ function Tile({ kind, x, films }: { kind: 'film' | 'comp'; x: Film | Comp; films
     ? [vertical ? 'Vertical 9:16' : 'Landscape 16:9', `${film.duration} s`, film.derivedFrom ? `Cut of ${films.find((f) => f.name === film.derivedFrom)?.title || film.derivedFrom}` : null]
     : [`${comp!.duration} s`, comp!.usedBy.length ? `Used by ${comp!.usedBy.length} film${comp!.usedBy.length > 1 ? 's' : ''}` : 'Not used yet'];
   return (
-    <a href={`#/${kind}/${encodeURIComponent(x.name)}/edit`} className={cn('group block overflow-hidden rounded-xl border bg-card text-foreground no-underline hover:border-primary', vertical && 'row-span-2')}>
-      <div className={cn('pointer-events-none relative bg-background', vertical ? 'mx-auto aspect-[9/16] max-h-[520px]' : 'aspect-video')}>
-        <iframe src={`${pageBase(kind, x.name)}?still&t=${x.poster}&${x.query}`} title={`${x.title} poster frame`} tabIndex={-1} loading="lazy" aria-hidden="true" className="absolute inset-0 size-full border-0" />
+    <a href={`#/${kind}/${encodeURIComponent(x.name)}/edit`} className="group flex flex-col overflow-hidden rounded-xl border bg-card text-foreground no-underline hover:border-primary">
+      {/* every tile has the same 16:9 frame; a vertical film sits inside it, full height and centred */}
+      <div className="pointer-events-none relative aspect-video bg-background">
+        <div className={cn('absolute inset-y-0 left-1/2 -translate-x-1/2', vertical ? 'aspect-[9/16]' : 'aspect-video')}>
+          <iframe src={`${pageBase(kind, x.name)}?still&t=${x.poster}&${x.query}`} title={`${x.title} poster frame`} tabIndex={-1} loading="lazy" aria-hidden="true" className="absolute inset-0 size-full border-0" />
+        </div>
       </div>
       <div className="grid gap-2 p-4">
         <b className="group-hover:text-primary">{x.title}</b>
