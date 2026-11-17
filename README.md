@@ -1,3 +1,5 @@
+<img src="app/public/favicon.svg" alt="" width="64" height="64">
+
 # Motion Director
 
 Make motion-graphics films in code, together with Claude. A film is a web page that draws one frame
