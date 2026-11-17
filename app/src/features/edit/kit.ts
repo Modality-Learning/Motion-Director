@@ -9,6 +9,8 @@ export const SETTINGS = sound.SETTINGS as unknown as Record<SettingKey, SettingS
 export const DEFAULTS = sound.DEFAULTS as unknown as Settings;
 export const effective = sound.effective as (cue: Cue, lib: Library) => Settings;
 export const overrides = sound.overrides as (cue: Cue) => SettingKey[];
+/** Whether a lane or track mute silences a cue (sheet.muted, kit/sound.mjs). */
+export const mutedBy = sound.mutedBy as (muted: string[] | undefined, cue: Cue) => boolean;
 export const playLength = sound.playLength as (s: Settings, fileLength: number) => number;
 export const followEvent = sound.followEvent as (anchor: Anchor, events: { kind: string; t: number }[], reach?: number) => { kind: string; t: number } | null;
 export interface Voice { cue: string; sound: string; at: number; from: number; to: number | null; gain: number; rate: number; keepPitch: boolean; fadeIn: number; fadeOut: number }

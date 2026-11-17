@@ -43,6 +43,8 @@ export interface EditState {
   objectsOpen: boolean;
   /** the music lane shows a row per music track (else one thin row); remembered */
   musicOpen: boolean;
+  /** the SFX group shows its tracks (else one thin row); remembered, open to start with */
+  sfxOpen: boolean;
   /** the film's music brief (music.json), and why it doesn't check out when it doesn't */
   brief: Brief | null;
   briefError: string | null;
@@ -73,7 +75,7 @@ const hidden = (): Set<LineKey> => {
 export const useEdit = create<EditState>(() => ({
   key: null, kind: 'film', film: null, duration: 0, moments: [], beats: [],
   sheet: { master: 0, cues: [] }, lib: { sounds: {} }, files: [], dir: '', audio: false, analysis: {},
-  sel: null, editing: null, focus: null, curve: null, lost: new Set(), objectsOpen: false, musicOpen: local.get('music-open') === '1', brief: null, briefError: null, suggest: null,
+  sel: null, editing: null, focus: null, curve: null, lost: new Set(), objectsOpen: false, musicOpen: local.get('music-open') === '1', sfxOpen: local.get('sfx-open') !== '0', brief: null, briefError: null, suggest: null,
   query: '', traitFilter: new Set(), opened: new Set(), folded: new Set(), fresh: new Set(),
   zoom: 1, playing: false, hiddenLines: hidden(), canUndo: false, canRedo: false, status: '', rev: 0,
 }));
@@ -389,6 +391,15 @@ export function addMusic(path: string, at: number) {
   addCue(path, t, track, null, true);
 }
 export function setMusicOpen(open: boolean) { set({ musicOpen: open }); local.set('music-open', open ? '1' : '0'); }
+export function setSfxOpen(open: boolean) { set({ sfxOpen: open }); local.set('sfx-open', open ? '1' : '0'); }
+/** Mutes or unmutes a lane ("music", "sfx") or a track ("music:0", "sfx:2"): one undo step, heard at once, saved. */
+export function toggleMute(key: string) {
+  const { sheet } = get();
+  const muted = new Set(sheet.muted ?? []);
+  if (muted.has(key)) muted.delete(key); else muted.add(key);
+  if (muted.size) sheet.muted = [...muted]; else delete sheet.muted;
+  changed();
+}
 export async function loadBrief() {
   const film = get().film;
   if (!film || get().kind !== 'film') return;

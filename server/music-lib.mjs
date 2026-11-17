@@ -3,7 +3,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
-import { FPS, beatPhase, biggestLift, fitPlan, onsets, tempoNear, tempoOverall, tempoStrength, validateBrief } from '../kit/music.mjs';
+import { FPS, beatPhase, fitPlan, lifts, onsets, tempoNear, tempoOverall, tempoStrength, validateBrief } from '../kit/music.mjs';
 import { readWav } from '../kit/sound-check.mjs';
 import { NAME } from '../render/params.mjs';
 import { readSheet, run, saveSheet, soundFile } from './sound-lib.mjs';
@@ -31,7 +31,8 @@ export async function measureTrack(file, bpm, beatsPerBar = 4) {
     const { samples, sampleRate } = readWav(readFileSync(wav));
     const { onset, energy } = onsets(samples, sampleRate);
     const measured = tempoNear(onset, bpm), phase = beatPhase(onset, measured), overall = tempoOverall(onset);
-    return { bpm: measured, phase, lift: biggestLift(energy, measured, phase, beatsPerBar), seconds: Math.round((onset.length / FPS) * 10) / 10,
+    const found = lifts(energy, measured, phase, beatsPerBar);
+    return { bpm: measured, phase, lift: found[0]?.t ?? null, lifts: found, seconds: Math.round((onset.length / FPS) * 10) / 10,
       strength: Math.round(tempoStrength(onset, measured) * 100) / 100, overall: overall.bpm, overallStrength: Math.round(overall.strength * 100) / 100 };
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }

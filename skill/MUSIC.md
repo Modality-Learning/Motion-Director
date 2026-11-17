@@ -51,8 +51,8 @@ Write `films/<film>/music.json` (kit/music.mjs checks it; the studio shows it):
 - `length` is the film's length in seconds. Always set it: it goes into the prompt, and without it a generator
   makes a whole song (two to four minutes).
 - `offset` is the film time of the first downbeat; section times sit on bar lines (offset plus whole bars).
-- Mark the one section where the music lifts hardest with `"drop": true`: lining up puts the track's biggest lift
-  there.
+- Mark the one section where the music lifts hardest with `"drop": true`: lining up puts a lift the track has near
+  that point onto it.
 - The notes say what the music does in each section, for the user and for the next pass.
 
 ## 3. The prompt
@@ -95,14 +95,16 @@ and `About:` quotes what it says now. Amend the brief, then:
 ## 4. Lining it up
 
 The user adds the generated track to the sound library and drops it on the music lane (or a sound the library
-files as Music goes there by itself). Then line it up: the Brief button's **Line up the music**, or
+files as Music goes there by itself). Then line it up: select the clip and press **Line up with the brief** in the
+inspector, or
 
 ```bash
 motion-director music fit <film> [clip id] [--dry]
 ```
 
-It measures the track's tempo, beats and biggest lift, then slides the clip so the lift lands on the drop section
-(or, without one, its beats on the film's), trims its start rather than starting before the film, speeds it up
+It measures the track's tempo, beats and lifts, lines its beats up with the film's, and puts a strong lift near
+where the drop falls on the drop section (a lift far from it isn't used: music lifts more than once, and lining up
+the wrong one cuts the track; only a track much longer than the film is searched end to end), trims its start rather than starting before the film, speeds it up
 or slows it a little, pitch kept, so its tempo is the brief's, and, when the track runs past the film, ends it
 with the film and fades it out (a bar for a ring, two for a fade, half a bar for a button). Read what it says back:
 

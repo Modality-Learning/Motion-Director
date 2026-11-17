@@ -4,7 +4,7 @@
 // anywhere, then on a clip: drag to move · drag an edge to trim · Option-drag an edge to squash or stretch ·
 // drag the volume line · double-click to edit the sound.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { CircleHelp, Minus, Pause, Play, X } from 'lucide-react';
+import { CircleHelp, Minus, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Hint } from '@/components/Hint';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,7 +12,7 @@ import { clock, secs } from '@/lib/format';
 import { local, useStudio } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { openItemBox, openMusicBox, useComments, type MusicPart, type TimelineItem } from '@/features/comments/comments';
-import { SETTINGS, barTimes, effective, overrides } from './kit';
+import { SETTINGS, barTimes, effective, mutedBy, overrides } from './kit';
 import { MusicBrief } from './MusicBrief';
 import { FRAME, GUT, MINI, PAD, TRK, clamp, dB, dragModeAt, dragTo, freeze, gainY, laneOf, layerRows, nameOf, ppsFor, readout, round, shortName, ticks, trackCount, xAt, type DragStart } from './geometry';
 import { bufOf, fileLen, loadSound } from './audio';
@@ -22,7 +22,7 @@ import { ViewBar } from './ViewBar';
 import { Gut, Row, type Axis } from './rows';
 import {
   M, addCue, addMusic, addTrack, changed, closeFocus, cueById, cueLen, cueStart, focusObject, hasSound, nudge, objectBy, openEditor, removeCue,
-  removeTrack, select, setMusicOpen, tellEdit, useEdit,
+  removeTrack, select, setMusicOpen, setSfxOpen, tellEdit, toggleMute, useEdit,
 } from './store';
 import type { Cue } from './types';
 
@@ -135,7 +135,7 @@ export function Timeline({ hidden }: { hidden: boolean }) {
           <BeatsRow axis={axis} />
           {hasSound() ? <MusicRows axis={axis} /> : null}
           <ObjectRows axis={axis} />
-          {hasSound() ? <TrackRows axis={axis} /> : null}
+          {hasSound() ? <SfxRows axis={axis} /> : null}
           <div ref={headRef} className="pointer-events-none absolute top-0 bottom-0 z-[4] w-0.5 bg-destructive" />
         </div>
       </div>
@@ -370,13 +370,14 @@ function MusicRows({ axis }: { axis: Axis }) {
   };
   return (
     <>
-      <Row height={MINI} data-music-lane="" className="music-lane bg-(--music)/[.05]" {...dropOn} name={
+      <Row height={MINI} data-music-lane="" className="music-lane bg-(--music)/[.05]" gutClass={GUT_MUSIC} {...dropOn} name={
         <>
           <button type="button" aria-expanded={open} title={open ? 'Show the music as one row' : 'Show each music track'} onClick={twirl}
             className="inline-flex cursor-pointer items-center gap-1.5 text-xs leading-none font-semibold text-foreground">
             <span className="w-2.5 text-muted-foreground">{open ? '▾' : '▸'}</span>Music<span className="text-muted-foreground"> {cues.length || ''}</span>
           </button>
           <MusicBrief />
+          <MuteButton k="music" label="the music" />
         </>
       }>
         {sections.map((s) => (
@@ -390,9 +391,9 @@ function MusicRows({ axis }: { axis: Axis }) {
       {open ? (
         <div data-music-lane="" className="music-lane relative">
           {brief ? barTimes(brief, duration).map((t) => <i key={t} className="pointer-events-none absolute top-0 bottom-0 z-0 border-l border-(--music)/15" style={{ left: xAt(t, k) }} />) : null}
-          <Lane axis={axis} cues={cues} rows={rows} className="bg-(--music)/[.03]" rowClass="border-b-(--music)/15"
+          <Lane axis={axis} cues={cues} rows={rows} className="bg-(--music)/[.03]" rowClass="border-b-(--music)/15" gutClass={GUT_MUSIC}
             clipClass="border-(--music)/70 bg-(--music)/15 data-[on]:bg-(--music)/30 data-[on]:shadow-[0_0_0_1px_var(--music)]"
-            gutter={(r) => <span className="text-muted-foreground">Music {r + 1}</span>}
+            gutter={(r) => <><span className="text-foreground">Music {r + 1}</span><MuteButton k={`music:${r}`} label={`Music ${r + 1}`} className="ml-auto" /></>}
             onDrop={(path, t, r) => addCue(path, t, r, null, true)} />
         </div>
       ) : null}
@@ -405,14 +406,67 @@ function MusicMini({ c, k, on }: { c: Cue; k: number; on: boolean }) {
   return (
     <button type="button" data-cue={c.id} title={`Music: ${nameOf(c.sound)} at ${secs(cueStart(c))}`}
       onClick={() => { useEdit.setState({ sel: c.id }); setMusicOpen(true); }}
-      className={cn('absolute top-[11px] z-[1] h-4 cursor-pointer overflow-hidden rounded border border-(--music)/70 bg-(--music)/20 p-0', on && 'shadow-[0_0_0_1px_var(--foreground)]', c.mute && 'opacity-45')}
+      className={cn('absolute top-[11px] z-[1] h-4 cursor-pointer overflow-hidden rounded border border-(--music)/70 bg-(--music)/20 p-0', on && 'shadow-[0_0_0_1px_var(--foreground)]', (c.mute || mutedBy(useEdit.getState().sheet.muted, c)) && 'opacity-35')}
       style={{ left: xAt(cueStart(c), k), width: w }}>
       <Wave sound={c.sound} from={s.from} to={s.to} w={w} h={14} />
     </button>
   );
 }
 
-/* ── your own tracks, numbered, and + Add track under them ── */
+/* the name column of each group's rows takes its colour (opaque: it stays put over the clips as you scroll) */
+const GUT_MUSIC = 'bg-[color-mix(in_srgb,var(--music)_14%,var(--card))]';
+const GUT_SFX = 'bg-[color-mix(in_srgb,var(--sfx)_14%,var(--card))]';
+
+/** Mutes a group or one of its tracks (sheet.muted): what's muted isn't heard or rendered, and its clips dim. */
+function MuteButton({ k, label, className }: { k: string; label: string; className?: string }) {
+  const muted = useEdit((s) => !!s.sheet.muted?.includes(k));
+  const what = `${muted ? 'Unmute' : 'Mute'} ${label}`;
+  return (
+    <Hint label={what}>
+      <Button variant="ghost" size="icon-xs" aria-label={what} aria-pressed={muted} onClick={() => toggleMute(k)}
+        className={cn('flex-none', muted ? 'text-destructive' : 'text-muted-foreground hover:text-foreground', className)}>
+        {muted ? <VolumeX /> : <Volume2 />}
+      </Button>
+    </Hint>
+  );
+}
+
+/* ── the sound effects: your own tracks, grouped as SFX in an orange container. One thin row closed (every
+ * effect's clips on it), its tracks when open; a mute for the group and for each track. ── */
+function SfxRows({ axis }: { axis: Axis }) {
+  const sheet = useEdit((s) => s.sheet), open = useEdit((s) => s.sfxOpen), sel = useEdit((s) => s.sel);
+  const free = sheet.cues.filter((c) => laneOf(c) === null), n = trackCount(sheet);
+  return (
+    <div className="sfx-group border-y-2 border-(--sfx)/55 bg-(--sfx)/[.03]">
+      <Row height={MINI} className="bg-(--sfx)/[.07]" gutClass={GUT_SFX} name={
+        <>
+          <button type="button" aria-expanded={open} title={open ? 'Show the effects as one row' : 'Show each effects track'} onClick={() => setSfxOpen(!open)}
+            className="inline-flex cursor-pointer items-center gap-1.5 text-xs leading-none font-semibold text-foreground">
+            <span className="w-2.5 text-muted-foreground">{open ? '▾' : '▸'}</span>SFX<span className="text-muted-foreground"> {n} track{n === 1 ? '' : 's'}</span>
+          </button>
+          <MuteButton k="sfx" label="all the sound effects" className="ml-auto" />
+        </>
+      }>
+        {open ? null : free.map((c) => <SfxMini key={c.id} c={c} k={axis.k} on={sel === c.id} />)}
+      </Row>
+      {open ? <TrackRows axis={axis} /> : null}
+    </div>
+  );
+}
+/** An effect on the SFX group's thin row: a click opens the group with the clip selected. */
+function SfxMini({ c, k, on }: { c: Cue; k: number; on: boolean }) {
+  const s = effective(c, useEdit.getState().lib), w = Math.max(4, cueLen(c) * k);
+  return (
+    <button type="button" data-cue={c.id} title={`${nameOf(c.sound)} on Track ${(c.track ?? 0) + 1} at ${secs(cueStart(c))}`}
+      onClick={() => { useEdit.setState({ sel: c.id }); setSfxOpen(true); }}
+      className={cn('absolute top-[11px] z-[1] h-4 cursor-pointer overflow-hidden rounded border border-(--sound)/70 bg-(--sound)/20 p-0', on && 'shadow-[0_0_0_1px_var(--foreground)]', (c.mute || mutedBy(useEdit.getState().sheet.muted, c)) && 'opacity-35')}
+      style={{ left: xAt(cueStart(c), k), width: w }}>
+      <Wave sound={c.sound} from={s.from} to={s.to} w={w} h={14} />
+    </button>
+  );
+}
+
+/* ── your own tracks, numbered, each with its mute, and + Add track under them ── */
 function TrackRows({ axis }: { axis: Axis }) {
   const sheet = useEdit((s) => s.sheet);
   const free = sheet.cues.filter((c) => laneOf(c) === null), n = trackCount(sheet);
@@ -421,11 +475,12 @@ function TrackRows({ axis }: { axis: Axis }) {
     const what = `Remove track ${i + 1}${count ? ` and its ${count} sound${count === 1 ? '' : 's'}` : ''}`;
     return (
       <>
-        <span>Track {i + 1}</span>
+        <span className="text-foreground">Track {i + 1}</span>
+        <MuteButton k={`sfx:${i}`} label={`Track ${i + 1}`} className="ml-auto" />
         {n > 1 ? (
           <Hint label={what}>
             <Button variant="outline" size="icon-xs" aria-label={what} onClick={() => removeTrack(i)}
-              className="ml-auto opacity-0 group-hover/trk:opacity-100 hover:text-destructive focus-visible:opacity-100"><Minus /></Button>
+              className="opacity-0 group-hover/trk:opacity-100 hover:text-destructive focus-visible:opacity-100"><Minus /></Button>
           </Hint>
         ) : null}
       </>
@@ -433,16 +488,16 @@ function TrackRows({ axis }: { axis: Axis }) {
   };
   return (
     <>
-      <Lane axis={axis} cues={free} rows={n} tracks gutter={name} className="tl-tracks" rowClass="odd:bg-foreground/[.025]" onDrop={(path, t, r) => addCue(path, t, r)} />
-      <Row height={34} className="border-b-0" gutClass="border-r-0" name={<Button size="xs" variant="ghost" onClick={addTrack} disabled={n >= 16}>+ Add track</Button>} />
+      <Lane axis={axis} cues={free} rows={n} tracks gutter={name} className="tl-tracks" rowClass="odd:bg-foreground/[.025]" gutClass={GUT_SFX} onDrop={(path, t, r) => addCue(path, t, r)} />
+      <Row height={34} className="border-b-0" gutClass={cn('border-r-0', GUT_SFX)} name={<Button size="xs" variant="ghost" onClick={addTrack} disabled={n >= 16}>+ Add track</Button>} />
     </>
   );
 }
 
 /* a lane of rows holding clips; sounds dropped on it are added where they land */
-function Lane({ axis, cues, rows, gutter, onDrop, className, rowClass, clipClass, tracks = false, objId }: {
+function Lane({ axis, cues, rows, gutter, onDrop, className, rowClass, clipClass, gutClass, tracks = false, objId }: {
   axis: Axis; cues: Cue[]; rows: number; gutter: (i: number) => React.ReactNode; onDrop: (path: string, t: number, row: number) => void;
-  className?: string; rowClass?: string; clipClass?: string; tracks?: boolean; objId?: string | null;
+  className?: string; rowClass?: string; clipClass?: string; gutClass?: string; tracks?: boolean; objId?: string | null;
 }) {
   const { k, tAt, duration } = axis;
   const ref = useRef<HTMLDivElement>(null), ghost = useRef<HTMLDivElement>(null);
@@ -464,7 +519,7 @@ function Lane({ axis, cues, rows, gutter, onDrop, className, rowClass, clipClass
       onPointerDown={(e) => { const t = e.target as HTMLElement; if (t === ref.current || t.dataset.row !== undefined) select(null); }}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} data-row="" data-track={tracks ? i : undefined} className={cn('group/trk absolute inset-x-0 flex border-b', rowClass)} style={{ top: i * TRK, height: TRK }}>
-          <Gut>{gutter(i)}</Gut>
+          <Gut className={gutClass}>{gutter(i)}</Gut>
         </div>
       ))}
       <div ref={ghost} hidden className="pointer-events-none absolute z-[3] w-0.5 bg-primary">
@@ -543,7 +598,7 @@ function Clip({ c, k, className }: { c: Cue; k: number; className?: string }) {
       onPointerDown={down} onPointerMove={hover} onKeyDown={key} onDoubleClick={() => openEditor(c.sound)}
       className={cn('tl-clip absolute z-[1] cursor-grab touch-none overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--clip)_55%,transparent)] bg-[color-mix(in_srgb,var(--clip)_16%,transparent)] select-none hover:border-(--clip)',
         'data-[on]:border-(--clip) data-[on]:bg-[color-mix(in_srgb,var(--clip)_30%,transparent)] data-[on]:shadow-[0_0_0_1px_var(--clip)] data-[dragging]:z-[2] data-[dragging]:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-foreground',
-        c.mute && 'border-dashed opacity-45', className)}
+        c.mute && 'border-dashed opacity-45', !c.mute && mutedBy(useEdit.getState().sheet.muted, c) && 'opacity-35', className)}
       style={{ left: xAt(start, k), top: (c.track ?? 0) * TRK + 4, width: w, height: HGT }}>
       <Wave sound={c.sound} from={s.from} to={s.to} w={w} h={HGT} />
       <span className="pointer-events-none absolute top-0.5 left-1.5 text-[11px] leading-[1.3] font-semibold whitespace-nowrap text-foreground [text-shadow:0_1px_2px_color-mix(in_srgb,var(--background)_90%,transparent)]">

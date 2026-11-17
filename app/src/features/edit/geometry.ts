@@ -52,6 +52,11 @@ export function removeTrack(sheet: Sheet, i: number) {
   const n = trackCount(sheet);
   sheet.cues = sheet.cues.filter((c) => laneOf(c) !== null || (c.track ?? 0) !== i);
   for (const c of sheet.cues) if (laneOf(c) === null && (c.track ?? 0) > i) c.track = (c.track ?? 0) - 1;
+  // its mute goes with it, and the mutes of the tracks below move up with them
+  if (sheet.muted?.length) {
+    sheet.muted = sheet.muted.flatMap((k) => { const m = /^sfx:(\d+)$/.exec(k); if (!m) return [k]; const n = +m[1]; return n === i ? [] : [n > i ? `sfx:${n - 1}` : k]; });
+    if (!sheet.muted.length) delete sheet.muted;
+  }
   sheet.tracks = Math.max(1, n - 1);
 }
 /** An object's layer: a row per track its clips use, and one to spare for dropping when it's open. */

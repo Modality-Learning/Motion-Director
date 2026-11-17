@@ -115,3 +115,28 @@ test('the prompt says how long the track should be, and ends on [End]', () => {
   // a style that already names a length keeps its own
   assert.match(promptText({ ...brief, prompt: { style: 'pop, 0:40 long' } }), /^pop, 0:40 long$/);
 });
+
+test('a lift far from the drop is not lined up on it: a track the right length stays under the whole film', () => {
+  // the case that cut a track in half: 95.6 s at 125 BPM for a 96 s film, its strongest lift near the end
+  const brief = { bpm: 124, beatsPerBar: 4, offset: 0.47, sections: [{ name: 'Claude makes it', at: 31.44, drop: true }], ending: 'button' };
+  const track = { bpm: 125.22, phase: 0.363, seconds: 95.6, lifts: [{ t: 79.42, lift: 0.63 }, { t: 11.38, lift: 0.47 }, { t: 20.97, lift: 0.37 }] };
+  const plan = fitPlan(brief, track, { at: 0.34, from: 0 }, { duration: 96 });
+  assert.ok(plan.at < 1 && plan.from < 1, `placed at ${plan.at}, from ${plan.from}`);
+  assert.equal(plan.drop, null);
+  assert.match(plan.note, /no clear lift near "Claude makes it"/);
+  // a strong lift near where the drop falls is put on it
+  const near = fitPlan(brief, { ...track, lifts: [{ t: 79.42, lift: 0.63 }, { t: 33.1, lift: 0.6 }] }, { at: 0.34, from: 0 }, { duration: 96 });
+  assert.equal(near.drop, 'Claude makes it');
+  assert.ok(Math.abs(near.at + (33.1 - near.from) / near.rate - 31.44) < 0.01);
+});
+
+test('a track far longer than the film may use a lift anywhere, if the music still runs to the film\'s end', () => {
+  const brief = { bpm: 120, beatsPerBar: 4, offset: 0, sections: [{ name: 'Lift', at: 30, drop: true }] };
+  // 147 s for a 96 s film: its lift at 70 s puts 40 s of track before the drop and 77 s after it
+  const plan = fitPlan(brief, { bpm: 120, phase: 0, seconds: 147, lifts: [{ t: 70, lift: 1 }] }, { at: 0, from: 0 }, { duration: 96 });
+  assert.equal(plan.drop, 'Lift');
+  assert.deepEqual([plan.at, plan.from, plan.to], [0, 40, 136]);
+  // one whose lift is too late to leave music for the end isn't used
+  const late = fitPlan(brief, { bpm: 120, phase: 0, seconds: 147, lifts: [{ t: 140, lift: 1 }] }, { at: 0, from: 0 }, { duration: 96 });
+  assert.equal(late.drop, null);
+});

@@ -233,7 +233,9 @@ Opening one gives these tabs:
   The **music lane** holds the soundtrack. It's one thin row by default, with the music brief's sections
   marked; its twirl opens a row per music track with the brief's bar lines. Sounds the library files as Music
   go there. Its **Brief** button shows the tempo, the sections and the prompt to copy into a music generator,
-  and **Line up the music** fits the track to the brief (see the command `music`).
+  and a selected music clip's **Line up with the brief**, in the inspector, fits the track to it (see the command
+  `music`). Your own effects tracks sit in the orange **SFX** group, which closes to one thin row. Each group and
+  each track has a mute: muted sounds aren't heard or rendered.
 - **Export** (films). **Video**: the drift check, renders (a share MP4, or ProRes 422 HQ or 4444 masters;
   1080p, 1440p or 4K) with progress and cancel, and the film's files with Show in Finder and Open.
   **Scroll** (a prototype): the film as a web page plays it, live and without an iframe, moved by scrolling

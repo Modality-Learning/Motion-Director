@@ -151,3 +151,17 @@ test('a music cue is kept as music, and music never belongs to an object', () =>
   const { voices } = resolveVoices(ok.sheet, { sounds: {} }, []);
   assert.deepEqual(voices.map((v) => [v.cue, v.at, v.gain]), [['m1', 0, -14]]);
 });
+
+test('muting a lane or a track: kept tidy, and its sounds are neither heard nor rendered', () => {
+  const sheet = validateSheet({ master: 0, muted: ['music', 'sfx:1', 'sfx:1'], objects: { o1: { label: 'Ball', selector: '#b' } }, cues: [
+    { id: 'm', sound: 'm.wav', at: 0, music: true },
+    { id: 'a', sound: 'a.wav', at: 1, track: 0 },
+    { id: 'b', sound: 'b.wav', at: 2, track: 1 },
+    { id: 'o', sound: 'o.wav', at: 3, track: 1, object: 'o1' },
+  ] }).sheet;
+  assert.deepEqual(sheet.muted, ['music', 'sfx:1']);
+  // an object's clip on its own track 1 isn't your track 1
+  assert.deepEqual(resolveVoices(sheet, { sounds: {} }, []).voices.map((v) => v.cue), ['a', 'o']);
+  assert.deepEqual(resolveVoices({ ...sheet, muted: ['sfx'] }, { sounds: {} }, []).voices.map((v) => v.cue), ['m']);
+  assert.match(validateSheet({ master: 0, muted: ['drums'], cues: [] }).error, /Muted tracks/);
+});

@@ -32,15 +32,8 @@ test('the brief: tempo, sections with the drop, the prompt to copy, and Line up 
   expect(screen.getByText('The lift')).toBeInTheDocument();
   expect(screen.getByText(/\(the drop\)/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Copy the prompt' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Line up the music' })).toBeDisabled();
-  expect(screen.getByText(/Drop the generated track on the music lane/)).toBeInTheDocument();
-});
-
-test('with a track on the music lane, Line up is ready', () => {
-  seed(brief, [{ id: 'm', sound: 'music.wav', at: 0, music: true }]);
-  render(<MusicBrief />);
-  fireEvent.click(screen.getByRole('button', { name: 'The music brief' }));
-  expect(screen.getByRole('button', { name: 'Line up the music' })).toBeEnabled();
+  // lining a track up is the clip's, in the inspector, not the brief's
+  expect(screen.queryByRole('button', { name: /Line up/ })).toBeNull();
 });
 
 test('a brief that does not check out says why', () => {

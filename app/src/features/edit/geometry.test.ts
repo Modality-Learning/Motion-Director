@@ -146,3 +146,14 @@ describe('the music lane', () => {
     expect(laneOf(s.cues[1])).toBe(MUSIC);
   });
 });
+
+describe('muted tracks', () => {
+  it('removing a track takes its mute with it, and the mutes below move up with their tracks', () => {
+    const s: Sheet = { master: 0, tracks: 4, muted: ['music', 'sfx:1', 'sfx:3'], cues: [{ id: 'a', sound: 'a.wav', at: 0, track: 3 }] };
+    removeTrack(s, 1);
+    expect(s.muted).toEqual(['music', 'sfx:2']);
+    expect(s.cues[0].track).toBe(2);
+    removeTrack(s, 2);
+    expect(s.muted).toEqual(['music']);
+  });
+});

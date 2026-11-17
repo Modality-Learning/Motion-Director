@@ -24,6 +24,11 @@ do. Add to Unreleased as you go; `node scripts/release.mjs <version>` turns it i
 - **Comment on the brief.** Each section, the prompt and the whole brief have a comment button in the Brief, and
   in comment mode the music lane's section markers take comments too. Claude amends the brief from them: a new
   direction in its own words (generators refuse band names), the sections and bars kept in step.
+- **Mute and group the tracks.** Your effects tracks sit in an orange SFX group that closes to one thin row, the
+  music in its violet group. Every group and every track has a mute; muted sounds aren't heard or rendered.
+- **Line up, more careful.** It's now on the music clip, in the inspector. It only puts a lift on the drop when the
+  lift is near where the drop falls, so a late build-up can't cut a track in half; otherwise it lines up the beats
+  with the smallest move.
 
 ## 0.2.0 (2026-11-17)
 

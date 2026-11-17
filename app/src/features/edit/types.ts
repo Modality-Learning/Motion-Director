@@ -38,7 +38,7 @@ export interface Brief {
   ending?: 'button' | 'fade' | 'ring'; length?: number;
   prompt?: { style?: string; structure?: string; notes?: string };
 }
-export interface Sheet { master: number; tracks?: number; objects?: Record<string, SheetObject>; cues: Cue[] }
+export interface Sheet { master: number; tracks?: number; /** muted lanes and tracks: "music", "sfx", "music:0", "sfx:2" */ muted?: string[]; objects?: Record<string, SheetObject>; cues: Cue[] }
 
 export interface LibEntry extends Partial<Settings> { family?: string; tags?: string[]; uses?: string[]; description?: string; /** the day Claude organised it, YYYY-MM-DD */ organised?: string }
 export interface Library { sounds: Record<string, LibEntry> }

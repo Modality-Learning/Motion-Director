@@ -6,32 +6,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { secs } from '@/lib/format';
 import { copy, openMusicBox, type MusicPart } from '@/features/comments/comments';
 import { cn } from '@/lib/utils';
-import { lineUpMusic, useEdit } from './store';
+import { useEdit } from './store';
 import type { Brief } from './types';
 
 import { clockOf, promptText } from './kit';
 
 export { promptText };
 
-/** The music lane's Brief button: the tempo, the sections at their times, the prompt to copy into Suno or
- * another generator, and Line up, which fits the music clip to the brief (server/music-lib.mjs). */
+/** The music lane's Brief button: the tempo, the sections at their times, and the prompt to copy into Suno or another
+ * generator, each open to comments. Lining a track up is the clip's, in the inspector. */
 export function MusicBrief() {
   const brief = useEdit((s) => s.brief), problem = useEdit((s) => s.briefError);
-  const hasMusic = useEdit((s) => s.sheet.cues.some((c) => c.music));
-  const [busy, setBusy] = useState(false);
   if (!brief && !problem) return null;
-
-  async function lineUp() {
-    setBusy(true);
-    const r = await lineUpMusic();
-    setBusy(false);
-    if ('error' in r && r.error) toast.error(r.error);
-    else if ('plan' in r && r.plan) {
-      const where = `at ${secs(r.plan.at)}${r.plan.drop ? `, its lift on "${r.plan.drop}"` : ''}`;
-      if (r.plan.matched) toast.success(`Lined up ${where}`, { description: r.plan.note });
-      else toast.warning(`Placed ${where}, but its tempo doesn't match the brief`, { description: r.plan.note, duration: 10_000 });
-    }
-  }
 
   return (
     <Popover>
@@ -64,12 +50,6 @@ export function MusicBrief() {
               </ol>
             ) : null}
             {brief.prompt?.style || brief.prompt?.structure ? <PromptBlock brief={brief} /> : null}
-            <div className="grid gap-1 border-t pt-3">
-              <Button size="sm" variant="secondary" onClick={lineUp} disabled={busy || !hasMusic}>{busy ? 'Measuring the track…' : 'Line up the music'}</Button>
-              <p className="text-xs text-muted-foreground">
-                {hasMusic ? 'Measures the track on the music lane, then sets its start and speed so its beats keep the brief’s time.' : 'Drop the generated track on the music lane, then line it up here.'}
-              </p>
-            </div>
           </>
         ) : null}
       </PopoverContent>

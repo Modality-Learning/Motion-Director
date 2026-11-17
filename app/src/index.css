@@ -30,6 +30,7 @@
   --success: #3ccf7f;
   --sound: #9fe3b0;             /* sounds on your own tracks (not an object's) */
   --music: #9d95ff;             /* the soundtrack lane, its clips and the brief's sections */
+  --sfx: #f0a04b;               /* the SFX group: its container and its tracks' names */
   --ink: #111113;               /* behind small labels laid over clips */
   /* data colours: an object's clips and layer, the motion graph's lines and marks */
   --data-1: #e8952e;

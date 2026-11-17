@@ -175,16 +175,24 @@ export function beatPhase(onset, bpm) {
   return Math.round((bestPhase(onset, bpm).p / FPS) * 1000) / 1000;
 }
 
-/** The biggest lift: the beat where the next bar is loudest compared with the bar before it (the drop), in seconds. */
-export function biggestLift(energy, bpm, phase, beatsPerBar = 4) {
-  const bar = (60 / bpm) * beatsPerBar * FPS, mean = (a, b) => { let s = 0, n = 0; for (let f = Math.max(0, Math.round(a)); f < Math.min(energy.length, Math.round(b)); f++) { s += energy[f]; n++; } return n ? s / n : 0; };
-  let best = null;
-  for (let f = phase * FPS + bar; f + bar < energy.length; f += bar / beatsPerBar) {
-    const lift = mean(f, f + bar) - mean(f - bar, f);
-    if (!best || lift > best.lift) best = { t: f / FPS, lift };
+/** The track's lifts, strongest first: beats where the next two bars are louder than the two before, by how much
+ * ({ t, lift }, seconds into the file). Two bars either side, so a one-bar dip and its recovery isn't a lift.
+ * Each is a local best, at least two bars from a stronger one. */
+export function lifts(energy, bpm, phase, beatsPerBar = 4, count = 8) {
+  const bar = (60 / bpm) * beatsPerBar * FPS, span = bar * 2;
+  const mean = (a, b) => { let s = 0, n = 0; for (let f = Math.max(0, Math.round(a)); f < Math.min(energy.length, Math.round(b)); f++) { s += energy[f]; n++; } return n ? s / n : 0; };
+  const rows = [];
+  for (let f = phase * FPS + span; f + span <= energy.length; f += bar / beatsPerBar) rows.push({ t: f / FPS, lift: mean(f, f + span) - mean(f - span, f) });
+  const out = [];
+  for (const r of rows.sort((x, y) => y.lift - x.lift)) {
+    if (r.lift <= 0 || out.length >= count) break;
+    if (out.some((o) => Math.abs(o.t - r.t) < (span / FPS))) continue;
+    out.push({ t: Math.round(r.t * 1000) / 1000, lift: Math.round(r.lift * 1000) / 1000 });
   }
-  return best ? Math.round(best.t * 1000) / 1000 : null;
+  return out;
 }
+/** The biggest lift, in seconds into the file, or null. */
+export const biggestLift = (energy, bpm, phase, beatsPerBar = 4) => lifts(energy, bpm, phase, beatsPerBar, 1)[0]?.t ?? null;
 
 /** Where to put a music clip and how fast to play it so the track keeps the brief's time:
  * { at, rate, shift, note }. `track`: what was measured, in the file's own seconds ({ bpm, phase, lift });
@@ -200,12 +208,26 @@ export function fitPlan(brief, track, clip, film = {}) {
   const from = clip.from ?? 0, filmAt = (x, at) => at + (x - from) / rate;
   const beat = beatLen(brief.bpm), bar = barLen(brief), offset = brief.offset ?? 0;
   const drop = brief.sections.find((s) => s.drop);
-  let at;
-  if (drop && track.lift != null) at = drop.at - (track.lift - from) / rate; // the lift on the drop
-  else {
-    // the nearest place where the track's beats sit on the film's beat lines (a downbeat isn't known without a drop)
-    const first = filmAt(track.phase, clip.at ?? 0), d = (((offset - first) % beat) + beat) % beat;
-    at = (clip.at ?? 0) + (d > beat / 2 ? d - beat : d);
+  const duration0 = film.duration ?? brief.length;
+  // first, the nearest place where the track's beats sit on the film's beat lines
+  const first = filmAt(track.phase, clip.at ?? 0), d = (((offset - first) % beat) + beat) % beat;
+  const onBeat = (clip.at ?? 0) + (d > beat / 2 ? d - beat : d);
+  let at = onBeat, liftUsed = null, dropNote = '';
+  // then a lift on the drop: one near where the drop falls with the beats lined up (a generated track that kept to
+  // its length usually has its build-ups about where the structure asked), strong enough to count. Music lifts more
+  // than once, so the strongest lift anywhere isn't the drop: lining that up can cut half the track away.
+  const candidates = track.lifts ?? (track.lift != null ? [{ t: track.lift, lift: 1 }] : []);
+  if (drop && candidates.length) {
+    const strongest = Math.max(...candidates.map((l) => l.lift)), barInFile = bar * rate;
+    const expected = from + (drop.at - onBeat) * rate;
+    const near = candidates.filter((l) => Math.abs(l.t - expected) <= 4 * barInFile && l.lift >= 0.5 * strongest).sort((x, y) => y.lift - x.lift)[0];
+    // a track far longer than the film (the generator ignored the length): any lift, if the music still runs to the end
+    const long = duration0 && track.seconds && track.seconds > duration0 * 1.3;
+    const covers = (l) => { const a = drop.at - (l.t - from) / rate, start = a < 0 ? from - a * rate : from; return Math.max(0, a) + (track.seconds - start) / rate >= duration0 - bar; };
+    const far = !near && long ? [...candidates].sort((x, y) => y.lift - x.lift).find(covers) : null;
+    liftUsed = near ?? far ?? null;
+    if (liftUsed) at = drop.at - (liftUsed.t - from) / rate;
+    else dropNote = ` There's no clear lift near "${drop.name}", so it's lined up on the beat, with its own build-ups where they are.`;
   }
   // a clip can't start before the film: the start of the track is trimmed off instead
   let trimFrom = from;
@@ -233,5 +255,5 @@ export function fitPlan(brief, track, clip, film = {}) {
       endNote = ` The track ends at ${endsAt.toFixed(1)} s, before the film does (${duration} s).`;
     }
   }
-  return { at, from: trimFrom, to, fadeOut, rate, matched, shift: Math.round((at - (clip.at ?? 0)) * 1000) / 1000, note: note + endNote, drop: drop && track.lift != null ? drop.name : null, bar };
+  return { at, from: trimFrom, to, fadeOut, rate, matched, shift: Math.round((at - (clip.at ?? 0)) * 1000) / 1000, note: note + dropNote + endNote, drop: drop && liftUsed ? drop.name : null, bar };
 }

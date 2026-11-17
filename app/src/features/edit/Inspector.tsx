@@ -3,6 +3,7 @@
 // mix at its foot: a level meter and master volume.
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -17,7 +18,7 @@ import { fileLen } from './audio';
 import { MARKS } from './motion';
 import { EQ_BARS, drawEq, eqStep } from './waveform';
 import {
-  M, changed, closeFocus, cueById, cueStart, filmWindow, focusObject, momentLabel, nudge, objectBy, openEditor, pushVoices, removeCue,
+  M, changed, closeFocus, cueById, cueStart, filmWindow, focusObject, lineUpMusic, momentLabel, nudge, objectBy, openEditor, pushVoices, removeCue,
   setDefaults, startAt, tellEdit, useEdit,
 } from './store';
 import { PlayButton, NumInput, SettingRow, SideK } from './controls';
@@ -88,6 +89,7 @@ function ClipPanel({ c }: { c: Cue }) {
         <Button size="xs" variant="outline" aria-pressed={!!c.mute} onClick={() => { if (c.mute) delete c.mute; else c.mute = true; changed(); }}>{c.mute ? 'Muted' : 'Mute'}</Button>
         <Button size="xs" variant="outline" onClick={() => removeCue(c)}>Remove</Button>
       </div>
+      {c.music ? <LineUp c={c} /> : null}
       <div className="grid gap-1">
         <label htmlFor="snd-at" className="flex items-center gap-1.5 text-sm font-medium">Starts at<span className="text-xs font-normal text-muted-foreground">s</span></label>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -125,6 +127,31 @@ function ClipPanel({ c }: { c: Cue }) {
         <Button size="xs" variant="outline" onClick={() => openEditor(c.sound)}>Edit the sound</Button>
       </div>
     </>
+  );
+}
+
+/** A music clip: line it up with the film's music brief (server/music-lib.mjs). The server measures the track, then
+ * sets the clip's start, trim and speed, and ends it with the film; the clip moves here when it saves. */
+function LineUp({ c }: { c: Cue }) {
+  const brief = useEdit((s) => s.brief);
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    const r = await lineUpMusic(c.id);
+    setBusy(false);
+    if ('error' in r && r.error) { toast.error(r.error); return; }
+    if (!('plan' in r) || !r.plan) return;
+    const where = `at ${secs(r.plan.at)}${r.plan.drop ? `, its lift on "${r.plan.drop}"` : ''}`;
+    if (r.plan.matched) toast.success(`Lined up ${where}`, { description: r.plan.note, duration: 8000 });
+    else toast.warning(`Placed ${where}, but its tempo doesn't match the brief`, { description: r.plan.note, duration: 10_000 });
+  }
+  return (
+    <div className="grid gap-1.5 rounded-lg border border-(--music)/40 px-2.5 py-2">
+      <Button size="xs" variant="secondary" onClick={run} disabled={busy || !brief}>{busy ? 'Measuring the track…' : 'Line up with the brief'}</Button>
+      <p className="text-xs text-muted-foreground">
+        {brief ? `Keeps the brief's ${brief.bpm} BPM, puts a lift near the drop on it, and ends the music with the film.` : 'This film has no music brief yet: ask Claude to write one, then line the track up here.'}
+      </p>
+    </div>
   );
 }
 

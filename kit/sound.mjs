@@ -14,6 +14,8 @@
  *   cue: { "at": 11.3, "object": "o1", "anchor": { "kind": "stop", "n": 0, "t": 11.76 } }
  * Music: a cue with "music": true is the soundtrack. It plays like any cue; the studio keeps it on its own lane
  * (tracks numbered within that lane), and films/<film>/music.json holds the brief it was made from (kit/music.mjs).
+ * Muting a lane or a track: "muted": ["music", "sfx:2"] (the whole music lane; the third of your own effects tracks).
+ * "sfx" alone mutes every effect, your tracks' and the objects'. Muted sounds aren't heard or rendered.
  * The anchor is the object's event the cue sits nearest (its nth arrival, fastest moment, stop or exit, as the
  * studio measured it). When the studio measures the object again and that event has moved, the cue moves by
  * the same amount. The cue's own time (at) is what plays and renders.
@@ -38,6 +40,16 @@ export const AUDIO_EXT = /\.(wav|aif|aiff|aifc|caf|mp3|m4a|aac|flac)$/i;
 export const MOMENT_ID = /^[a-z0-9][a-z0-9.-]{0,59}$/;
 const CUE_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const LIMITS = { cues: 500, sounds: 20000, path: 300 };
+const MUTE_KEY = /^(music|sfx)(:([0-9]|1[0-5]))?$/;
+
+/** Whether a cue is muted by its lane or its track (sheet.muted): music is its own lane; everything else is an
+ * effect, on your own tracks (which mute one by one) or an object's. */
+export function mutedBy(muted, cue) {
+  if (!muted?.length) return false;
+  const lane = cue.music ? 'music' : 'sfx';
+  if (muted.includes(lane)) return true;
+  return (cue.music || cue.object === undefined) && muted.includes(`${lane}:${cue.track ?? 0}`);
+}
 
 /** A library-relative path to an audio file: no "..", no absolute paths, an audio extension. */
 export function soundPathOk(p) {
@@ -97,10 +109,14 @@ export function validateSheet(sheet) {
   // how many of your own tracks the timeline shows (optional; never fewer than the clips need)
   const tracks = sheet.tracks;
   if (tracks !== undefined && (!Number.isInteger(tracks) || tracks < 1 || tracks > 16)) return { error: 'Track count is out of range' };
+  // muted lanes and tracks: known keys, once each
+  const muted = sheet.muted ?? [];
+  if (!Array.isArray(muted) || muted.length > 34 || muted.some((k) => typeof k !== 'string' || !MUTE_KEY.test(k))) return { error: 'Muted tracks must be "music", "sfx" or "<lane>:<track>"' };
   // only objects that still have cues are kept
   const used = new Set(cues.map((c) => c.object).filter(Boolean));
   const objects = Object.fromEntries(Object.entries(o.objects).filter(([id]) => used.has(id)));
-  return { sheet: { master, ...(tracks !== undefined ? { tracks } : {}), ...(Object.keys(objects).length ? { objects } : {}), cues } };
+  const mutedClean = [...new Set(muted)];
+  return { sheet: { master, ...(tracks !== undefined ? { tracks } : {}), ...(mutedClean.length ? { muted: mutedClean } : {}), ...(Object.keys(objects).length ? { objects } : {}), cues } };
 }
 
 /** A sound's library entry: its default settings, plus the family and tags set by hand (kit/sound-library.mjs). */
@@ -187,7 +203,7 @@ export function resolveVoices(sheet, library, moments, duration = Infinity) {
   for (const cue of sheet?.cues || []) {
     const m = cue.moment === undefined ? { times: [cue.at] } : byId.get(cue.moment);
     if (!m) { orphans.push(cue.id); continue; }
-    if (cue.mute) continue;
+    if (cue.mute || mutedBy(sheet.muted, cue)) continue;
     const s = effective(cue, library);
     for (const time of m.times) {
       const at = time + (cue.moment === undefined ? 0 : cue.offset || 0);
