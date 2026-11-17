@@ -28,6 +28,7 @@
   --ring: #8a8a93;
   --warning: #e8952e;
   --success: #3ccf7f;
+  --sound: #9fe3b0;             /* sounds on your own tracks (not an object's) */
   --ink: #111113;               /* behind small labels laid over clips */
   /* data colours: an object's clips and layer, the motion graph's lines and marks */
   --data-1: #e8952e;
@@ -90,6 +91,9 @@
   /* each object has its colour: its layer, its clips, its name */
   .obj-c0 { --obj: var(--data-1); } .obj-c1 { --obj: var(--data-2); } .obj-c2 { --obj: var(--data-3); }
   .obj-c3 { --obj: var(--data-4); } .obj-c4 { --obj: var(--data-5); } .obj-c5 { --obj: var(--data-6); }
+  /* a clip's colour: your own tracks' sounds are light green; an object's take its colour (clipClass) */
+  .tl-clip { --clip: var(--primary); }
+  .tl-tracks .tl-clip { --clip: var(--sound); }
   /* while dragging a clip, its value sits on it */
   .tl-clip[data-readout]::after {
     content: attr(data-readout); position: absolute; right: 4px; top: 2px; pointer-events: none;

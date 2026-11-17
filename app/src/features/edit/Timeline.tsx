@@ -374,7 +374,7 @@ function TrackRows({ axis }: { axis: Axis }) {
   };
   return (
     <>
-      <Lane axis={axis} cues={free} rows={n} tracks gutter={name} rowClass="odd:bg-foreground/[.025]" onDrop={(path, t, r) => addCue(path, t, r)} />
+      <Lane axis={axis} cues={free} rows={n} tracks gutter={name} className="tl-tracks" rowClass="odd:bg-foreground/[.025]" onDrop={(path, t, r) => addCue(path, t, r)} />
       <Row height={34} className="border-b-0" gutClass="border-r-0" name={<Button size="xs" variant="ghost" onClick={addTrack} disabled={n >= 16}>+ Add track</Button>} />
     </>
   );
@@ -482,8 +482,8 @@ function Clip({ c, k, className }: { c: Cue; k: number; className?: string }) {
     <div ref={ref} data-cue={c.id} data-on={on ? '' : undefined} tabIndex={0} role="button" aria-label={`${nameOf(c.sound)} at ${secs(start)}`}
       title={`${c.sound} · ${secs(start)} · ${secs(len)}${own.length ? ` · own: ${own.map((x) => SETTINGS[x].label.toLowerCase()).join(', ')}` : ''}`}
       onPointerDown={down} onPointerMove={hover} onKeyDown={key} onDoubleClick={() => openEditor(c.sound)}
-      className={cn('tl-clip absolute z-[1] cursor-grab touch-none overflow-hidden rounded-md border border-primary/55 bg-primary/16 select-none hover:border-primary',
-        'data-[on]:border-primary data-[on]:bg-primary/30 data-[on]:shadow-[0_0_0_1px_var(--primary)] data-[dragging]:z-[2] data-[dragging]:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-foreground',
+      className={cn('tl-clip absolute z-[1] cursor-grab touch-none overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--clip)_55%,transparent)] bg-[color-mix(in_srgb,var(--clip)_16%,transparent)] select-none hover:border-(--clip)',
+        'data-[on]:border-(--clip) data-[on]:bg-[color-mix(in_srgb,var(--clip)_30%,transparent)] data-[on]:shadow-[0_0_0_1px_var(--clip)] data-[dragging]:z-[2] data-[dragging]:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-foreground',
         c.mute && 'border-dashed opacity-45', className)}
       style={{ left: xAt(start, k), top: (c.track ?? 0) * TRK + 4, width: w, height: HGT }}>
       <Wave sound={c.sound} from={s.from} to={s.to} w={w} h={HGT} />
@@ -494,8 +494,8 @@ function Clip({ c, k, className }: { c: Cue; k: number; className?: string }) {
       {s.fadeOut ? <i className="pointer-events-none absolute inset-y-0 right-0 bg-linear-to-l from-background/70 to-transparent" style={{ width: s.fadeOut * k }} /> : null}
       <i ref={glRef} title={dB(s.gain)} className="pointer-events-none absolute inset-x-0 h-0 border-t-[1.5px] border-foreground opacity-75" style={{ top: gainY(s.gain, HGT) }} />
       {hit != null ? <i title="Hit point" className="pointer-events-none absolute inset-y-0 -ml-px w-0.5 bg-warning" style={{ left: hit }} /> : null}
-      <i className="pointer-events-none absolute inset-y-0 left-0 w-1.5 border-l-[3px] border-primary/70" />
-      <i className="pointer-events-none absolute inset-y-0 right-0 w-1.5 border-r-[3px] border-primary/70" />
+      <i className="pointer-events-none absolute inset-y-0 left-0 w-1.5 border-l-[3px] border-[color-mix(in_srgb,var(--clip)_70%,transparent)]" />
+      <i className="pointer-events-none absolute inset-y-0 right-0 w-1.5 border-r-[3px] border-[color-mix(in_srgb,var(--clip)_70%,transparent)]" />
     </div>
   );
 }
